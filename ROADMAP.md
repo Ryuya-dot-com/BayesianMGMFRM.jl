@@ -1,6 +1,6 @@
 # BayesianMGMFRM.jl — Internal Roadmap
 
-Current decisions reviewed 2026-10-06; the 2026-09-21 assessment of checkout
+Current decisions reviewed 2026-10-09; the 2026-09-21 assessment of checkout
 `9cf42fc` and subsequent dated evidence remain below. The current
 position is **working implementations with substantial numerical checks, before
 target-specific statistical acceptance**. The near-term finish is a declared
@@ -28,6 +28,12 @@ own the work order; scheduling language in dated records is historical.
 The [2026-09-30 strategic review](docs/internal/strategic-review-2026-09-30.md)
 keeps integration, independent usability review and scientific acceptance as distinct exits.
 The [2026-09-27 review](docs/internal/strategic-review-2026-09-27.md) retains the earlier evidence and decisions.
+
+**2026-10-09 user direction:** finish the frozen prediction pilot, then compare
+its target/results with a more efficient implementation before launching the
+fresh main assessment. Prefer the faster implementation only after target,
+diagnostic and precision checks pass. The [comparison handoff, foundation §26](docs/internal/mgmfrm-foundation-scale-acceptance.md)
+defines this new stage; no candidate fitting starts during the pilot.
 
 - **Scope:** the user-selected 2D fixed-Q foundation. Candidate C is an explicit
   normalized exchangeable prior for computational comparison, not an adopted
@@ -80,22 +86,24 @@ fits is not a percentage of overall scientific readiness.
 | Recovery, prior sensitivity and numerical failures | The [completed assessment, foundation record §20](docs/internal/mgmfrm-foundation-scale-acceptance.md) accounts for 32 independent paired blocks, 192 completed fits, 184 numerical passes and eight retained loading R-hat failures | Continuous summaries condition on qualification; variants share datasets. Even 0/32 failures has a pointwise exact 95% upper limit of 10.89%, so low failure probability is not established |
 | Prior adequacy and calibration | Under R1 / loading-prior SD 0.25, all 32 fits qualify numerically, yet I1's nominal 90% interval covers the fixed truth in only 1/32 cases, with no unresolved classifications | This is a substantive limitation of this prior/condition, not a reason to choose another prior after observing its RMSE. N=32 cannot establish any of the three calibration margins under the retained exact-interval rule. Fixed-facet coverage and joint-prior SBC remain distinct claims |
 | Heldout prediction | The binding/replay checks pass 543/660 assertions and panel/planning arithmetic passes nine tests. The [eight-block, 240-fit pilot, §§24–25](docs/internal/mgmfrm-foundation-scale-acceptance.md) stopped after 115 completed fits when host storage filled. Saved draws restore one further fit without sampling: the recovery checkpoint has 116 completed fits, one recorded external interruption, 123 unstarted fits and 19 qualified panels. Four numerical failures remain in three panels; the external interruption makes a fourth panel ineligible. Eight continuation tests and byte-identical replay of a completed fit pass. Only the 123 unstarted IDs resume, under the original frozen conditions | Neither the pilot nor the main C heldout assessment is complete. The 90-fit comparison results in §24 remain historical snapshots; small-sample variances and paired-difference precision are unresolved. Keep external interruptions distinct from numerical failures, retain planned denominators and never renormalize partial folds. Main N is unselected: use the fully validated continuation summary after every planned fit is terminal, not the preserved interruption-time summary. The target remains five-fold prediction of known people/items/raters after 1,000 training ratings; prior ranking/equivalence, new levels and performance after fitting all 1,250 ratings are not established |
-| Computational efficiency | Fitting accounts for 96.20% of summed attempt durations. The [four-fit comparison, §22](docs/internal/mgmfrm-foundation-scale-acceptance.md) preserves all saved numerical results, with measured time reductions of 26.24% and 2.12% | The fixed ≥5% improvement on each target was not met; retain Chunk 12. Shared-host timings without per-fit CPU time do not establish a general speed gain. No extra timing batch is scheduled |
+| Computational efficiency | Fitting accounts for 96.20% of summed attempt durations in the completed 192-fit assessment. The [four-fit comparison, §22](docs/internal/mgmfrm-foundation-scale-acceptance.md) preserves all saved numerical results, with measured time reductions of 26.24% and 2.12%. The current pilot also records per-fit CPU, compilation and GC time | The earlier ≥5% improvement on each target was not met; retain Chunk 12 throughout the pilot. After pilot closure, the newly requested comparison in §26 first considers Stan with the same target/coordinates, against freshly timed Julia baselines. Validate density/gradients, posterior summaries and heldout scores before comparing cost at the required precision. The old small-model Stan timing advantage is motivation, not a speed claim for this target |
 | Delivery and independent review | Local ordinary integration and the experimental fit/save/report workflow are complete | Hosted CI/OS/distribution, unfamiliar-reader review and independent scientific acceptance remain separate later exits; test counts do not substitute for them |
 
 The main remaining uncertainty is which scientific interpretations and predictive
-claims the declared prior/domain supports. More test assertions or another
-general speed search would not settle that question. The four-fit comparison
-answered its fixed adoption question; a negative or inconclusive decision closes
-that comparison. Future cost studies should record process CPU time and elapsed
-time from the start when a named analytical obstacle justifies them. No elapsed
-time cap is introduced.
+claims the declared prior/domain supports. The earlier four-fit comparison is
+closed; its adoption rule and results are not rewritten. The user's new
+post-pilot comparison addresses the cost of the forthcoming main assessment,
+with its own prospectively frozen cases, numerical agreement margins and speed
+decision. It adds no independent scientific replications. Record process CPU
+and elapsed time from the start, retaining failed attempts and uncertainty.
+No elapsed-time cap is introduced.
 
 | Order / responsible role | Next deliverable | Complete when |
 | --- | --- | --- |
 | 1 — Completed: analyst/maintainer | Normalized-C training-only target and heldout-score binding audit; no new posterior fit | All 543 checks pass: training rows, facet IDs, prior, coordinates and scoring agree; full-data fits and wrong training rows/priors are rejected. Heldout-outcome changes leave the training target unchanged. This is not a sparse-design identification proof or a completed fitted-CV review |
 | 2 — Running: analyst | Complete the separate eight-block, 240-fit prediction pilot | The known-level target, six means/seven contrasts, priors, blocks, splits, draws, numerical screens and failure handling are frozen in §24. Account for every planned outcome and report score-specific variance, MCSE and CPU/elapsed cost; inadequate precision remains unresolved |
-| 3 — Analyst / scientific reviewer | Apply the frozen pilot-based N rule, then execute a fresh main heldout assessment | Compare replication SE targets 0.005/0.01/0.02 nat; select 0.01 with at least 32 paired blocks using all 13 primary means/contrasts and qualification fractions. Every planning group needs at least three usable pilot blocks. Freeze the resulting N before main fitting. Preserve five folds as one panel, failures and actual achieved precision; no outcome-driven retries/extensions |
+| 3 — Numerical analyst / maintainer | Compare an efficient candidate with the completed pilot's posterior targets and saved results; begin with a matched Stan route | Freeze a separate protocol before candidate sampling: cases, independent RNG streams, repeated/interleaved timing schedule, full quantity roster, agreement margins, numerical gates, cost measures and minimum useful benefit. Confirm the same likelihood/prior/coordinates/Jacobian, then comparable MCSE and qualified ESS per CPU/elapsed second. Retain all outcomes; accept, reject or report inconclusive without extending until favorable. Freeze the adopted implementation before main fitting; §26 is a handoff, not yet an executable benchmark protocol |
+| 4 — Analyst / scientific reviewer | Apply the frozen pilot-based N rule, then execute a fresh main heldout assessment with the selected implementation | Compare replication SE targets 0.005/0.01/0.02 nat; select 0.01 with at least 32 paired blocks using all 13 primary means/contrasts and qualification fractions. Every planning group needs at least three usable pilot blocks. Use the validated continuation summary; exclude comparison refits from pilot variance/counts. Freeze N, backend and source identities before main fitting. Report that planning variance/eligibility came from the baseline sampler, along with actual achieved precision and failures; no outcome-driven retries/extensions |
 | Across these steps — Analyst / scientific reviewer | Resolve scientific units, prior/domain interpretation and the purpose of a separate calibration study | Retain all three prior widths as comparisons until there is a scientific adoption rationale. Distinguish fixed-facet coverage from joint-prior SBC; retain all three margins and original quantity rosters. Independent review remains unassigned and is not replaced by self-checks |
 | Conditional, then later — Numerical analyst / maintainer | Reopen common-scale mixing work only for a named obstacle to the selected analysis; return to delivery and model extensions after relevant foundation evidence | Preserve failures and verify the posterior target before any coordinate comparison. OS/distribution and broader model work retain their existing release conditions |
 
@@ -238,8 +246,10 @@ The earlier binding/diagnostic checks add no independent evaluation panels.
 Predictive-score variance and qualification fractions determine the fresh main
 assessment's N under the already fixed rule; pilot outcomes do not change its
 numerical thresholds or permit extra pilot blocks.
-No automatic extra timing fits or backend search follow the inconclusive adoption
-result. Mathematical/analytical work retains priority over OS and distribution.
+The earlier chunk experiment remains closed. The 2026-10-09 user direction adds
+the separately designed same-target efficiency comparison in §26 after pilot
+completion and before main fitting. Mathematical/analytical work retains
+priority over OS and distribution.
 
 The [current next-exit table](#current-assessment-and-next-exits) replaces the
 October 4 queue: its mathematical mapping, saved-fit review, protocol selection
