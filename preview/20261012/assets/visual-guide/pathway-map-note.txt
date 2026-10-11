@@ -1,0 +1,7 @@
+Synthetic illustration: 80 deterministic artificial draws, not a fitted posterior. Numerical diagnostics describe this fixture, not an actual estimation run.
+
+MFRM Pathway Map
+
+Note. Points: medians; bars: 95.0% marginal intervals on each axis.
+Infit = 1 is a reference, not an automatic acceptance threshold.
+Review sampler diagnostics and predictive checks before interpreting this map.
