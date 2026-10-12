@@ -1,0 +1,151 @@
+{
+  "source": {
+    "original_study": {
+      "qualified": 184,
+      "completed": 192,
+      "planned": 192
+    },
+    "selection": "first_planned_R1_block_middle_loading_prior",
+    "calibration_not_established": true,
+    "sha256": "df7811201a7e96e361968e4ce6c01a3f96a556e6dfd2b82d2c08affee61c63fb",
+    "new_independent_replications": 0,
+    "sample_content_hash": "7004183f94a5b7b0d3f01beb6dd30bc79783517d9a4b2a19b062cf2a79a9af7f",
+    "path": "results/workflows/20261004-foundation-fixed-facet-assessment-01/attempts/B01-R1-050/samples.jls",
+    "new_fits": 0
+  },
+  "rows": [
+    {
+      "facet": "person",
+      "dimension_label": "dim=1",
+      "target": "absolute",
+      "n_levels": 50,
+      "reliability": 0.7773293834305472,
+      "between_variance": 0.7060545462601135,
+      "within_variance": 0.202253516332503,
+      "total_variance": 0.9083080625926165,
+      "mcse": {
+        "precision_threshold_applied": false,
+        "method": "mcmc_delta_influence",
+        "status": "available",
+        "convergence_review_required": true,
+        "draws_per_chain": 1000,
+        "value": 0.0011838439378657804,
+        "n_chains": 4
+      },
+      "sampling_warning": false,
+      "n_retained_draws": 4000,
+      "result_content_hash": "1331ef8a8fd3ab56a5284c1fe4bf2f0600601ca6ca973a17a522ab8a935f13e3"
+    },
+    {
+      "facet": "person",
+      "dimension_label": "dim=1",
+      "target": "centered",
+      "n_levels": 50,
+      "reliability": 0.794889121006663,
+      "between_variance": 0.7060545462601134,
+      "within_variance": 0.18218826346151445,
+      "total_variance": 0.888242809721628,
+      "mcse": {
+        "precision_threshold_applied": false,
+        "method": "mcmc_delta_influence",
+        "status": "available",
+        "convergence_review_required": true,
+        "draws_per_chain": 1000,
+        "value": 0.001052544368594018,
+        "n_chains": 4
+      },
+      "sampling_warning": false,
+      "n_retained_draws": 4000,
+      "result_content_hash": "716bf23168cdef8f7f549474f411cae482b17c641492694eefe96f1d60059ee2"
+    },
+    {
+      "facet": "person",
+      "dimension_label": "dim=2",
+      "target": "absolute",
+      "n_levels": 50,
+      "reliability": 0.9018476749994307,
+      "between_variance": 0.8827183343975996,
+      "within_variance": 0.09607038887338602,
+      "total_variance": 0.9787887232709856,
+      "mcse": {
+        "precision_threshold_applied": false,
+        "method": "mcmc_delta_influence",
+        "status": "available",
+        "convergence_review_required": true,
+        "draws_per_chain": 1000,
+        "value": 0.000722717679915381,
+        "n_chains": 4
+      },
+      "sampling_warning": false,
+      "n_retained_draws": 4000,
+      "result_content_hash": "32130e414b3f0cb716e1ac55377a91e21e2dcbe2174551df6ff50ff3c81f5524"
+    },
+    {
+      "facet": "person",
+      "dimension_label": "dim=2",
+      "target": "centered",
+      "n_levels": 50,
+      "reliability": 0.920045920208886,
+      "between_variance": 0.8827183343976004,
+      "within_variance": 0.07671022781719555,
+      "total_variance": 0.959428562214796,
+      "mcse": {
+        "precision_threshold_applied": false,
+        "method": "mcmc_delta_influence",
+        "status": "available",
+        "convergence_review_required": true,
+        "draws_per_chain": 1000,
+        "value": 0.0005101972598227973,
+        "n_chains": 4
+      },
+      "sampling_warning": false,
+      "n_retained_draws": 4000,
+      "result_content_hash": "8f9c6e90f1ec59baf71304ce606c1ca1fa2731aa34743901119c81998a6f3547"
+    },
+    {
+      "facet": "rater",
+      "dimension_label": null,
+      "target": "absolute",
+      "n_levels": 5,
+      "reliability": 0.9891803235444121,
+      "between_variance": 0.37040043493518326,
+      "within_variance": 0.004051448223967658,
+      "total_variance": 0.3744518831591509,
+      "mcse": {
+        "precision_threshold_applied": false,
+        "method": "mcmc_delta_influence",
+        "status": "available",
+        "convergence_review_required": true,
+        "draws_per_chain": 1000,
+        "value": 0.00017992411896426507,
+        "n_chains": 4
+      },
+      "sampling_warning": false,
+      "n_retained_draws": 4000,
+      "result_content_hash": "d9ac5e6e5a79c80a5c6f6f353d013e3bdeeaba07f43cdfff70d56df478f6210a"
+    },
+    {
+      "facet": "rater",
+      "dimension_label": null,
+      "target": "centered",
+      "n_levels": 5,
+      "reliability": 0.989180323544412,
+      "between_variance": 0.37040043493518304,
+      "within_variance": 0.004051448223967658,
+      "total_variance": 0.3744518831591507,
+      "mcse": {
+        "precision_threshold_applied": false,
+        "method": "mcmc_delta_influence",
+        "status": "available",
+        "convergence_review_required": true,
+        "draws_per_chain": 1000,
+        "value": 0.00017992411896426518,
+        "n_chains": 4
+      },
+      "sampling_warning": false,
+      "n_retained_draws": 4000,
+      "result_content_hash": "c36bfe00161b85c2aae8860cfeae7b5d6cb084b7a65e4ff5b39dced1ada8d788"
+    }
+  ],
+  "interpretation": "Finite-cohort descriptive posterior functionals, not CrIs, calibrated design reliability, or rater agreement."
+}

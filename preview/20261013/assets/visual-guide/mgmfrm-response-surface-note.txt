@@ -1,0 +1,8 @@
+Simulated-data example: 16,000 retained joint draws from the existing experimental MGMFRM fit. No new posterior fitting.
+
+Experimental MGMFRM item response surface Item I1 · Rater R1
+
+Note. Category probability; 16000 of 16000 retained joint draws. No additional ability dimensions. Q excludes θ₂; the surface is flat along that axis.
+Pointwise intervals describe uncertainty in the conditional mean/probability, not future individual ratings.
+Ability ranges are display choices; they do not establish data support.
+No warnings under the fit's MCMC diagnostic thresholds (whole fit).

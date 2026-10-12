@@ -1,0 +1,5 @@
+Experimental MGMFRM fit to simulated ratings; no new fitting. All 16,000 saved joint draws are reused.
+
+Rater Comparison at Item I1
+
+Note. Raters: R1, R2, R3, R4, R5. Item I1 is fixed. Rating 4; all 16000 retained joint draws. Ability axes: dim=1, dim=2; no additional fixed abilities. Grid: -2.0 to 2.0 (21 points) × -2.0 to 2.0 (21 points). Height and color show posterior mean probability on the same 0–1 scale in every panel. An inactive Q dimension is flat by construction. Display ranges do not establish data support. Images omit uncertainty; numerical data retain 90.0% pointwise credible intervals for each conditional probability, not intervals for future ratings or between-panel differences. No warnings under the fit's MCMC diagnostic thresholds Rater differences reflect severity and consistency; these panels do not establish bias or rater quality.

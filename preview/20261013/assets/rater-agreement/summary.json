@@ -1,0 +1,1199 @@
+{
+  "provenance": {
+    "selection": "first_planned_R1_block_middle_loading_prior",
+    "calibration_not_established": true,
+    "input_sha256": "93dcc51defa616c6e4dd6dc721d77b65968273dfc22b304893630b722cc5b451",
+    "input": "results/workflows/20261004-foundation-fixed-facet-assessment-01/inputs/B01-R1.json",
+    "path": "results/workflows/20261004-foundation-fixed-facet-assessment-01/attempts/B01-R1-050/samples.jls",
+    "new_fits": 0,
+    "original_study": {
+      "qualified": 184,
+      "completed": 192,
+      "planned": 192
+    },
+    "response_identity": "explicit_simulated_person_item_single_occasion",
+    "sha256": "df7811201a7e96e361968e4ce6c01a3f96a556e6dfd2b82d2c08affee61c63fb",
+    "new_independent_replications": 0,
+    "generator": "scripts/mgmfrm_core_reference.py:generate",
+    "sample_content_hash": "7004183f94a5b7b0d3f01beb6dd30bc79783517d9a4b2a19b062cf2a79a9af7f"
+  },
+  "n_ratings": 1250,
+  "n_persons": 50,
+  "n_items": 5,
+  "n_raters": 5,
+  "n_retained_draws": 4000,
+  "overall": {
+    "exact": {
+      "observed_rate": 0.3644,
+      "mcse": {
+        "precision_threshold_applied": false,
+        "parameter": "expected_agreement",
+        "mean_mcse": 0.00012459058567368733,
+        "total_draws": 4000,
+        "draws_per_chain": 1000,
+        "quantiles": [
+          {
+            "mcse": 0.00032884681201281185,
+            "probability": 0.025000000000000022,
+            "estimate": 0.36126570692505006
+          },
+          {
+            "mcse": 0.0001570733548009462,
+            "probability": 0.5,
+            "estimate": 0.3754105137428018
+          },
+          {
+            "mcse": 0.00042505096047357194,
+            "probability": 0.975,
+            "estimate": 0.38998434832659384
+          }
+        ],
+        "precision_decision": "not_applied",
+        "split_chains": 2,
+        "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+        "mcse_status": "available",
+        "sd_mcse": 9.403094903750137e-05,
+        "minimum_draws_per_chain": 10,
+        "convergence_review_required": true,
+        "n_chains": 4,
+        "parameter_space": "probability"
+      },
+      "observed_se": {
+        "method": "cluster_ratio_linearization",
+        "status": "approximate",
+        "unit": "person",
+        "value": 0.015175598028091148,
+        "n_persons": 50
+      },
+      "observed_count": 911,
+      "expected_upper": 0.38998434832659384,
+      "expected_mean": 0.3755093317173964,
+      "observed_minus_expected_mean": -0.01110933171739642,
+      "status": "descriptive",
+      "expected_median": 0.3754105137428018,
+      "expected_lower": 0.36126570692505006
+    },
+    "adjacent": {
+      "observed_rate": 0.8012,
+      "mcse": {
+        "precision_threshold_applied": false,
+        "parameter": "expected_agreement",
+        "mean_mcse": 0.00016391721115863398,
+        "total_draws": 4000,
+        "draws_per_chain": 1000,
+        "quantiles": [
+          {
+            "mcse": 0.0004229722472076647,
+            "probability": 0.025000000000000022,
+            "estimate": 0.783462555876694
+          },
+          {
+            "mcse": 0.00019758901097077786,
+            "probability": 0.5,
+            "estimate": 0.8030697505687392
+          },
+          {
+            "mcse": 0.00039103543336543867,
+            "probability": 0.975,
+            "estimate": 0.8206354895767293
+          }
+        ],
+        "precision_decision": "not_applied",
+        "split_chains": 2,
+        "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+        "mcse_status": "available",
+        "sd_mcse": 0.0001221060229993737,
+        "minimum_draws_per_chain": 10,
+        "convergence_review_required": true,
+        "n_chains": 4,
+        "parameter_space": "probability"
+      },
+      "observed_se": {
+        "method": "cluster_ratio_linearization",
+        "status": "approximate",
+        "unit": "person",
+        "value": 0.012846471762110165,
+        "n_persons": 50
+      },
+      "observed_count": 2003,
+      "expected_upper": 0.8206354895767293,
+      "expected_mean": 0.8026737411070096,
+      "observed_minus_expected_mean": -0.0014737411070095963,
+      "status": "descriptive",
+      "expected_median": 0.8030697505687392,
+      "expected_lower": 0.783462555876694
+    },
+    "n_persons": 50,
+    "n_opportunities": 2500
+  },
+  "rater_pairs": [
+    {
+      "rater_b": "R2",
+      "n_persons": 50,
+      "exact": {
+        "observed_rate": 0.436,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.00025645611634039984,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0005073721429783296,
+              "probability": 0.025000000000000022,
+              "estimate": 0.4164870989547372
+            },
+            {
+              "mcse": 0.0002754813038889359,
+              "probability": 0.5,
+              "estimate": 0.44429851621392247
+            },
+            {
+              "mcse": 0.00046772927401891873,
+              "probability": 0.975,
+              "estimate": 0.47212140313001166
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.00020141552705388408,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.027219440831576132,
+          "n_persons": 50
+        },
+        "observed_count": 109,
+        "expected_upper": 0.47212140313001166,
+        "expected_mean": 0.4441748885410451,
+        "observed_minus_expected_mean": -0.008174888541045089,
+        "status": "descriptive",
+        "expected_median": 0.44429851621392247,
+        "expected_lower": 0.4164870989547372
+      },
+      "adjacent": {
+        "observed_rate": 0.888,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.00022803650955187613,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0007899279555708127,
+              "probability": 0.025000000000000022,
+              "estimate": 0.8482764552170834
+            },
+            {
+              "mcse": 0.0002305489210847056,
+              "probability": 0.5,
+              "estimate": 0.8732999525209009
+            },
+            {
+              "mcse": 0.0004968794318438441,
+              "probability": 0.975,
+              "estimate": 0.8966223076105304
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.0001776339935128093,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.01992639517047165,
+          "n_persons": 50
+        },
+        "observed_count": 222,
+        "expected_upper": 0.8966223076105304,
+        "expected_mean": 0.8730035726357649,
+        "observed_minus_expected_mean": 0.014996427364235121,
+        "status": "descriptive",
+        "expected_median": 0.8732999525209009,
+        "expected_lower": 0.8482764552170834
+      },
+      "rater_a": "R1",
+      "n_opportunities": 250
+    },
+    {
+      "rater_b": "R3",
+      "n_persons": 50,
+      "exact": {
+        "observed_rate": 0.396,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.0002686073989877453,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0006518133002569038,
+              "probability": 0.025000000000000022,
+              "estimate": 0.36554281690050233
+            },
+            {
+              "mcse": 0.0002960518464152073,
+              "probability": 0.5,
+              "estimate": 0.39538417516136914
+            },
+            {
+              "mcse": 0.000569121591559224,
+              "probability": 0.975,
+              "estimate": 0.4261388157994767
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.00020878207085200788,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.02827849835807685,
+          "n_persons": 50
+        },
+        "observed_count": 99,
+        "expected_upper": 0.4261388157994767,
+        "expected_mean": 0.39517874918207985,
+        "observed_minus_expected_mean": 0.0008212508179201716,
+        "status": "descriptive",
+        "expected_median": 0.39538417516136914,
+        "expected_lower": 0.36554281690050233
+      },
+      "adjacent": {
+        "observed_rate": 0.86,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.0003030617102607651,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0007703451258034288,
+              "probability": 0.025000000000000022,
+              "estimate": 0.7979940548745311
+            },
+            {
+              "mcse": 0.0003503516948316632,
+              "probability": 0.5,
+              "estimate": 0.8323629331155022
+            },
+            {
+              "mcse": 0.0005720885453436853,
+              "probability": 0.975,
+              "estimate": 0.8632829056622119
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.0002238883220798774,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.02303502213799585,
+          "n_persons": 50
+        },
+        "observed_count": 215,
+        "expected_upper": 0.8632829056622119,
+        "expected_mean": 0.83168907804656,
+        "observed_minus_expected_mean": 0.028310921953439983,
+        "status": "descriptive",
+        "expected_median": 0.8323629331155022,
+        "expected_lower": 0.7979940548745311
+      },
+      "rater_a": "R1",
+      "n_opportunities": 250
+    },
+    {
+      "rater_b": "R4",
+      "n_persons": 50,
+      "exact": {
+        "observed_rate": 0.26,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.00025805789612092504,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.000717935152121485,
+              "probability": 0.025000000000000022,
+              "estimate": 0.2789422522352256
+            },
+            {
+              "mcse": 0.00031027496737409677,
+              "probability": 0.5,
+              "estimate": 0.3128144245742317
+            },
+            {
+              "mcse": 0.0004669360516514065,
+              "probability": 0.975,
+              "estimate": 0.345005822471192
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.0002224656614770395,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.028139593719417447,
+          "n_persons": 50
+        },
+        "observed_count": 65,
+        "expected_upper": 0.345005822471192,
+        "expected_mean": 0.31273338471019224,
+        "observed_minus_expected_mean": -0.05273338471019223,
+        "status": "descriptive",
+        "expected_median": 0.3128144245742317,
+        "expected_lower": 0.2789422522352256
+      },
+      "adjacent": {
+        "observed_rate": 0.728,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.0003101714369094754,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0009372058558416163,
+              "probability": 0.025000000000000022,
+              "estimate": 0.7035148076994849
+            },
+            {
+              "mcse": 0.0003965183651006843,
+              "probability": 0.5,
+              "estimate": 0.7475011986839355
+            },
+            {
+              "mcse": 0.0006951693916317225,
+              "probability": 0.975,
+              "estimate": 0.7861487524237989
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.0002907912398768449,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.032706486905723864,
+          "n_persons": 50
+        },
+        "observed_count": 182,
+        "expected_upper": 0.7861487524237989,
+        "expected_mean": 0.7468332856090122,
+        "observed_minus_expected_mean": -0.018833285609012207,
+        "status": "descriptive",
+        "expected_median": 0.7475011986839355,
+        "expected_lower": 0.7035148076994849
+      },
+      "rater_a": "R1",
+      "n_opportunities": 250
+    },
+    {
+      "rater_b": "R5",
+      "n_persons": 50,
+      "exact": {
+        "observed_rate": 0.204,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.00023803297600370602,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0006597295343054865,
+              "probability": 0.025000000000000022,
+              "estimate": 0.1906360096446691
+            },
+            {
+              "mcse": 0.0003322543785282267,
+              "probability": 0.5,
+              "estimate": 0.2222058088178209
+            },
+            {
+              "mcse": 0.0005964328576558986,
+              "probability": 0.975,
+              "estimate": 0.2530540716664205
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.0002169079554732099,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.022489907033319347,
+          "n_persons": 50
+        },
+        "observed_count": 51,
+        "expected_upper": 0.2530540716664205,
+        "expected_mean": 0.22216032221112653,
+        "observed_minus_expected_mean": -0.01816032221112654,
+        "status": "descriptive",
+        "expected_median": 0.2222058088178209,
+        "expected_lower": 0.1906360096446691
+      },
+      "adjacent": {
+        "observed_rate": 0.616,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.0003712309878604441,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.001189167123552104,
+              "probability": 0.025000000000000022,
+              "estimate": 0.5764349371464604
+            },
+            {
+              "mcse": 0.0004964300936032839,
+              "probability": 0.5,
+              "estimate": 0.6242572212844828
+            },
+            {
+              "mcse": 0.0007436578805369853,
+              "probability": 0.975,
+              "estimate": 0.6677492747782632
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.00031916525261470167,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.03274639721575864,
+          "n_persons": 50
+        },
+        "observed_count": 154,
+        "expected_upper": 0.6677492747782632,
+        "expected_mean": 0.6232116330916535,
+        "observed_minus_expected_mean": -0.007211633091653513,
+        "status": "descriptive",
+        "expected_median": 0.6242572212844828,
+        "expected_lower": 0.5764349371464604
+      },
+      "rater_a": "R1",
+      "n_opportunities": 250
+    },
+    {
+      "rater_b": "R3",
+      "n_persons": 50,
+      "exact": {
+        "observed_rate": 0.34,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.0002758636553569261,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0007228523681047094,
+              "probability": 0.025000000000000022,
+              "estimate": 0.3838876225047887
+            },
+            {
+              "mcse": 0.0002987587905481093,
+              "probability": 0.5,
+              "estimate": 0.41052758751406715
+            },
+            {
+              "mcse": 0.0008320472393658906,
+              "probability": 0.975,
+              "estimate": 0.4379838028483724
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.00019803021334711122,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.0339266916772512,
+          "n_persons": 50
+        },
+        "observed_count": 85,
+        "expected_upper": 0.4379838028483724,
+        "expected_mean": 0.410656393278222,
+        "observed_minus_expected_mean": -0.07065639327822199,
+        "status": "descriptive",
+        "expected_median": 0.41052758751406715,
+        "expected_lower": 0.3838876225047887
+      },
+      "adjacent": {
+        "observed_rate": 0.852,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.0002818963661623446,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0006737251486991225,
+              "probability": 0.025000000000000022,
+              "estimate": 0.8244883173546339
+            },
+            {
+              "mcse": 0.000312958096228666,
+              "probability": 0.5,
+              "estimate": 0.8529601907118396
+            },
+            {
+              "mcse": 0.0009341872901046377,
+              "probability": 0.975,
+              "estimate": 0.8793775791991224
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.0002070308382010942,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.019637531745645233,
+          "n_persons": 50
+        },
+        "observed_count": 213,
+        "expected_upper": 0.8793775791991224,
+        "expected_mean": 0.8524789714257217,
+        "observed_minus_expected_mean": -0.00047897142572173035,
+        "status": "descriptive",
+        "expected_median": 0.8529601907118396,
+        "expected_lower": 0.8244883173546339
+      },
+      "rater_a": "R2",
+      "n_opportunities": 250
+    },
+    {
+      "rater_b": "R4",
+      "n_persons": 50,
+      "exact": {
+        "observed_rate": 0.34,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.0002972822574363481,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0006158521840442799,
+              "probability": 0.025000000000000022,
+              "estimate": 0.32215496994345577
+            },
+            {
+              "mcse": 0.0003717222604389392,
+              "probability": 0.5,
+              "estimate": 0.35507217879143116
+            },
+            {
+              "mcse": 0.0007080802869257885,
+              "probability": 0.975,
+              "estimate": 0.3874718853858402
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.0002476092333673066,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.03037184517924186,
+          "n_persons": 50
+        },
+        "observed_count": 85,
+        "expected_upper": 0.3874718853858402,
+        "expected_mean": 0.3548105449373987,
+        "observed_minus_expected_mean": -0.014810544937398695,
+        "status": "descriptive",
+        "expected_median": 0.35507217879143116,
+        "expected_lower": 0.32215496994345577
+      },
+      "adjacent": {
+        "observed_rate": 0.768,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.0003292405230198558,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0006727995722041191,
+              "probability": 0.025000000000000022,
+              "estimate": 0.7557751468122864
+            },
+            {
+              "mcse": 0.00031612252104418204,
+              "probability": 0.5,
+              "estimate": 0.7951189464148909
+            },
+            {
+              "mcse": 0.0010510311372620706,
+              "probability": 0.975,
+              "estimate": 0.8308355666988845
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.00028953775255031615,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.027618390796787576,
+          "n_persons": 50
+        },
+        "observed_count": 192,
+        "expected_upper": 0.8308355666988845,
+        "expected_mean": 0.7946180254178837,
+        "observed_minus_expected_mean": -0.026618025417883717,
+        "status": "descriptive",
+        "expected_median": 0.7951189464148909,
+        "expected_lower": 0.7557751468122864
+      },
+      "rater_a": "R2",
+      "n_opportunities": 250
+    },
+    {
+      "rater_b": "R5",
+      "n_persons": 50,
+      "exact": {
+        "observed_rate": 0.272,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.00028134172343482285,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0008273841990917991,
+              "probability": 0.025000000000000022,
+              "estimate": 0.2427201151342382
+            },
+            {
+              "mcse": 0.00031217829102331285,
+              "probability": 0.5,
+              "estimate": 0.27600298487287117
+            },
+            {
+              "mcse": 0.0006960765932524926,
+              "probability": 0.975,
+              "estimate": 0.3078764815067959
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.00021901264865427454,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.030644771834952962,
+          "n_persons": 50
+        },
+        "observed_count": 68,
+        "expected_upper": 0.3078764815067959,
+        "expected_mean": 0.2757782140838656,
+        "observed_minus_expected_mean": -0.003778214083865583,
+        "status": "descriptive",
+        "expected_median": 0.27600298487287117,
+        "expected_lower": 0.2427201151342382
+      },
+      "adjacent": {
+        "observed_rate": 0.68,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.00040194895262899734,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.00120646594599072,
+              "probability": 0.025000000000000022,
+              "estimate": 0.6478229966212394
+            },
+            {
+              "mcse": 0.0005327108781309486,
+              "probability": 0.5,
+              "estimate": 0.6935861931187948
+            },
+            {
+              "mcse": 0.0013267489703718272,
+              "probability": 0.975,
+              "estimate": 0.734748763672282
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.00031166030229328774,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.030772370326482886,
+          "n_persons": 50
+        },
+        "observed_count": 170,
+        "expected_upper": 0.734748763672282,
+        "expected_mean": 0.6929947799246087,
+        "observed_minus_expected_mean": -0.012994779924608624,
+        "status": "descriptive",
+        "expected_median": 0.6935861931187948,
+        "expected_lower": 0.6478229966212394
+      },
+      "rater_a": "R2",
+      "n_opportunities": 250
+    },
+    {
+      "rater_b": "R4",
+      "n_persons": 50,
+      "exact": {
+        "observed_rate": 0.416,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.00028549035229810145,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0006740008136600639,
+              "probability": 0.025000000000000022,
+              "estimate": 0.4119902450400247
+            },
+            {
+              "mcse": 0.0003445566930870003,
+              "probability": 0.5,
+              "estimate": 0.44330178927703057
+            },
+            {
+              "mcse": 0.0006570867138231129,
+              "probability": 0.975,
+              "estimate": 0.472188120930682
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.0002053867911044863,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.03420943896479033,
+          "n_persons": 50
+        },
+        "observed_count": 104,
+        "expected_upper": 0.472188120930682,
+        "expected_mean": 0.4428888581600145,
+        "observed_minus_expected_mean": -0.026888858160014517,
+        "status": "descriptive",
+        "expected_median": 0.44330178927703057,
+        "expected_lower": 0.4119902450400247
+      },
+      "adjacent": {
+        "observed_rate": 0.876,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.00025243396363452915,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0008164064217183187,
+              "probability": 0.025000000000000022,
+              "estimate": 0.8506955272305289
+            },
+            {
+              "mcse": 0.0002602246484146309,
+              "probability": 0.5,
+              "estimate": 0.8801950322058455
+            },
+            {
+              "mcse": 0.0006501492199086356,
+              "probability": 0.975,
+              "estimate": 0.9051280732066855
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.00019355034390861162,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.02051579779544713,
+          "n_persons": 50
+        },
+        "observed_count": 219,
+        "expected_upper": 0.9051280732066855,
+        "expected_mean": 0.8792736935997247,
+        "observed_minus_expected_mean": -0.0032736935997247363,
+        "status": "descriptive",
+        "expected_median": 0.8801950322058455,
+        "expected_lower": 0.8506955272305289
+      },
+      "rater_a": "R3",
+      "n_opportunities": 250
+    },
+    {
+      "rater_b": "R5",
+      "n_persons": 50,
+      "exact": {
+        "observed_rate": 0.44,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.0002744655844858932,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0007523166452884644,
+              "probability": 0.025000000000000022,
+              "estimate": 0.35299745006248645
+            },
+            {
+              "mcse": 0.0003964939556748426,
+              "probability": 0.5,
+              "estimate": 0.38665632281231654
+            },
+            {
+              "mcse": 0.0010567982374125318,
+              "probability": 0.975,
+              "estimate": 0.42036590464722323
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.00022030358277634626,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.031815796359028696,
+          "n_persons": 50
+        },
+        "observed_count": 110,
+        "expected_upper": 0.42036590464722323,
+        "expected_mean": 0.3866410668041425,
+        "observed_minus_expected_mean": 0.053358933195857494,
+        "status": "descriptive",
+        "expected_median": 0.38665632281231654,
+        "expected_lower": 0.35299745006248645
+      },
+      "adjacent": {
+        "observed_rate": 0.824,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.0003245769975162959,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0008821716601498664,
+              "probability": 0.025000000000000022,
+              "estimate": 0.7786819986142917
+            },
+            {
+              "mcse": 0.0004188124061013099,
+              "probability": 0.5,
+              "estimate": 0.8183428809455155
+            },
+            {
+              "mcse": 0.0007001263133106228,
+              "probability": 0.975,
+              "estimate": 0.8519394083447818
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.00023810790754854105,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.02467089502276903,
+          "n_persons": 50
+        },
+        "observed_count": 206,
+        "expected_upper": 0.8519394083447818,
+        "expected_mean": 0.8175441358417013,
+        "observed_minus_expected_mean": 0.006455864158298685,
+        "status": "descriptive",
+        "expected_median": 0.8183428809455155,
+        "expected_lower": 0.7786819986142917
+      },
+      "rater_a": "R3",
+      "n_opportunities": 250
+    },
+    {
+      "rater_b": "R5",
+      "n_persons": 50,
+      "exact": {
+        "observed_rate": 0.54,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.00032098037957258946,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0011278238332592394,
+              "probability": 0.025000000000000022,
+              "estimate": 0.47600285771398226
+            },
+            {
+              "mcse": 0.00040896097664744335,
+              "probability": 0.5,
+              "estimate": 0.5102842830034302
+            },
+            {
+              "mcse": 0.0007167504367424082,
+              "probability": 0.975,
+              "estimate": 0.5429798387336641
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.0002348404757248648,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.03245090483314444,
+          "n_persons": 50
+        },
+        "observed_count": 135,
+        "expected_upper": 0.5429798387336641,
+        "expected_mean": 0.5100708952658739,
+        "observed_minus_expected_mean": 0.029929104734126133,
+        "status": "descriptive",
+        "expected_median": 0.5102842830034302,
+        "expected_lower": 0.47600285771398226
+      },
+      "adjacent": {
+        "observed_rate": 0.92,
+        "mcse": {
+          "precision_threshold_applied": false,
+          "parameter": "expected_agreement",
+          "mean_mcse": 0.00024724616603225875,
+          "total_draws": 4000,
+          "draws_per_chain": 1000,
+          "quantiles": [
+            {
+              "mcse": 0.0008180367132737398,
+              "probability": 0.025000000000000022,
+              "estimate": 0.8897173982101041
+            },
+            {
+              "mcse": 0.00032220932532922575,
+              "probability": 0.5,
+              "estimate": 0.9160029388976123
+            },
+            {
+              "mcse": 0.0003953981999550993,
+              "probability": 0.975,
+              "estimate": 0.9366238013210727
+            }
+          ],
+          "precision_decision": "not_applied",
+          "split_chains": 2,
+          "mcse_method": "mcmcdiagnostictools_ess_asymptotic_variance",
+          "mcse_status": "available",
+          "sd_mcse": 0.00016960550735584963,
+          "minimum_draws_per_chain": 10,
+          "convergence_review_required": true,
+          "n_chains": 4,
+          "parameter_space": "probability"
+        },
+        "observed_se": {
+          "method": "cluster_ratio_linearization",
+          "status": "approximate",
+          "unit": "person",
+          "value": 0.015118578920369089,
+          "n_persons": 50
+        },
+        "observed_count": 230,
+        "expected_upper": 0.9366238013210727,
+        "expected_mean": 0.9150902354774666,
+        "observed_minus_expected_mean": 0.004909764522533444,
+        "status": "descriptive",
+        "expected_median": 0.9160029388976123,
+        "expected_lower": 0.8897173982101041
+      },
+      "rater_a": "R4",
+      "n_opportunities": 250
+    }
+  ],
+  "sampling_warning": false,
+  "mcse_warning": false,
+  "interval_probability": 0.95,
+  "interval_method": "equal_tailed",
+  "scientific_acceptance": "not_established",
+  "expected_target": "conditional_expected_agreement_existing_responses",
+  "weighting": "equal_unordered_pair_opportunity",
+  "content_hash": "7def00818bfaae7502049573b6304fb3b1ceb9bf112b80cdc51808340841033d"
+}
