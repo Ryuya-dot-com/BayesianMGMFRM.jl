@@ -27,6 +27,14 @@ in its original environment and export a report bundle there. Renaming the file
 does not convert its format. An inability to read this binary cache is separate
 from the package's ability to run an analysis under Julia 1.10.
 
+Keeping the Julia version alone is not sufficient. A fresh project can resolve
+newer dependency versions even when BayesianMGMFRM itself is pinned. Recomputed
+diagnostics may then differ at floating-point precision and fail the native
+cache's exact diagnostic checks. Preserve and restore the complete original
+`Project.toml` and `Manifest.toml`; do not bypass integrity checks or refit merely
+to read saved results. Export a portable report in the original environment when
+the recipient only needs the computed results.
+
 ## One report with explicit analysis choices
 
 The optional `reporting` named tuple is shared by all eight supported saved-fit

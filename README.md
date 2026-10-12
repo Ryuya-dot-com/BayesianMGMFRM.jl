@@ -59,6 +59,12 @@ The ICC values are approximately `2/3`, `0.8`, `1.0` and `1.0`, in that order.
 They illustrate agreement versus consistency under an explicit equal-gap score
 assumption; they are not evidence of population reliability. No model is fitted.
 
+To reopen a native `.jls` fit cache, restore its original Julia version and
+complete dependency environment. Pinning only BayesianMGMFRM does not pin every
+dependency. Even small changes in recomputed diagnostics can make integrity
+checks reject a cache. To share already computed results across environments,
+use the [portable JSON report workflow](docs/src/api-saved-reporting.md#Reopen-an-analysis-or-share-its-results).
+
 ## Model Support
 
 | Model surface | Status | Entry point |
