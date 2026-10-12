@@ -37,6 +37,36 @@ class ResourceGuardChecks(unittest.TestCase):
         self.assertEqual(result["status"], "command_failed")
         self.assertEqual(result["exit_code"], 7)
 
+    def test_no_wall_limit(self):
+        # A clock jump beyond the old three-hour cap must not stop this job.
+        original = guard.time.monotonic
+        calls = 0
+        def later():
+            nonlocal calls
+            calls += 1
+            return original() + (4 * 3600 if calls > 1 else 0)
+        directory = ROOT / self._testMethodName
+        with patch.object(guard.time, "monotonic", side_effect=later):
+            result = guard.run_guarded([sys.executable, "-c", "print('completed')"], directory,
+                wall_seconds=None, rss_bytes=128 * 1024**2, output_bytes=1024**2)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["exit_code"], 0)
+        self.assertIsNone(result["limits"]["wall_seconds"])
+        self.assertIsNone(result["limits"]["batch_deadline"])
+        self.assertGreater(result["seconds"], 4 * 3600)
+        self.assertEqual(result, json.loads((directory / "guard-receipt.json").read_text()))
+
+    def test_no_wall_limit_keeps_rss_limit(self):
+        result = self.run_job("import time; x=bytearray(80*1024**2); time.sleep(20)",
+                              wall_seconds=None, rss_bytes=70 * 1024**2)
+        self.assertEqual(result["status"], "rss_limit")
+
+    def test_no_wall_limit_keeps_explicit_batch_deadline(self):
+        result = self.run_job("raise RuntimeError('must not launch')",
+                              wall_seconds=None, batch_deadline=time.monotonic() - 1)
+        self.assertEqual(result["status"], "wall_limit_before_launch")
+        self.assertFalse(result["launched"])
+
     def test_stubborn_wall_limit(self):
         result = self.run_job("import signal,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); print('ready',flush=True); time.sleep(20)", wall_seconds=0.6)
         self.assertEqual(result["status"], "wall_limit")
@@ -195,7 +225,7 @@ if __name__ == "__main__":
         start = time.monotonic()
         outcome = unittest.TextTestRunner(verbosity=2).run(suite)
         result = dict(tests=outcome.testsRun, failures=len(outcome.failures), errors=len(outcome.errors), seconds=time.monotonic()-start,
-                      new_sampler_runs=0, worker_scope="Only Python children created by this suite; memory payload <=80 MiB; each job <=3 s + bounded cleanup")
+                      new_sampler_runs=0, worker_scope="Only Python children created by this suite; memory payload <=80 MiB; finite-deadline and no-deadline controls tested; clock jump is simulated")
         (ROOT / "verification.json").write_text(json.dumps(result, indent=2) + "\n")
         print(json.dumps(result))
         raise SystemExit(0 if outcome.wasSuccessful() else 1)

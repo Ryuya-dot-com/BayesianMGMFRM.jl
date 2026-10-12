@@ -145,7 +145,7 @@ end
 
 """
     BayesianMGMFRM.plot_prior(check; interval = 0.95, block = nothing,
-        dimension = nothing, parameters = nothing, max_parameters = 60, size = nothing)
+        dimension = nothing, parameters = nothing, max_parameters = 60, size = nothing, annotation_io = stdout)
 
 Plot parameter medians and central prior intervals from a fixed-coefficient
 MFRM `Experimental.prior_predictive_check` result. Load `CairoMakie` first;
@@ -155,12 +155,16 @@ blocks as in `plot_posterior`. Correlated models support `block = :latent_correl
 Locations and reconstructed steps use unit logits; rho uses its correlation
 scale. Diamonds are fixed coefficients/baseline steps, not estimated precision.
 `check.parameter_summary` contains 95% numerical intervals for all coordinates.
+The default `annotation_io = stdout` writes the title and complete note outside
+the image. Pass a writable IO stream to save that text, or `nothing` for
+the previous embedded format. The editable Figure return is unchanged;
+keep the external note with the exported image.
 """
-function plot_prior(check::NamedTuple; size = nothing, kwargs...)
+function plot_prior(check::NamedTuple; size = nothing, annotation_io = stdout, kwargs...)
     data = _fixed_q_prior_plot_data(check; kwargs...)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
     extension === nothing && throw(ArgumentError("plot_prior requires `using CairoMakie`"))
-    return _render_fixed_q_prior(extension, data; size)
+    return _render_fixed_q_prior(extension, data; size, annotation_io)
 end
 
 function _prior_caption(data)
@@ -172,12 +176,12 @@ function _prior_caption(data)
         "Model support: experimental. Prior plausibility does not establish identification or recovery."
 end
 
-function _render_fixed_q_prior(extension, data; size = nothing)
+function _render_fixed_q_prior(extension, data; size = nothing, annotation_io = stdout)
     model = _fixed_q_is_correlated(data) ? "Correlated MFRM" : "Multidimensional MFRM"
     units = Dict(:item_dimension_discrimination => "Loading (dimensionless)",
         :rater_consistency => "Consistency (dimensionless)", :latent_correlation => "Population correlation (rho)")
     return extension._render_posterior(data; title = "$model prior intervals",
-        dimension_labels = data.dimension_labels, xlabel = units, caption = _prior_caption(data), size)
+        dimension_labels = data.dimension_labels, xlabel = units, caption = _prior_caption(data), size, annotation_io)
 end
 
 function _fixed_q_prior_report(checked; ndraws, seed, interval, predictive_interval,

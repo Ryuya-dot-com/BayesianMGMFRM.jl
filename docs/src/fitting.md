@@ -1,7 +1,13 @@
 # Bayesian Fitting
 
-`BayesianMGMFRM.jl` fits identified MFRM/RSM/PCM designs and exposes two narrow
-generalized configurations behind explicit experimental opt-in. Validate data
+!!! note "Unreleased documentation preview — 13 October 2026"
+    This manual includes unreleased interfaces and examples. It is not the
+    documentation of an installed release. Model support and scientific
+    acceptance remain as stated on each page.
+
+`BayesianMGMFRM.jl` fits identified MFRM/RSM/PCM designs and exposes the
+[documented multidimensional and generalized configurations](scope.md#Current-Support)
+behind explicit experimental opt-in. Validate data
 before sampling; inspect the compiled design when reviewing identification or
 model structure. The [minimal example](examples.md#Minimal-MFRM-Workflow) runs
 the ordinary fit, diagnostics, figures and save/reload sequence.
@@ -62,7 +68,7 @@ using CairoMakie
 
 figure = BayesianMGMFRM.plot_posterior(fit_result; block = :rater, interval = 0.95)
 display(figure)
-content(figure[2, 1]).xlabel = "Rater severity"
+content(figure[1, 1]).xlabel = "Rater severity"
 save("rater-posterior.pdf", figure)
 save("rater-posterior.svg", figure)
 ```
@@ -100,6 +106,122 @@ The [guarded examples](examples.md#Saved-Generalized-Fits-and-Figures) demonstra
 model-scale intervals, raw-coordinate diagnostics and named-dimension selection
 from saved GMFRM/MGMFRM fits, with either Julia or CmdStan estimation.
 
+## 3D item response surfaces for MGMFRM
+
+For a saved independent fixed-Q MGMFRM fit, show the probability of each
+rating category as a function of two numbered abilities, for a selected item
+and rater:
+
+```julia
+using BayesianMGMFRM, CairoMakie
+
+restored = load_fit_cache("mgmfrm-fit.jls")
+figure = BayesianMGMFRM.plot_response_surface(restored;
+    item = "I1", rater = "R1", dimensions = (1, 2),
+    x = range(-2, 2; length = 31), y = range(-2, 2; length = 31),
+    interval = 0.9)
+display(figure)
+save("category-response-surfaces.png", figure)
+save("category-response-surfaces.svg", figure)
+
+# A single category, with the same color as in the all-category view.
+category_figure = BayesianMGMFRM.plot_response_surface(restored;
+    item = "I1", rater = "R1", category = 2, dimensions = (1, 2))
+# The expectation on the actual numeric rating scale is a separate quantity.
+expected_figure = BayesianMGMFRM.plot_response_surface(restored;
+    item = "I1", rater = "R1", category = nothing, dimensions = (1, 2))
+```
+
+The default `category = :all` uses a distinct, fixed color and legend entry for
+each stored rating value. All probability wireframes share a vertical scale
+from 0 to 1; color identifies the category, not probability height. The mapping
+uses the full fitted category scale even when displaying only one category,
+so changing item or rater within the same fit preserves category colors.
+`category = 2` means rating value 2, not the second category by position.
+Intermediate-category probabilities can rise and then fall with ability.
+For crowded wireframes, select a single category or change the viewing angle.
+
+Axes use θ₁, θ₂, and the actual selected dimension numbers. Stored dimension
+names remain available for selection and in the numerical result; they do
+not automatically become axis labels. A name such as “Technique” requires a
+substantive interpretation justified by the rubric and model. This display
+follows the numbered abilities and category-specific response surfaces in
+[Uto (2021), Fig. 2](https://doi.org/10.1007/s41237-021-00144-w).
+Here the curves are posterior means: the calculation evaluates each joint
+posterior draw and then averages the probabilities. It does not substitute
+posterior-mean parameters into the model. Curvature arises from the ordinal
+response link applied to weighted ability; it does not by itself imply an
+interaction between the two abilities.
+
+The companion heatmaps show the width of each category's pointwise central
+credible interval on a shared continuous color scale. Their category titles
+match the wireframe colors. For `category = nothing`, the surface and its
+interval summarize expected rating instead. These intervals describe
+uncertainty in a response probability or conditional expectation, not an
+individual future rating, a simultaneous band over the grid, or MCSE. The
+whole-fit diagnostic warning remains visible. Neither a smooth surface nor
+a narrow interval establishes convergence or calibration.
+
+The selected rater's severity and consistency remain part of the calculation.
+There is no implicit averaging over raters or a population of persons. If Q
+excludes an axis for this item, the surface is flat along that axis. With more
+than two dimensions, explicitly fix every remaining ability, for example
+`dimensions = (1, 2), fixed_abilities = Dict(3 => 0.0)` for a three-dimensional
+fit. Stored dimension names are also accepted as selectors. This produces a
+conditional slice, not a marginal surface. The grid is on the fitted ability
+scale; the default range −3 to 3 is a display choice and does not establish
+that observations support predictions throughout that range.
+
+For numbers without installing a renderer, use the same arguments with
+`BayesianMGMFRM.item_response_surface(restored; item = "I1", rater = "R1")`.
+The result includes `mean`, `lower`, `upper`, and `interval_width` arrays,
+indexed as `[x_index, y_index, category_index]` for `:all`, and as
+`[x_index, y_index]` for a single category or expected rating.
+`category_levels[category_index]` gives the actual rating value.
+All retained draws are used by default. An explicit, unique `draw_indices`
+selection is recorded in the result and the figure's draw count; reducing it
+changes the numerical approximation. Grid size affects computation time.
+
+Figures are editable CairoMakie Figures. `azimuth` and `elevation` set the
+static 3D viewing angle in radians; this entry point does not provide browser
+rotation controls. It supports the independent MGMFRM fit type and does not
+extend fitting support or automatically add figures to report bundles.
+
+## Titles and notes outside the image
+
+All plotting entry points now put the overall title and explanatory note
+**outside the image by default**. Axis labels, units, panel headings and keys
+remain in the figure. The default `annotation_io = stdout` prints the text in
+the Julia REPL or script output, and each call still returns an editable Figure.
+Save both parts for a report:
+
+```julia
+open("wright-map-note.txt", "w") do note
+    figure = BayesianMGMFRM.plot_wright(fit_result; annotation_io = note)
+    save("wright-map.svg", figure)
+    save("wright-map.pdf", figure)
+end
+```
+
+The text contains the title, followed by `Note.` and the complete interpretation
+and diagnostic information. Use `annotation_io = IOBuffer()` to collect it in
+memory, or `annotation_io = nothing` to select the previous embedded format.
+With the default, a single main plotting panel starts at `figure[1, 1]`; do not
+reuse an old `figure[2, 1]` edit without checking the layout. The option applies
+to posterior, prior, diagnostic, predictive, Wright and response-surface plots,
+including the supported fixed-Q and correlated-result adapters. It changes
+presentation only, not model support, summaries or the retained draw selection.
+
+[APA figure guidance](https://apastyle.apa.org/style-grammar-guidelines/tables-figures/figures)
+places the figure number and title above the image and any necessary note below
+it; the key belongs inside the image. Add the manuscript's figure number and
+format the title and note in your document. Check lettering at the final
+physical size, contrast and readable symbols before submission. Separate text
+and editable PDF/SVG output are useful building blocks, not an automatic
+APA-compliance guarantee. Always keep diagnostic warnings, interval definitions,
+conditioning and data provenance with the image. The
+[gallery](visualization-gallery.md) demonstrates this layout.
+
 ## Chain diagnostic figures
 
 Use the same optional renderer to inspect retained draws without reshaping them:
@@ -131,7 +253,7 @@ provides further context for interpreting these views.
 
 Parameter captions use existing rank-normalized R-hat and bulk/tail ESS rows.
 Derived constraint coordinates without such rows are labelled unavailable.
-The footer retains whole-fit warnings and extrema even when only one parameter
+The note retains whole-fit warnings and extrema even when only one parameter
 is shown, plus per-chain reported divergence counts, maximum-depth hits and
 E-BFMI. Missing or incomplete sampler statistics remain unavailable; these
 panels do not create missing telemetry. Experimental fits use their recorded
@@ -237,7 +359,7 @@ has a different interpretation from this boundary panel.
 `include_thresholds = false` to omit boundaries; otherwise boundaries for every
 item are included independently of facet selection. All declared category
 transitions remain present, even when a category has no observed scores.
-More than 60 positions raises an error. Narrow the facet selection, omit
+More than 60 individual positions raises an error. Narrow the facet selection, omit
 boundaries, or explicitly increase `max_levels` and adjust `size = (1600, 900)`.
 No levels are silently dropped. GMFRM and MGMFRM fits are explicitly unsupported.
 
@@ -247,6 +369,120 @@ call accepts `load_fit_cache("analysis-fit.jls")`; the returned Figure is editab
 In threshold rows, `status` describes the step constraint while `is_fixed` and
 `fixed_value` describe the full item-step position. A derived step is uncertain;
 even a fixed binary step has an uncertain position when its item is estimated.
+
+### Person histogram overview
+
+To see where a cohort is located without labelling every person, use a
+horizontal histogram beside the existing item and rater panels:
+
+```julia
+open("wright-histogram-note.txt", "w") do note
+    figure = BayesianMGMFRM.plot_wright(fit_result;
+        person_display = :histogram, bins = 10, annotation_io = note)
+    save("wright-histogram.svg", figure)
+end
+```
+
+Each person contributes **one posterior median**. The horizontal axis counts
+people; the vertical axis retains the common logit scale. This is a distribution
+of estimated person locations, which are affected by prior shrinkage. It is
+neither a population density nor a histogram of all posterior draws, and it
+does not show uncertainty about each person or the bin counts. Use the default
+`person_display = :intervals` to inspect individual credible intervals.
+This arrangement is inspired by the person-frequency column in
+[FACETS `Vertical=`](https://www.winsteps.com/facetman64/vertical.htm); it does
+not reproduce FACETS estimation or its expected-score scale column.
+
+`bins` can be a positive integer or an explicit vector of increasing finite
+edges, such as `bins = [-3.0, -1.0, 0.0, 1.0, 3.0]`. Explicit edges must cover
+every person median; a narrow range raises an error rather than dropping people.
+Each bin includes its lower edge and excludes its upper edge, except the last
+includes its upper edge. With unequal widths, bar length still shows the
+**count**, not count per logit; compare counts rather than bar areas. Without
+`bins`, use `min(20, ceil(Int, sqrt(n_persons)))` equal-width bins over the median
+range. If all medians coincide, that range is expanded by 0.5 logits on each
+side. Binning is a display choice; inspect how a different width changes the
+apparent pattern before drawing conclusions about distribution shape.
+
+All people in the person facet are included. Their aggregate count does not
+use the `max_levels` allowance for individually displayed positions; rater,
+item and boundary positions still do. Histogram mode requires the person facet.
+The full note records the exact edges, counts and diagnostic status. In report
+bundles, use `figures = (wright = (person_display = :histogram, bins = 10),)`.
+The figure JSON retains `data.histogram` and all numerical `data.rows`, including
+every person's label and interval. Reusing the options after `load_fit_cache`
+reproduces the counts. See the [gallery example](visualization-gallery.md#Wright-Map:-locate-the-facets).
+
+## Pathway map
+
+A Pathway map adds a response-fit axis to the facet locations. Use it to identify
+response patterns for closer inspection at a given ability, severity or difficulty:
+
+```julia
+using BayesianMGMFRM, CairoMakie
+open("pathway-map-note.txt", "w") do note
+    figure = BayesianMGMFRM.plot_pathway(fit_result;
+        facets = (:rater, :item), metric = :outfit, interval = 0.99,
+        annotation_io = note)
+    save("pathway-map.svg", figure)
+end
+```
+
+The default `metric = :infit` shows an information-weighted residual mean square;
+`:outfit` gives each rating's squared standardized residual equal weight. The
+latter is more sensitive to unexpected ratings with low predictive variance.
+For each retained parameter draw, the calculation uses observed scores, their
+conditional expected scores and variances. The resulting fit statistics and
+facet locations are summarized with marginal medians and central intervals.
+Thus a cross shows **two separate marginal intervals, not a joint credible
+region**. The line at 1 is a model reference, not an automatic acceptance rule.
+These quantities are not standardized ZSTD and have no automatic −2/+2 cutoffs.
+
+All selected panels share both axes. Original facet order and identified logit
+signs are retained. Diamonds mark fixed locations, which have no vertical
+uncertainty; a diamond can still have a horizontal fit interval because the
+other model parameters remain uncertain. External anchor uncertainty is excluded.
+Labels show each level's contributing rating count, `n`. Orange marks with `*`
+identify numerical flags, described by level in the external note. In particular,
+tiny conditional variances are clipped in the existing statistic. Inspect the
+numerical rows before interpreting these cases:
+
+```julia
+rows = diagnostic_map_data(fit_result; facets = (:rater, :item),
+    metrics = :outfit, include_thresholds = false, interval = 0.99, min_n = 1)
+```
+
+The plot uses these rows' `fit_median` and `logit_median`, their lower/upper
+bounds, counts and flags. `min_n` is a minimum number of contributing ratings;
+if a selected level falls below it, missing summaries cause an error. Nonfinite
+summaries also fail explicitly. No levels or bad values are silently omitted.
+The default limit is 60 selected levels; narrow `facets` or explicitly increase
+`max_levels` and `size`. With crowded or coincident labels, select fewer facets
+and edit the returned Figure before publication.
+
+All retained draws are used without random selection or fitting. Whole-fit MCMC
+warnings accompany every selection in the external note. Same-data residual
+screening does not establish convergence, bias or a preferred model family.
+Reusing identical options after `load_fit_cache` reproduces the numerical inputs.
+To export the figure, inputs and notes together:
+
+```julia
+save_fit_report_bundle("pathway-report", fit_result;
+    figures = (pathway = (facets = (:rater, :item), metric = :outfit),),
+    posterior_lower = 0.005, posterior_upper = 0.995)
+```
+
+These report bounds set 99% central intervals on **both axes**. Set interval
+bounds on the bundle call, not inside `figures.pathway`. The bundle includes
+PDF/SVG, full numerical JSON with fixed-location flags, and matching external
+titles/notes. Report predictive-draw options do not subsample the Pathway inputs.
+
+This API supports stable **unidimensional MFRM RSM/PCM**. Generalized and
+multidimensional inputs raise an error. A person's pooled residual fit is not
+inherently dimension-specific; pure-Q subsets need an explicit conditional
+estimand, and mixed-Q responses have no unique attribution to one dimension.
+See the [Pathway gallery](visualization-gallery.md#Pathway-Map:-connect-location-with-response-patterns)
+for an artificial illustration and reading examples.
 
 ## Fixed coordinates and anchors
 
@@ -353,7 +589,7 @@ readiness check does not enforce this compile-time policy. See
 For both guarded generalized families, every retained raw draw is transformed
 through the Julia identification map before the common fit, diagnostics, and
 prediction interfaces are built. Unwrapped MGMFRM specifications remain fixed-Q
-with identity correlation. The [explicit correlated MGMFRM](experimental.md#correlated-mgmfrm-explicit-fitting-and-saved-results)
+with identity correlation. The [explicit correlated MGMFRM](experimental.md#Correlated-MGMFRM:-explicit-fitting-and-saved-results)
 uses a separate result type and currently supports summaries, diagnostics, MCSE
 and manual caches, plus prior and conditional existing-row posterior prediction.
 Reader-facing reports, tables and optional CairoMakie figures retain the saved
@@ -414,6 +650,117 @@ cache through a new fit. Manual loading preserves historical draws and metadata.
 
 `save_fit_cache` preserves these compact summaries and `load_fit_cache` restores
 them; warmup parameter draws are not saved. Existing caches remain readable.
+For GMFRM/MGMFRM, `coverage = :recorded` confirms these chain-level totals;
+it does not mean that an iteration-by-iteration adaptation history is available.
+The fit cache does not retain the adapted mass matrix or warmup step-size
+history. `sampler_controls.step_size` is the requested initial step size;
+the retained `sampler_stats` rows contain the step sizes actually used during
+sampling. A cache refresh collects the same supported summaries, not the
+missing adaptation history or metric.
+
+For future AdvancedHMC and CmdStan comparisons, the repository provides an opt-in research
+helper for independent fixed-Q MGMFRM. From the repository root, use the same
+fit options as the planned ordinary fit:
+
+```julia
+include("scripts/mgmfrm_adaptation_record.jl")
+fitted = MGMFRMAdaptationRecord.fit_recorded("adaptation-run-001", spec;
+    fit_options...)
+```
+
+`fit_options` is a named tuple of ordinary `Experimental.fit` keywords, including
+the prior, seed, warmup/retained lengths and other controls chosen for the study.
+The helper returns the ordinary fit and creates a new directory containing
+`fit.jls` and `adaptation.json`; an existing directory is an error. This is a
+repository helper, not an exported package API or an automatic cache refresh.
+AdvancedHMC supports raw and `:orthogonal_person_mean_item_offset` sampling
+coordinates; CmdStan supports raw coordinates. Both support unit, diagonal and
+dense metrics. Adapted metric recording needs CmdStan 2.34 or later. Correlated
+models and private sampler overrides are outside the helper's scope.
+
+The JSON records actual chain starts before and after the coordinate transform,
+every warmup and retained transition's sampler statistics,
+the retained kernel, coordinate order, model/data/prior
+identity, controls, environment/source hashes and the saved fit's SHA-256.
+AdvancedHMC copies inverse mass matrices when they change.
+`iteration` counts from one through warmup and retained sampling together;
+`phase` marks their boundary. For AdvancedHMC, `metric_used` and `metric_after`
+are one-based indices into `metrics`. The former was used by that transition;
+the latter follows its adaptation update and is used by the next transition.
+The row's `step_size` was used by the completed transition, so it must not be
+paired with `metric_after` as though both preceded adaptation. Dense matrices
+are JSON arrays of rows; diagonal/unit metrics are diagonal vectors, all in
+`sampling_names` order. Rotated person coordinates are numbered means/contrasts,
+not individually labelled person abilities. Item offsets are distinguished from
+raw item parameters. The prior remains defined on the original raw coordinates.
+The input signature is a decimal string; other integers outside the exact
+Float64 integer range, including large seeds or nested identifiers, are also
+decimal strings to prevent precision loss in JSON consumers.
+
+With `backend = :cmdstan`, the helper also preserves the native chain CSV files
+(including warmup parameter rows), input/init JSON and adapted metric JSON,
+each with a hash. CmdStan compilation uses a new `compile` subdirectory unless
+the caller supplies a different fresh `cmdstan_cache_dir`. The record retains
+actual per-chain seeds, command arguments and executable hashes. The
+[official metric JSON output](https://mc-stan.org/docs/cmdstan-guide/mcmc_config.html#adaptation)
+is requested with `save_metric=1` and 18 significant digits; rounded CSV metric
+comments are not treated as the exact adapted matrix. When warmup is zero,
+adaptation is disabled and the adapter supplies no metric file, so the record
+explicitly identifies the metric as the command's default identity.
+Dense metric entries are preserved as written, including tiny floating-point
+asymmetry. Parsing checks approximate symmetry with relative tolerance
+`sqrt(eps(Float64))`, positive definiteness using the lower triangle, and records
+the maximum asymmetry; it does not silently symmetrize the saved matrix.
+
+CmdStan's warmup metric history is unavailable: warmup `metric_used` and
+`metric_after` are `null`, while retained rows reference the final metric.
+Energy errors and `is_accept` remain unavailable. `stan_lp` is the native
+`lp__` value, which omits constants; the record's `log_density` remains `null`
+rather than representing it as the Julia-evaluated density saved in the fit.
+The original CSV is copied before result parsing, including partial output
+when a sampling command fails. Saving it does not make a failed attempt complete.
+
+A completed recording requires `status = "complete"`; this describes recording
+success, not convergence or calibration. Caught errors preserve a `failed`
+record and rethrow the error. Abrupt process termination may leave only the
+initial `started` record. AdvancedHMC warmup positions, tree states and RNG
+checkpoints are not recorded, so this is not an exact mid-chain restart facility. It cannot
+recover missing history from an old fit. Its additional records must be included
+explicitly in any new study specification; it does not change frozen cohorts.
+
+To inspect a completed record without fitting, use the repository review helper:
+
+```julia
+include("scripts/mgmfrm_adaptation_review.jl")
+review = MGMFRMAdaptationReview.review("adaptation-run-001"; tail_fraction=0.2)
+review.chains[1].late_warmup
+```
+
+For a JSON file, run
+`julia --project=. scripts/mgmfrm_adaptation_review.jl adaptation-run-001 review.json`.
+The command refuses an existing output file. Input records and caches are read
+only. As with `load_fit_cache`, use trusted local Julia caches.
+The review requires a complete v1 record and checks the cache hash before
+loading it, then compares model/data/prior identity, controls, coordinate order,
+initial-state transforms, chain layout, retained statistics, compact warmup
+counts and metric timing. CmdStan CSV/data/init/metric files are hash-checked and
+reparsed; their retained parameter values are compared with the cache.
+Historical environment/source hashes remain provenance and need not match the
+current checkout. This checks saved correspondence, not authenticity of an
+arbitrarily edited bundle or the availability of its original executable.
+
+Each chain reports whole warmup, its final `ceil(warmup * tail_fraction)`
+iterations, and retained sampling separately. The default final 20% is a
+descriptive window, not a claim that backend adaptation schedules align.
+Summaries include numerical errors, maximum-depth hits, step sizes and acceptance
+statistics, with separate counts for unavailable and nonfinite values.
+CmdStan density uses `stan_lp`; acceptance statistics are not proportions of
+states that moved. Missing warmup metric history remains `null` for update counts,
+even when warmup was zero. Zero warmup has empty windows, not a successful
+adaptation verdict. Final metric summaries refer to the recorded sampling
+coordinates. No warmup threshold, convergence verdict, or calibration acceptance
+is assigned; incomplete records and inconsistent bundles raise an error.
+
 Turing temporarily buffers warmup transitions to produce the counts, then
 keeps only the chain summaries. Recording preserves the corrected adaptation
 schedule, retained draws and RNG stream. A corrected Turing cache created before
@@ -510,6 +857,25 @@ target and compatible observations across compared models. Treat Pareto-k and
 held-out diagnostics as part of the result. A numerical ranking alone is not a
 scientific superiority claim.
 
+Automatic [`kfold_refit`](@ref) and [`loo_refit`](@ref) validate every fold before
+starting the first fit. Training observations must be exactly the heldout
+complement, without overlap. K-fold must hold out each observation once;
+LOO may target a subset or require no refits when no observations are flagged.
+Declared split groups stay together, and fold IDs, counts and scored-row labels
+must agree with the actual heldout rows and their order. Inconsistent edited or
+loaded plans are rejected before sampling. Training specifications preserve
+dimension names and match Q rows by item label. Training data retain the source
+order of the observed person/rater/item levels, so removing or reordering rows
+does not silently move reference-level raw-coordinate priors to another label.
+Absent fitted levels still remain absent and cannot be scored by this path.
+
+[`kfold_plan_diagnostics`](@ref) checks level availability. Its `passed` flag by
+itself does not certify a valid partition or matching source dataset. Plan row
+indices are positional: supply the data and row order used to define the plan.
+This validation does not add new-level prediction or extend automatic refitting
+to recorded normalized/correlated MGMFRM or fixed-coefficient multidimensional
+MFRM results. Those common-refit connections remain separate work.
+
 ## Reports and Reproducibility
 
 [`fit_report`](@ref) collects metadata, diagnostics, design checks, posterior
@@ -576,7 +942,10 @@ This example selects a stable MFRM fit. It writes the ordinary JSON report and
 tables, plus `figures/posterior.pdf`, `.svg`, `.json` and corresponding files
 for the other selected figures. `fit_report.md` embeds the SVGs, explains the
 uncertainty and diagnostics, and links to PDFs and numerical inputs. Each PDF
-contains one figure; this does not create a combined PDF manuscript.
+contains one figure; this does not create a combined PDF manuscript. Figure
+numbers, titles and notes are written outside the image in the Markdown report.
+Each numerical-input JSON also retains the exact `figure_title`, `caption` and
+`annotation_text`; report bundles do not depend on captured terminal output.
 
 Each figure entry accepts its usual selection and `size` options. Choose the
 shared `posterior_lower`/`posterior_upper` central bounds (default 0.025/0.975),

@@ -8,8 +8,56 @@ using LinearAlgebra
               testlet_id = nothing, category_levels = nothing,
               missing_policy = :error)
 
-Encode long-format rating data into deterministic integer indexes for the
-required person, rater, item, and ordinal score columns. Optional columns are
+Prepare a table of observed ratings for analysis. Each row is one person's
+score on one item from one rater. Pass column names as Julia symbols, such as
+`person = :student`; the example below uses a named tuple of column vectors.
+Use `category_levels` to preserve the complete intended consecutive integer
+score scale, even if a category was not observed. Missing ratings are not score zero. By default,
+missing required values are rejected, and `missing_policy = :error` is the
+only supported policy. Decide how to handle missing ratings before constructing
+the table, preserving a record of any exclusions.
+
+Return a `FacetData` object. `data.n` is the retained number of rating rows,
+and `data.person_levels`, `data.item_levels`, `data.rater_levels` and
+`data.category_levels` give their labels and ordering. Creating the object
+does not validate the measurement design or estimate parameters; call
+[`validate_design`](@ref) next.
+
+# Examples
+
+This artificial panel illustrates input syntax, not an adequate study size.
+It requires only this package and runs no sampler.
+
+```jldoctest
+julia> using BayesianMGMFRM
+
+julia> ratings = (student = ["P1", "P1", "P1", "P1", "P2", "P2", "P2", "P2"],
+                  item = ["I1", "I1", "I2", "I2", "I1", "I1", "I2", "I2"],
+                  rater = ["R1", "R2", "R1", "R2", "R1", "R2", "R1", "R2"],
+                  score = [0, 1, 2, 0, 1, 2, 0, 2]);
+
+julia> data = FacetData(ratings; person = :student, item = :item,
+                       rater = :rater, score = :score, category_levels = 0:2);
+
+julia> (data.n, length(data.person_levels), length(data.category_levels))
+(8, 2, 3)
+
+julia> report = validate_design(data); report.passed
+true
+
+julia> spec = mfrm_spec(data; validation_report = report);
+
+julia> (spec.family, spec.dimensions, spec.thresholds)
+(:mfrm, 1, :partial_credit)
+```
+
+`report.passed` means no blocking design errors were found; inspect
+`report.issues` for warnings. It does not establish model adequacy or precision.
+See also [`mfrm_spec`](@ref) and [`facet_response_table`](@ref).
+
+# Extended help
+
+The object encodes labels as deterministic integer indexes. Optional columns are
 stored as indexed metadata; supplying them does not add fitted model terms.
 Use `response_id` for a globally unique scored response and `testlet_id` for
 its declared task or item-cluster identity. `occasion` remains categorical
@@ -747,9 +795,33 @@ end
 """
     validate_design(data::FacetData; bias = Tuple{Symbol,Symbol}[], min_cell_count = 2)
 
-Run pre-fit validation checks for category use, singleton and extreme response
-patterns, person-rater-item connectedness, minimal location-design rank,
-item/category support, and optional DFF/bias cell counts.
+Check whether the observed ratings have design problems that should be resolved
+before fitting. Review category use, sparse or extreme response patterns,
+links between persons, raters and items, and the ability to separate their effects.
+
+Return a `ValidationReport`. `report.passed` is false when blocking errors
+exist; warnings can remain when it is true. Each entry in `report.issues` has
+a `severity`, `code` and explanatory `message`. A passing report is not evidence
+of adequate sample size, correct model assumptions or MCMC convergence.
+
+# Examples
+
+After constructing `data` with the complete example in [`FacetData`](@ref):
+
+```julia
+report = validate_design(data)
+report.passed
+[(issue.severity, issue.message) for issue in report.issues]
+```
+
+Resolve errors and review warnings before calling [`mfrm_spec`](@ref).
+
+# Extended help
+
+Checks include category coverage, singleton and extreme response patterns,
+person-rater-item connectedness, minimal location-design rank, item/category
+support, and optional DFF/bias cell counts. `min_cell_count` controls sparse-cell
+warnings; it is not a universal adequacy threshold or a way to repair missing links.
 """
 function validate_design(data::FacetData; bias = Tuple{Symbol,Symbol}[], min_cell_count::Int = 2)
     min_cell_count >= 1 || throw(ArgumentError("min_cell_count must be positive"))
@@ -1865,7 +1937,7 @@ function _guarded_generalized_fit_capability(family::Symbol)
         return (;
             family,
             scope = :fixed_q_confirmatory_mgmfrm_guarded_experimental,
-            minimum_dimensions = 2,
+            minimum_dimensions = 1,
             maximum_dimensions = nothing,
             threshold_regimes = (:partial_credit,),
             spec_discrimination = (:none,),
@@ -3717,9 +3789,6 @@ function _check_dimensions(family::Symbol, dimensions::Int)
             "family = :gmfrm is one-dimensional; use family = :mgmfrm with " *
             "dimensions >= 2 and a fixed q_matrix for multidimensional models",
         ))
-    family === :mgmfrm && dimensions >= 2 ||
-        family !== :mgmfrm ||
-        throw(ArgumentError("family = :mgmfrm requires dimensions >= 2"))
     return dimensions
 end
 
@@ -5495,14 +5564,40 @@ end
               bias = Tuple{Symbol,Symbol}[], anchors = NamedTuple[], min_cell_count = 2,
               validation_report = nothing)
 
-Construct a many-facet measurement specification after validation errors are
-resolved. The default `family = :mfrm`, `dimensions = 1`, and
+Describe which model to fit after resolving blocking data-validation errors.
+Return a `FacetSpec`; this function does not estimate parameters or run MCMC.
+The default is a one-dimensional MFRM with item-specific partial-credit steps.
+`thresholds = :rating_scale` instead shares the step offsets across items.
+
+# Examples
+
+Using `data` from the complete example in [`FacetData`](@ref):
+
+```julia
+spec = mfrm_spec(data; thresholds = :partial_credit)
+model_equation(spec)
+constraint_table(spec)
+```
+
+The equation and constraints describe the model you requested. Inspect its
+priors before fitting. Use [`fit`](@ref) for stable one-dimensional MFRM and
+[`BayesianMGMFRM.Experimental.fit`](@ref) for admitted experimental models.
+Constructing a specification does not mean that every configuration is fit-supported.
+
+# Extended help
+
+The default `family = :mfrm`, `dimensions = 1`, and
 `discrimination = :none` path is the minimal MFRM/RSM/PCM slice supported by
 `getdesign` and `fit`, including valid exact individual rater/item hard
 anchors. Multidimensional MFRM with explicit Q and named dimensions supports
 partial-credit specification and `getdesign(spec; preview = true)` inspection.
 Estimate its fixed-coefficient unit-logit model through
 `BayesianMGMFRM.Experimental.fit`, using Julia or CmdStan and `MFRMPrior`.
+For a one-dimensional comparison using the MGMFRM equation, explicitly set
+`family=:mgmfrm, dimensions=1, q_matrix=trues(n_items, 1)` with partial-credit
+thresholds. This retains item-owned steps and the 1.7 scale constant; it is not
+the rater-step scalar GMFRM. Use the same explicit normalized prior form and
+scales in matched-dimensional comparisons, and inspect the full model contract.
 GMFRM/MGMFRM configurations can be represented for
 manifest and constraint review with `estimation_status = :specified_only`.
 The guarded generalized numerical path is narrower than this representation
@@ -6963,6 +7058,15 @@ function _mgmfrm_source_pointwise_loglikelihood(
         "_mgmfrm_source_pointwise_loglikelihood";
         require_q_observation_coverage,
     )
+    return _mgmfrm_source_pointwise_loglikelihood(
+        design, params, _mgmfrm_source_loading_index_matrix(design))
+end
+
+# Batch consumers validate the design once and reuse its loading indices.
+# Parameter length and constraints remain checked for every draw.
+function _mgmfrm_source_pointwise_loglikelihood(
+        design::FacetDesign, params::AbstractVector,
+        loading_indices::AbstractMatrix{Int})
     _check_parameter_vector_length(design, params)
     _mgmfrm_source_fixture_constraints(design, params)
     data = design.spec.data
@@ -6970,7 +7074,6 @@ function _mgmfrm_source_pointwise_loglikelihood(
     T = typeof(_param_zero(params) + 0.0)
     etas = Vector{T}(undef, K)
     out = Vector{T}(undef, data.n)
-    loading_indices = _mgmfrm_source_loading_index_matrix(design)
     for row in 1:data.n
         _mgmfrm_source_linear_predictors!(
             etas,

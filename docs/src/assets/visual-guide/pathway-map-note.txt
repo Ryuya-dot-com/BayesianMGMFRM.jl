@@ -1,0 +1,10 @@
+Synthetic illustration: 80 deterministic artificial draws, not a fitted posterior. Numerical diagnostics describe this fixture, not an actual estimation run.
+
+MFRM Pathway map
+
+Note. Marginal medians and 95.0% central intervals on each axis; not a joint credible region. All 80 retained draws.
+Diamonds: fixed reference/anchor locations; horizontal fit intervals still reflect uncertainty. External anchor uncertainty excluded.
+Labels give contributing rating counts (n). + Ability raises adjacent-category log odds; - severity/difficulty lower them. No recentering.
+Numerical row flags: none.
+Infit = 1 is a mean-square reference, not an acceptance threshold or a ZSTD cutoff.
+MCMC warnings: inspect diagnostics(fit) (whole fit). Same-data residual screening; not convergence or model-selection evidence.

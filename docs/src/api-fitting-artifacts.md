@@ -1,5 +1,10 @@
 # Fitting and Artifact API
 
+!!! note "Unreleased documentation preview — 13 October 2026"
+    This manual includes unreleased interfaces and examples. It is not the
+    documentation of an installed release. Model support and scientific
+    acceptance remain as stated on each page.
+
 ## Stable fitting and shared artifacts
 
 ```@docs
@@ -42,7 +47,7 @@ related_software_capability_matrix
 
 Load CairoMakie to use these qualified entry points. They return editable
 Figures and use the numerical summary functions documented in this manual.
-`plot_wright` accepts stable MFRM fits only.
+`plot_wright` and `plot_pathway` accept stable unidimensional MFRM fits only.
 
 ```@docs
 BayesianMGMFRM.plot_posterior
@@ -50,6 +55,9 @@ BayesianMGMFRM.plot_prior
 BayesianMGMFRM.plot_diagnostics
 BayesianMGMFRM.plot_predictive
 BayesianMGMFRM.plot_wright
+BayesianMGMFRM.plot_pathway
+BayesianMGMFRM.item_response_surface
+BayesianMGMFRM.plot_response_surface
 ```
 
 ## Experimental saved multidimensional MFRM reports
@@ -83,7 +91,7 @@ are independent by default; `Experimental.correlated(spec)` estimates population
 correlation for two between-item dimensions. Correlated reports default to
 `view = :public` and include rho intervals and diagnostics. Estimate with
 `BayesianMGMFRM.Experimental.fit`; see the
-[multidimensional example](examples.md#fixed-coefficient-multidimensional-mfrm).
+[multidimensional example](examples.md#Fixed-coefficient-multidimensional-MFRM).
 Earlier independent-model caches remain readable. Saving a correlated fit
 records its model and actual priors separately.
 These saved-result reports need neither sampling nor CairoMakie. A complete

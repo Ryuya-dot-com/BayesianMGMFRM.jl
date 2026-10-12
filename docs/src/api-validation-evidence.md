@@ -1,5 +1,10 @@
 # Validation and Evidence API
 
+!!! note "Unreleased documentation preview — 13 October 2026"
+    This manual includes unreleased interfaces and examples. It is not the
+    documentation of an installed release. Model support and scientific
+    acceptance remain as stated on each page.
+
 ## User-facing runtime and provenance utilities
 
 These bindings support ordinary package workflows. CmdStan remains an optional

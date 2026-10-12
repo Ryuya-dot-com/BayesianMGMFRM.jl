@@ -2,6 +2,8 @@
 
 Requires psutil in the Python tool environment. Unavailable observation prevents
 launch. No shell execution, automatic retries, or package/environment installation.
+Use wall_seconds=None (CLI: --no-wall-limit) to omit the per-command deadline.
+An explicit batch_deadline still applies; omit both for no elapsed-time cutoff.
 """
 import argparse
 import json
@@ -152,6 +154,8 @@ def run_guarded(command, directory, *, wall_seconds, rss_bytes, output_bytes,
     if not isinstance(command, (list, tuple)) or not command or not all(isinstance(x, str) and x for x in command):
         raise ValueError("command must be an argument vector")
     for name, value in (("wall_seconds", wall_seconds), ("poll_seconds", poll_seconds), ("grace_seconds", grace_seconds)):
+        if name == "wall_seconds" and value is None:
+            continue
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
             raise ValueError(f"{name} must be finite and positive")
     if poll_seconds > 1 or grace_seconds > 5:
@@ -170,7 +174,9 @@ def run_guarded(command, directory, *, wall_seconds, rss_bytes, output_bytes,
     directory.mkdir(parents=True, exist_ok=False)
     receipt_path = directory / "guard-receipt.json"
     start = time.monotonic()
-    deadline = min(start + wall_seconds, batch_deadline) if batch_deadline is not None else start + wall_seconds
+    deadline = start + wall_seconds if wall_seconds is not None else math.inf
+    if batch_deadline is not None:
+        deadline = min(deadline, batch_deadline)
     receipt = dict(schema="bayesianmgmfrm.paired_rating_resource_guard.v1", command=list(command),
         status="not_started", launched=False, process_id=None, output_root=str(root),
         limits=dict(wall_seconds=wall_seconds, rss_bytes=rss_bytes, output_bytes=output_bytes,
@@ -271,7 +277,9 @@ def run_guarded(command, directory, *, wall_seconds, rss_bytes, output_bytes,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--directory", required=True)
-    parser.add_argument("--wall-seconds", required=True, type=float)
+    wall = parser.add_mutually_exclusive_group(required=True)
+    wall.add_argument("--wall-seconds", type=float)
+    wall.add_argument("--no-wall-limit", dest="wall_seconds", action="store_const", const=None)
     parser.add_argument("--rss-bytes", required=True, type=int)
     parser.add_argument("--output-bytes", required=True, type=int)
     parser.add_argument("--cwd")

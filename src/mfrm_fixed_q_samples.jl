@@ -676,7 +676,7 @@ Base.@nospecializeinfer function _check_mfrm_fixed_q_cache_record(@nospecialize(
         include_packages = policy.package_status === :included)
     actual = Base.structdiff(artifact, (; created_at = nothing, environment = nothing,
         content_hash = nothing, archive_manifest = nothing))
-    isequal(actual, expected) || throw(ArgumentError("multidimensional MFRM artifact does not match the saved fit at $path"))
+    _fit_cache_artifact_equal(actual, expected) || throw(ArgumentError("multidimensional MFRM artifact does not match the saved fit at $path"))
     for (archive, label) in ((record.archive_manifest, :fit_cache_artifact),
             (_nt_get(artifact, :archive_manifest, nothing), _fixed_q_artifact_label(record.fit)))
         archive isa NamedTuple && _nt_get(archive, :created_at, nothing) isa AbstractString &&
@@ -715,11 +715,11 @@ function _mfrm_fixed_q_plot_data(result::NamedTuple; interval::Real = 0.95, kwar
         _fixed_q_prior_labels(checked))
 end
 
-function _plot_mfrm_fixed_q(result::NamedTuple; size = nothing, kwargs...)
+function _plot_mfrm_fixed_q(result::NamedTuple; size = nothing, annotation_io = stdout, kwargs...)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
     extension === nothing && throw(ArgumentError("fixed-Q MFRM plotting requires `using CairoMakie`"))
     data = _mfrm_fixed_q_plot_data(result; kwargs...)
-    return _render_mfrm_fixed_q(extension, :posterior, data; size)
+    return _render_mfrm_fixed_q(extension, :posterior, data; size, annotation_io)
 end
 
 function _mfrm_fixed_q_diagnostic_plot_data(result::NamedTuple;
@@ -758,11 +758,11 @@ function _mfrm_fixed_q_diagnostic_plot_data(result::NamedTuple;
         _fixed_q_prior_labels(checked))
 end
 
-function _plot_mfrm_fixed_q_diagnostics(result::NamedTuple; size = nothing, kwargs...)
+function _plot_mfrm_fixed_q_diagnostics(result::NamedTuple; size = nothing, annotation_io = stdout, kwargs...)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
     extension === nothing && throw(ArgumentError("fixed-Q MFRM plotting requires `using CairoMakie`"))
     data = _mfrm_fixed_q_diagnostic_plot_data(result; kwargs...)
-    return _render_mfrm_fixed_q(extension, :diagnostics, data; size)
+    return _render_mfrm_fixed_q(extension, :diagnostics, data; size, annotation_io)
 end
 
 function _mfrm_fixed_q_predictive_draws(target::_MFRMFixedQReferenceLogDensity,
@@ -813,11 +813,11 @@ function _mfrm_fixed_q_predictive_plot_data(result::NamedTuple; interval::Real =
         check.chain_ids, check.iterations), hasproperty(check, :prior_label) ? (; check.prior_label) : (;))
 end
 
-function _plot_mfrm_fixed_q_predictive(result::NamedTuple; size = nothing, kwargs...)
+function _plot_mfrm_fixed_q_predictive(result::NamedTuple; size = nothing, annotation_io = stdout, kwargs...)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
     extension === nothing && throw(ArgumentError("fixed-Q MFRM plotting requires `using CairoMakie`"))
     data = _mfrm_fixed_q_predictive_plot_data(result; kwargs...)
-    return _render_mfrm_fixed_q(extension, :predictive, data; size)
+    return _render_mfrm_fixed_q(extension, :predictive, data; size, annotation_io)
 end
 
 function _canonical_mfrm_fixed_q_samples(fit::MultidimensionalMFRMFit)
@@ -834,7 +834,7 @@ plot_diagnostics(fit::Union{MultidimensionalMFRMFit,_ExchangeableMFRMFit}; kwarg
 plot_predictive(fit::Union{MultidimensionalMFRMFit,_ExchangeableMFRMFit}; kwargs...) =
     _plot_mfrm_fixed_q_predictive(_canonical_mfrm_fixed_q_samples(fit); kwargs...)
 
-function _render_mfrm_fixed_q(extension, kind, data; size = nothing)
+function _render_mfrm_fixed_q(extension, kind, data; size = nothing, annotation_io = stdout)
     backend = data.backend === :advancedhmc ? "Julia (AdvancedHMC)" : "CmdStan"
     correlated = _fixed_q_is_correlated(data)
     model = correlated ? "Experimental correlated MFRM (fixed coefficients)" :
@@ -844,12 +844,12 @@ function _render_mfrm_fixed_q(extension, kind, data; size = nothing)
         :rater_consistency => "Consistency (dimensionless)", :latent_correlation => "Population correlation (rho)")
     kind === :posterior && return extension._render_posterior(data;
         title = "$model\n$backend | $scale_note",
-        dimension_labels = data.dimension_labels, xlabel = units, size)
+        dimension_labels = data.dimension_labels, xlabel = units, size, annotation_io)
     kind === :diagnostics && return extension._render_diagnostics(data;
         title = "$model chain diagnostics\n$backend | $scale_note" *
-            (data.view === :location ? " | finite-panel locations" : ""), ylabel = units, size)
+            (data.view === :location ? " | finite-panel locations" : ""), ylabel = units, size, annotation_io)
     return extension._render_predictive(data;
-        title = "$model\n$backend | unit-logit posterior predictive check\nCategory proportions", size)
+        title = "$model\n$backend | unit-logit posterior predictive check\nCategory proportions", size, annotation_io)
 end
 
 function _fixed_q_report_prior_policy(checked)
@@ -1023,8 +1023,31 @@ and prior-implication diagnostics. Prior and posterior predictions use separate
 local RNGs initialized from `seed`; neither updates nor refits the saved result.
 `prior_interval` controls parameter prior intervals; `predictive_interval`
 controls rating prediction intervals for both prior and posterior checks.
+
+Set `include_waic = true` or `include_loo = true` with a nonempty `dataset_id`
+and unique persistent `observation_ids` in the fit's original rating-row order.
+Both flags default to `false`; unrequested criteria are `:not_requested`.
+Criteria use all original retained draws, independently of prediction draw
+selection, and preserve sampling warnings and flagged rating IDs in saved reports.
+LOO uses raw importance sampling, not reference-validated PSIS; its controls are
+`loo_threshold = 0.7`, `loo_tail_fraction = 0.2`, `loo_min_tail_draws = 5`.
+The target omits one rating at existing levels with specification/level maps
+fixed. Native pointwise score SE is not MCMC MCSE or a crossed-cluster correction.
+Use `posterior_mcse(fit)` for parameter MCSE. Computed scores and complete reports
+do not establish scientific acceptance. No refitting or new-level integration
+is performed. The same options apply to correlated and exchangeable-rater fits.
+Legacy fixed-Q v1 records remain unsupported by this public report; use the
+common prediction/criteria API for their saved-row scores.
+
+`reporting` is an optional named tuple for the common category, agreement and
+named reliability-cohort sections. It preserves explicit identities/targets,
+all retained draws, warnings and section failures in public/Markdown/JSON/bundle
+output. Omitting it keeps previous report behavior. See the Saved-fit Reporting
+API guide for its request fields and uncertainty definitions. Completeness is
+execution status, not scientific or numerical acceptance.
 """
 function fit_report(fit::_FixedQMFRMFit; view::Symbol = _fixed_q_default_view(fit),
+        reporting = nothing,
         posterior_lower::Real = 0.025, posterior_upper::Real = 0.975,
         predictive_interval::Real = 0.9, include_posterior_predictive::Bool = true,
         include_prior_predictive::Bool = false, prior_predictive_ndraws::Int = 100,
@@ -1038,7 +1061,10 @@ function fit_report(fit::_FixedQMFRMFit; view::Symbol = _fixed_q_default_view(fi
         split_chains::Bool = fit.record.run.split_chains_requested,
         rhat_threshold::Real = fit.record.run.checked.rhat_threshold,
         ess_threshold::Real = fit.record.run.checked.ess_threshold,
-        on_section_error::Symbol = :capture, require_complete::Bool = false)
+        on_section_error::Symbol = :capture, require_complete::Bool = false,
+        include_waic::Bool = false, include_loo::Bool = false,
+        dataset_id=nothing, observation_ids=nothing,
+        loo_threshold::Real=.7, loo_tail_fraction::Real=.2, loo_min_tail_draws::Int=5)
     view in (:full, :public) || throw(ArgumentError("view must be :full or :public"))
     _interval_probabilities(prior_interval)
     lower, upper = _check_posterior_summary_bounds(posterior_lower, posterior_upper)
@@ -1049,6 +1075,9 @@ function fit_report(fit::_FixedQMFRMFit; view::Symbol = _fixed_q_default_view(fi
         artifact_include_log_posterior || artifact_include_sampler_stats ||
         artifact_include_environment || artifact_include_packages) &&
         throw(ArgumentError("artifact options require include_artifact = true"))
+    prediction_request = _report_prediction_request(fit; include_waic, include_loo,
+        dataset_id, observation_ids, loo_threshold, loo_tail_fraction, loo_min_tail_draws)
+    reporting_request = _saved_reporting_request(fit, reporting; prediction_request)
     checked = _canonical_mfrm_fixed_q_samples(fit)
     diagnostics(fit; split_chains, rhat_threshold, ess_threshold)
     policy = _fit_report_on_section_error(on_section_error)
@@ -1074,6 +1103,7 @@ function fit_report(fit::_FixedQMFRMFit; view::Symbol = _fixed_q_default_view(fi
             archive_manifest = value.archive_manifest,
             artifact = include_full_artifact ? value : nothing)
     end : _fit_report_not_requested()
+    criteria_sections = _prediction_report_sections(fit, prediction_request, policy; include_waic, include_loo)
     report = merge(base, (; family = :mfrm, model = _fixed_q_fit_model(fit),
         estimation_status = :experimental,
         metadata = merge(fit_metadata(fit), (; estimation_status = :experimental,
@@ -1084,7 +1114,9 @@ function fit_report(fit::_FixedQMFRMFit; view::Symbol = _fixed_q_default_view(fi
         manifest, rating_design, artifact, prior_predictive,
         report_policy = merge(base.report_policy, (; posterior_lower = lower, posterior_upper = upper,
             include_prior_predictive, prior_predictive_ndraws, prior_interval = Float64(prior_interval),
-            include_artifact, include_full_artifact, require_complete))))
+            include_artifact, include_full_artifact, require_complete,
+            include_waic, include_loo, prediction_request))), criteria_sections)
+    report = _with_saved_reporting(report, fit, reporting_request, policy)
     health = _derive_fit_report_health(report)
     report = merge(report, (; report_status = health.status, report_health = health))
     require_complete && _require_complete_fit_report(report, :fit_report)
@@ -1107,6 +1139,7 @@ function _save_mfrm_fixed_q_report_bundle(directory::AbstractString, result::Nam
             overwrite, label, title, max_rows, include_empty, require_complete)
     end
     _fit_report_figure_options(figures)
+    haskey(figures, :pathway) && throw(ArgumentError("Pathway-map bundles support stable unidimensional MFRM fits only"))
     haskey(figures, :wright) && throw(ArgumentError("fixed-coefficient MFRM bundles support posterior, diagnostics and predictive figures"))
     extension = _check_fit_report_figure_destination(directory, figures; overwrite, max_rows)
     checked = _fixed_q_report_samples(result)
@@ -1130,6 +1163,7 @@ function save_fit_report_bundle(directory::AbstractString, fit::_FixedQMFRMFit;
             overwrite, label, title, max_rows, include_empty, require_complete)
     end
     _fit_report_figure_options(figures)
+    haskey(figures, :pathway) && throw(ArgumentError("Pathway-map bundles support stable unidimensional MFRM fits only"))
     haskey(figures, :wright) && throw(ArgumentError("multidimensional MFRM bundles do not support Wright maps"))
     any(kind -> haskey(figures, kind), (:prior, :prior_predictive)) &&
         !get(kwargs, :include_prior_predictive, false) &&
@@ -1149,11 +1183,11 @@ function _write_mfrm_fixed_q_report_figures(directory, checked, report, figures,
         report.metadata.scale_convention, report.metadata.target_identity,
         report.metadata.source_sample_schema, report.metadata.source_sample_content_hash)
     return _write_fit_report_figures(directory, exported_report, figures;
-            identity, seed, overwrite, label, title, max_rows, include_empty, require_complete) do kind, numerical, size
+            identity, seed, overwrite, label, title, max_rows, include_empty, require_complete) do kind, numerical, size, annotation_io
         if kind in (:prior, :prior_predictive)
             data = _report_prior_plot_data(report.prior_predictive, kind; numerical...)
-            figure = kind === :prior ? _render_fixed_q_prior(extension, data; size) :
-                _render_prior_predictive(extension, data; size)
+            figure = kind === :prior ? _render_fixed_q_prior(extension, data; size, annotation_io) :
+                _render_prior_predictive(extension, data; size, annotation_io)
             return (; data, figure)
         end
         data = if kind === :posterior
@@ -1173,6 +1207,6 @@ function _write_mfrm_fixed_q_report_figures(directory, checked, report, figures,
                     "inspect diagnostics(fit)" => "inspect parameter and sampler diagnostics")),
                 _fixed_q_prior_labels(checked))
         end
-        (; data, figure = _render_mfrm_fixed_q(extension, kind, data; size))
+        (; data, figure = _render_mfrm_fixed_q(extension, kind, data; size, annotation_io))
     end
 end

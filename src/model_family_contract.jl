@@ -76,6 +76,18 @@ function _model_family_branch_rows()
             claim_scope = :scalar_rater_consistency_only,
         ),
         _model_family_branch_row(;
+            branch = :mgmfrm_unidimensional_item_step_gpcm,
+            family = :mgmfrm,
+            dimensionality = :unidimensional,
+            category_kernel = :generalized_partial_credit,
+            loading_policy = :fixed_q_positive_item_dimension_discrimination,
+            step_owner = :item,
+            implementation_status = :guarded_experimental,
+            fit_available = true,
+            entrypoint = experimental_entrypoint,
+            claim_scope = :unidimensional_mgmfrm_kernel,
+        ),
+        _model_family_branch_row(;
             branch = :mgmfrm_fixed_q_between_item_gpcm,
             family = :mgmfrm,
             dimensionality = :between_item,
@@ -207,10 +219,11 @@ function _model_family_item_structure(spec::FacetSpec)
         item_rows = (),
     )
     active = Tuple(count(@view q[item, :]) for item in axes(q, 1))
-    n_between = count(==(1), active)
+    n_between = spec.dimensions == 1 ? 0 : count(==(1), active)
     n_within = count(>(1), active)
     n_unassigned = count(==(0), active)
     classification = n_unassigned > 0 ? :invalid_unassigned_item_rows :
+        spec.dimensions == 1 ? :unidimensional :
         n_within == 0 ? :between_item :
         n_between == 0 ? :within_item : :mixed_between_and_within_item
     rows = Tuple((;
@@ -219,6 +232,7 @@ function _model_family_item_structure(spec::FacetSpec)
             active_dimensions = Tuple(findall(@view q[item, :])),
             n_active_dimensions = active[item],
             item_structure = active[item] == 0 ? :unassigned_item :
+                spec.dimensions == 1 ? :unidimensional :
                 active[item] == 1 ? :between_item : :within_item,
         ) for item in axes(q, 1))
     return (;
@@ -238,7 +252,7 @@ function _model_family_category_contract(spec::FacetSpec)
     elseif family === :mfrm
         spec.thresholds === :rating_scale ?
             :rating_scale_pcm : :partial_credit
-    elseif family === :gmfrm
+    elseif family === :gmfrm || spec.dimensions == 1
         :generalized_partial_credit
     else
         :multidimensional_generalized_partial_credit
@@ -342,6 +356,7 @@ function _model_family_exact_branch(spec::FacetSpec, item_structure)
     spec.family === :mfrm && return spec.thresholds === :rating_scale ?
         :mfrm_rating_scale : :mfrm_partial_credit
     spec.family === :gmfrm && return :gmfrm_rater_step_gpcm
+    spec.dimensions == 1 && return :mgmfrm_unidimensional_item_step_gpcm
     item_structure.classification === :between_item &&
         return :mgmfrm_fixed_q_between_item_gpcm
     item_structure.classification in
@@ -362,12 +377,12 @@ function model_family_contract(spec::FacetSpec)
     dimensionality = (;
         n_dimensions = spec.dimensions,
         item_structure...,
-        source_classification = family === :mgmfrm ?
+        source_classification = family === :mgmfrm && spec.dimensions > 1 ?
             :non_compensatory_per_uto_2021 : :not_applicable,
-        algebraic_aggregation = multidimensional ?
+        algebraic_aggregation = spec.dimensions > 1 ?
             :additive_weighted_sum : :single_dimension,
         operational_compensation_status = fixed_coefficients ?
-            :additive_compensation_where_cross_loaded : family === :mgmfrm ?
+            :additive_compensation_where_cross_loaded : family === :mgmfrm && spec.dimensions > 1 ?
             :not_adjudicated : :not_applicable,
         conditional_ability_integral = false,
         ability_representation = :explicit_person_posterior_parameters,
@@ -376,7 +391,8 @@ function model_family_contract(spec::FacetSpec)
             family === :gmfrm ?
                 :item_discrimination_times_rater_consistency :
                 :unit_discrimination,
-        source_loading_surface = family === :mgmfrm ?
+        source_loading_surface = family === :mgmfrm && spec.dimensions == 1 ?
+            :unidimensional_restriction_of_fixed_q_kernel : family === :mgmfrm ?
             :unrestricted_item_dimension_discrimination_in_uto_2021 :
             :not_applicable,
         nonadditive_aggregator_supported = false,

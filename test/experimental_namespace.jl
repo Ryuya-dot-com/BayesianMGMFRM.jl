@@ -42,7 +42,10 @@ end
         :ExchangeablePrior,
         :ExchangeableMFRMFit,
         :correlated,
+        :slope_restriction,
         :GeneralizedPrior,
+        :NormalizedMGMFRMPrior,
+        :NormalizedMGMFRMFit,
         :cached_fit,
         :fit,
         :fit_cache_key,
@@ -98,7 +101,7 @@ end
     )
     @test !gmfrm_contract.fixed_q_required
     @test mgmfrm_contract.scope === :fixed_q_confirmatory_mgmfrm
-    @test mgmfrm_contract.minimum_dimensions == 2
+    @test mgmfrm_contract.minimum_dimensions == 1
     @test mgmfrm_contract.maximum_dimensions === nothing
     @test mgmfrm_contract.discrimination == (:none,)
     @test mgmfrm_contract.discrimination_structure ===

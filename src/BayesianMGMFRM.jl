@@ -1,19 +1,37 @@
 """
     BayesianMGMFRM
 
-Tools for validating long-format many-facet rating data, compiling MFRM-family
-designs, fitting Bayesian models, and producing predictive, diagnostic, and
-model-comparison summaries.
+Analyze ratings while accounting for person ability, item difficulty and rater
+severity, with Bayesian uncertainty estimates and diagnostic checks.
+
+Start with `FacetData` to describe one observed rating per row, then
+`validate_design` to inspect the data and `mfrm_spec` to choose a model.
+`fit(spec; backend = :advancedhmc, chains = 4)` runs Julia NUTS; its draw counts
+and priors still need to suit the analysis. Read `diagnostics`,
+`posterior_summary` and `posterior_mcse` before interpreting a fitted result.
+Use `save_fit_cache` and `load_fit_cache` to revisit it without fitting again.
+Stable fitting covers one-dimensional MFRM. GMFRM and multidimensional models
+use the restricted `BayesianMGMFRM.Experimental` entry points.
+
+At the Julia prompt, type `?FacetData` for a complete data example, `?fit` for
+fitting help, and `??fit` for detailed controls. In a script or notebook,
+`@doc FacetData` retrieves the documentation. The manual's Getting Started
+guide introduces the model choices; the repository's `examples/inspect_ratings.jl`
+runs a first data-and-model example without sampling or writing files.
+
+# Extended help
 
 The stable fitting surface supports the documented MFRM/RSM/PCM configurations.
 `BayesianMGMFRM.Experimental.fit(spec)` additionally supports fixed-coefficient
 multidimensional MFRM in unit logits, a limited partial-credit scalar GMFRM
 configuration and a fixed-Q, identity-correlation
-confirmatory MGMFRM configuration. Unsupported generalized options are rejected
-before numerical execution. The experimental namespace also provides
-diagnostic operations for an exactly two-dimensional free-latent-correlation
-density; that diagnostic surface has no fit result or cache integration and
-does not establish replicated recovery.
+confirmatory MGMFRM configuration. Explicit normalized-prior MGMFRM and
+two-dimensional correlated MFRM/MGMFRM configurations also have experimental
+fit results, diagnostics, parameter MCSE, and manual save/reload operations.
+See `Experimental.fit` for required priors and supported configurations.
+Unsupported generalized options are rejected before numerical execution.
+Computational availability does not establish replicated recovery, calibrated
+intervals, or a scientific model-selection recommendation.
 """
 module BayesianMGMFRM
 
@@ -214,14 +232,19 @@ include("mgmfrm_validation_scoring.jl")
 include("model_contract.jl")
 include("testlet_design_audit.jl")
 include("bayesian_fit.jl")
+include("mgmfrm_location_diagnostics.jl")
+include("mgmfrm_location_parameterization.jl")
 include("posterior_plot.jl")
+include("response_surface.jl")
 include("cmdstan_fit.jl")
 include("mgmfrm_normalized_prior.jl")
+include("mgmfrm_slope_restriction.jl")
 include("mfrm_fixed_q_samples.jl")
 include("mgmfrm_free_correlation_candidate.jl")
 include("mgmfrm_correlated_2d_samples.jl")
 include("mgmfrm_correlated_2d_predictive.jl")
 include("mgmfrm_correlated_2d_reports.jl")
+include("mgmfrm_normalized_fit.jl")
 include("mfrm_correlated_2d.jl")
 include("mfrm_prior_predictive.jl")
 include("mfrm_exchangeable_raters.jl")
@@ -249,6 +272,27 @@ include("local_dependence_calibration_pilot.jl")
 
 # Scalar validation target used by the analytic-gradient test suite.
 include("scalar_validation_logp.jl")
+
+# Qualified candidate APIs; exports and legacy comparison semantics are preserved.
+include("prediction_observations.jl")
+using .PredictionObservationAdapter: prediction_observations, observation_alignment, prediction_criteria
+include("prediction_comparison.jl")
+include("prediction_refit.jl")
+include("prediction_mcse.jl")
+include("prediction_kfold.jl")
+include("recovery_evaluation.jl")
+include("posterior_reliability.jl")
+include("posterior_classification.jl")
+include("posterior_ranking.jl")
+include("rater_agreement.jl")
+include("krippendorff_alpha.jl")
+include("intraclass_correlation.jl")
+include("category_report.jl")
+include("recovery_replications.jl")
+include("prior_sensitivity.jl")
+include("prior_predictive_sensitivity.jl")
+include("prediction_report.jl")
+include("saved_reporting.jl")
 
 # Exact 0.1.x root-export classification and growth boundary.
 include("root_api_contract.jl")

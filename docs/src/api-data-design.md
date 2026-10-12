@@ -1,5 +1,10 @@
 # Data and Design API
 
+!!! note "Unreleased documentation preview — 13 October 2026"
+    This manual includes unreleased interfaces and examples. It is not the
+    documentation of an installed release. Model support and scientific
+    acceptance remain as stated on each page.
+
 Functions that expose both detailed compatibility records and concise
 reader-facing records use a `view` keyword. Existing calls retain
 `view = :full`. For reports or shared structured output, use `view = :public`:

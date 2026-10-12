@@ -1,4 +1,4 @@
-@testset "testlet overlap interpretation and refit blocker" begin
+@testset "testlet overlap interpretation and refit facet scope" begin
     table = let
         person = String[]
         rater = String[]
@@ -90,8 +90,23 @@
     @test all(row -> row.refit_blocker, response_rows)
     @test all(row -> row.n_heldout_only_levels > 0, response_rows)
 
+    # Optional response IDs group rows but are not fitted coefficients in the
+    # current likelihood. The general all-facet audit above still reports them.
+    refit = kfold_refit(data, response_plan;
+        backend = :julia, ndraws = 2, warmup = 1, chains = 1,
+        step_size = 0.02, seed = 92305)
+    @test refit.plan_diagnostics.passed
+    @test refit.n_refits == response_plan.n_folds
+    @test refit.n_observations == data.n
+    @test all(fold -> all(isfinite, fold), refit.fold_logliks)
+
+    # An unseen fitted person remains a different prediction target and must
+    # still be rejected before fitting.
+    person_plan = kfold_plan(data; k = 2, group_by = :person)
     refit_message = linking_guard_message(
-        () -> kfold_refit(data, response_plan),
+        () -> kfold_refit(data, person_plan;
+            backend = :julia, ndraws = 2, warmup = 1, chains = 1,
+            step_size = 0.02, seed = 92305),
     )
     @test occursin("heldout-only facet levels", refit_message)
     @test occursin("kfold_plan_diagnostics", refit_message)

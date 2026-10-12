@@ -1,5 +1,14 @@
 # Model Equations
 
+!!! note "Unreleased documentation preview — 13 October 2026"
+    This manual includes unreleased interfaces and examples. It is not the
+    documentation of an installed release. Model support and scientific
+    acceptance remain as stated on each page.
+
+For a first explanation with a worked three-category example, read
+[How Rating Models Work](rating-model-theory.md). This page gives the more
+detailed mathematical and source conventions.
+
 `BayesianMGMFRM.jl` keeps model-equation metadata separate from fitting
 availability. The [`model_equation`](@ref) contract records the intended family,
 category kernel, primary-source references, required parameter blocks,
@@ -10,10 +19,10 @@ configuration.
 
 Fitting supports one-dimensional MFRM/RSM/PCM, experimental fixed-coefficient
 multidimensional MFRM, scalar GMFRM with item discrimination × rater consistency,
-and fixed-Q confirmatory MGMFRM with `dimensions >= 2`. Fixed-coefficient MFRM
+and fixed-Q confirmatory MGMFRM with `dimensions >= 1`. Fixed-coefficient MFRM
 uses independent abilities by default; `Experimental.correlated(spec)` explicitly
 selects population correlation for two between-item dimensions. See
-[Correlated ability dimensions](experimental.md#correlated-ability-dimensions)
+[Correlated ability dimensions](experimental.md#Correlated-ability-dimensions)
 for its priors, coordinate transformation and fitting constraints.
 For both fixed-coefficient models, [prior scales and facet labels](@ref "Prior scales, facet labels and locations")
 explain the reconstructed rater/step distributions and prior-anchored locations.
@@ -104,7 +113,8 @@ The present fixed-Q restriction gives these structural cases:
 
 | Q structure | Meaning | Current status |
 | --- | --- | --- |
-| Exactly one active dimension in every item row | Between-item multidimensionality | Executable in the guarded fixed-Q branch when the remaining design checks pass. |
+| One Q column, active for every item | Unidimensional restriction of the MGMFRM kernel | Executable with an explicit one-column Q; not the scalar rater-step GMFRM. |
+| Two or more Q columns, exactly one active dimension in every item row | Between-item multidimensionality | Executable in the guarded fixed-Q branch when the remaining design checks pass. |
 | Multiple active dimensions in at least one item row | Within-item multidimensionality for those items | A fixed confirmatory zero mask with estimated positive active loadings is executable but warning-bearing; it is not exploratory loading selection. |
 | Both single-dimension and cross-loaded item rows | Mixed between-/within-item structure | Representable through fixed Q, subject to Q rank, person support, pure-item, and connectivity review. |
 | Dense or freely estimated item-dimension structure as in the unrestricted source parameterization | Every `alpha[i,l]` is potentially estimated without a fixed zero mask | Not implemented by the guarded fit. |
@@ -119,7 +129,7 @@ and adequate identification/design support. The guarded branch is therefore a
 restricted Uto-equation candidate, not the complete source loading model.
 
 The [`model_family_contract`](@ref) now exposes this taxonomy directly as
-`:between_item`, `:within_item`, or `:mixed_between_and_within_item`, while
+`:unidimensional`, `:between_item`, `:within_item`, or `:mixed_between_and_within_item`, while
 `q_matrix_validation` continues to record the lower-level Q rank, person
 support, pure-item, and connectivity evidence. A missing Q is rejected during
 specification construction; an empty-row Q is rejected by validation and is
@@ -132,12 +142,124 @@ Step sharing is not generated once for every facet:
 | Stable MFRM/RSM | Rating-scale PCM form | One shared step vector across items and raters. |
 | Stable MFRM/PCM | Partial-credit form | Item-specific step vectors shared across raters. |
 | Guarded scalar GMFRM | Generalized partial-credit form with item discrimination and rater consistency | Rater-specific step vectors shared across items and persons. |
-| Guarded fixed-Q MGMFRM | Multidimensional generalized partial-credit form with item-dimension discrimination and rater consistency | Item-specific step vectors shared across raters and dimensions. |
+| Guarded fixed-Q MGMFRM | One- or multidimensional generalized partial-credit form with item-dimension discrimination and rater consistency | Item-specific step vectors shared across raters and dimensions. |
 
 Consequently, adding a new facet does not automatically increase the number of
 step vectors. Arbitrary facet-specific, nested, crossed, or partially pooled
 step structures require a new likelihood, identification rule, prior, and
 reporting contract.
+
+## One versus multiple dimensions under the same kernel
+
+A useful comparison asks whether items need distinct ability dimensions while
+keeping the response equation and prior conventions aligned. Set
+`family=:mgmfrm, dimensions=1, q_matrix=trues(n_items,1)` for the explicit
+one-dimensional restriction. It has adjacent-category log odds
+
+```math
+\log\frac{P(Y_{pir}=k)}{P(Y_{pir}=k-1)}
+=1.7\,\alpha_r(\alpha_i\theta_p-\beta_i-\beta_r-d_{ik}).
+```
+
+This is **not** the package's scalar `family=:gmfrm` equation, whose log odds
+are `alpha_i * alpha_r * (theta_p - beta_i - beta_r - d_rk)`.
+Besides the fixed 1.7 multiplier, the models differ in step owner and whether
+item discrimination multiplies locations and steps. Comparing those two named
+families is possible, but does not isolate dimensionality.
+
+The one-dimensional MGMFRM keeps positive item loadings, zero-sum rater
+severities, product-one rater consistencies, item-owned zero-sum nonbaseline
+steps and the same prior rules as its multidimensional counterpart. With K
+categories each item has K-2 free steps. Ability origin and scale remain
+prior-anchored; admitting one dimension is not a new likelihood-identification
+constraint. Raw, normalized exchangeable and normalized source priors remain
+explicit choices. The correlated wrapper still requires exactly two dimensions.
+
+For a between-item comparison with one active loading per item, the loading
+count and each parameter block's prior convention can be kept the same;
+only the ability dimension structure and item assignment change. Cross-loaded
+models also change the number and roles of loadings, so the example excludes
+them. Equal numeric prior settings do not imply equal joint prior predictive
+laws: sharing one ability or using independent dimension-specific abilities
+changes dependence between item responses. This is not a nested comparison
+obtained by fixing a supported correlation parameter to one.
+
+See the [matched-dimension workflow](common_prediction_comparison.md#Matched-dimensionality-comparison)
+for common training/held-out splits. The one-dimensional extension is an
+implementation restriction of this equation, not a claim that the published
+scalar GMFRM has been reproduced, or evidence of calibrated intervals or
+reliable dimensionality selection.
+
+## Estimands, origins and units
+
+For fixed-Q MGMFRM, positive loadings specify orientation but do not by
+themselves identify ability origins and units in the conditional response
+model. Write the predictor as `a_i' theta_p - b_i`, with the prime here denoting
+transpose. For arbitrary shifts `c_d` and positive scales `t_d`, the following
+simultaneous change preserves every category probability:
+
+```math
+\theta^*_{pd}=t_d\theta_{pd}+c_d,\qquad
+a^*_{id}=a_{id}/t_d,\qquad
+b^{*}_{i}=b_i+\sum_d a_{id}c_d/t_d.
+```
+
+Rater severities, consistencies and item steps are unchanged. This preserves
+the fixed zeros of Q, including mixed Q. The declared priors generally
+distinguish the transformed parameters; the invariance is a likelihood
+property, not equality of posterior targets with unchanged prior formulas.
+The normal population ability prior fixes a distributional origin and unit;
+it does not force the fitted persons' sample mean to zero or variance to one.
+
+For pure-Q items i and j in the same dimension, this has concrete consequences:
+
+| Quantity | Effect of the change | Interpretation |
+| --- | --- | --- |
+| Ability difference `theta_p - theta_q` | Multiplied by `t_d` | Sign and ordering are invariant; magnitude and nonzero practical-equivalence bounds require an ability unit. |
+| Loading ratio `a_i/a_j` | Unchanged | Same-dimension relative sensitivity; cross-dimension ratios have separate units. |
+| Item-location difference `b_i-b_j` | Adds `(a_i-a_j)c_d/t_d` | Generally origin-dependent, including its sign. |
+| Difference `b_i/a_i-b_j/a_j` | Multiplied by `t_d` | Difference between centers in ability coordinates; sign is invariant but magnitude needs a unit. |
+| Item location relative to the panel, `b_i-a_i*mean(theta_d)` | Unchanged | Refers to the same fitted-person panel; changing that panel changes the estimand. |
+| Rater severity difference or consistency ratio | Unchanged | Conditional on the specified zero-sum/product-one constraints; this does not remove prior sensitivity or establish rating reliability. |
+| Matched category probabilities | Unchanged | Person coordinates and item parameters must move together. |
+
+For example, loadings `(0.8,1.6)` and item locations `(0.2,0.1)` give an
+item-location difference of `0.1`. Shifting that ability dimension by one
+changes the locations to `(1.0,1.7)`, and the difference to `-0.7`, with exactly
+the same probabilities. A difference in b remains a valid estimand under a
+declared population origin; it is not automatically an origin-free item
+comparison. The existing [location diagnostics](experimental.md#Location-diagnostics-for-fixed-Q-MGMFRM)
+already report panel-relative locations, using draw-specific loadings.
+
+For a **complete crossed, pure-Q design**, with finite parameters, at least
+one item per dimension and nonconstant person abilities in every dimension,
+these location/positive-scale changes exhaust the conditional response
+model's ambiguity. To see this, take adjacent log odds divided by 1.7. A
+nonzero person difference is proportional to each rater's consistency; product
+one fixes all consistencies. Dividing them out, then averaging with the
+zero-sum rater and item-step constraints recovers severities, steps and the
+person-item predictors. Within each dimension, person differences in these
+predictors determine loadings and abilities up to a common positive scale;
+their levels leave one origin. This argument uses the entire probability
+table, not estimated cell frequencies from a single rating panel.
+
+If all persons have the same ability in a dimension, an individual item's
+loading and location can compensate each other, so even loading ratios need
+not be identified. The completeness claim does not extend here to sparse or
+cross-loaded designs, or to a model with abilities integrated out. Structural
+Q checks and invariance of a selected contrast alone do not establish those
+broader identifiability results or adequate finite-data precision.
+
+For the first core candidate's proper normal raw prior and a finite set of
+valid category observations, posterior existence follows separately: each
+likelihood is strictly positive and at most one, so its prior integral is in
+`(0,1]`. A normalized posterior therefore exists. This does not establish
+numerical representability, MCMC convergence, recovery, calibration, or the
+scientific appropriateness of the prior.
+
+The [MGMFRM prior comparison](@ref "MGMFRM prior choice and comparable scales")
+distinguishes the raw prior from explicit normalized priors, explains
+their rater asymmetry and gives explicit scale-matching conventions.
 
 ## Independent Known-Truth Ordinal Kernel
 

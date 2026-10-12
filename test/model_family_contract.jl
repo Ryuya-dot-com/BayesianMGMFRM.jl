@@ -24,7 +24,7 @@ end
     @test skeleton.status === :stage_0_contract_implemented
     @test !skeleton.conditional_ability_integral
     @test !skeleton.arbitrary_facet_steps_generated_automatically
-    @test length(skeleton.branches) == 10
+    @test length(skeleton.branches) == 11
     @test Set(row.implementation_status for row in skeleton.branches) == Set((
         :stable_supported,
         :guarded_experimental,

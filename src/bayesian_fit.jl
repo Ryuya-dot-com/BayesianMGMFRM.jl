@@ -544,7 +544,7 @@ end
 Guarded experimental MGMFRM fit result returned by
 `BayesianMGMFRM.Experimental.fit(spec)` (or the legacy
 `fit(spec; experimental = true)` spelling) for the fixed-Q confirmatory candidate with
-`dimensions >= 2`, `thresholds = :partial_credit`, the generic compatibility
+`dimensions >= 1`, `thresholds = :partial_credit`, the generic compatibility
 selector `discrimination = :none`, and no anchors or fitted DFF terms. The
 kernel still contains Q-masked item-dimension discrimination parameters;
 `:none` means that the broader generic discrimination selector is not used.
@@ -721,8 +721,8 @@ function _mgmfrm_guarded_local_fit_logdensity(design::FacetDesign;
     snapshot.spec.family === :mgmfrm &&
         snapshot.spec.estimation_status === :specified_only ||
         throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity is only for specified-only MGMFRM preview designs"))
-    snapshot.spec.dimensions >= 2 ||
-        throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity requires dimensions >= 2"))
+    snapshot.spec.dimensions >= 1 ||
+        throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity requires dimensions >= 1"))
     snapshot.spec.q_matrix !== nothing ||
         throw(ArgumentError("_mgmfrm_guarded_local_fit_logdensity requires a fixed confirmatory q_matrix"))
     blueprint = _mgmfrm_fit_ready_candidate_blueprint(snapshot)
@@ -1233,6 +1233,44 @@ function _check_nuts_controls(target_accept::Real, max_depth::Int,
 end
 
 """
+    fit(spec_or_design; prior = MFRMPrior(), backend = :julia,
+        ndraws = 1000, warmup = 1000, chains = 1, kwargs...)
+
+Estimate a stable one-dimensional MFRM from a specification made by
+[`mfrm_spec`](@ref). Return an `MFRMFit` containing retained posterior draws,
+the model/data description and sampling information.
+
+Choose `backend = :advancedhmc` for Julia NUTS or `:cmdstan` for CmdStan NUTS.
+The compatibility default `:julia` is random-walk Metropolis, not NUTS.
+`ndraws` and `warmup` are counts **per chain**. The default single chain is
+insufficient for between-chain convergence checks; request multiple chains
+and inspect diagnostics and numerical precision before interpreting results.
+
+# Examples
+
+After constructing `spec` using the example in [`FacetData`](@ref), this code
+runs a deliberately short sampler demonstration:
+
+```julia
+fit_result = fit(spec; backend = :advancedhmc,
+    chains = 2, warmup = 50, ndraws = 50, seed = 102)
+check = diagnostics(fit_result; view = :public)
+check.summary.flag
+posterior_summary(fit_result)
+posterior_mcse(fit_result)
+```
+
+These short settings are not adequate-inference recommendations. A completed
+fit or a passing diagnostic flag does not establish model validity or interval
+coverage. Select priors with [`prior_predictive_check`](@ref) before an analysis;
+use [`save_fit_cache`](@ref) and [`load_fit_cache`](@ref) to reuse a fit.
+
+GMFRM, multidimensional MFRM and MGMFRM require the documented experimental
+route and its model-specific priors and restrictions; see
+[`BayesianMGMFRM.Experimental.fit`](@ref). Type `??fit` for all backend controls.
+
+# Extended help
+
     fit(spec_or_design; prior = MFRMPrior(), backend = :julia, ndraws = 1000,
         warmup = 1000, chains = 1, step_size = 0.05, init = nothing,
         rng = Random.default_rng(), seed = nothing, target_accept = 0.8,
@@ -1284,7 +1322,7 @@ the scalar source-aligned experimental GMFRM configuration with `family = :gmfrm
 `dimensions = 1`, `thresholds = :partial_credit`, and
 `discrimination = :rater`, returning [`GMFRMFit`](@ref),
 and for the fixed-Q confirmatory MGMFRM candidate with `family = :mgmfrm`,
-`dimensions >= 2`, `thresholds = :partial_credit`,
+`dimensions >= 1`, `thresholds = :partial_credit`,
 `discrimination = :none`, and a fixed `q_matrix`, returning
 [`MGMFRMFit`](@ref). Both generalized surfaces require empty anchors and no
 fitted validation-bias/DFF terms. Multidimensional GMFRM, rating-scale
@@ -2693,8 +2731,8 @@ function _mgmfrm_confirmatory_candidate_pointwise_fixture(
         design::FacetDesign,
         direct_params::AbstractVector)
     _check_mgmfrm_source_fixture_design(design, "_mgmfrm_confirmatory_candidate_pointwise_fixture")
-    design.spec.dimensions >= 2 ||
-        throw(ArgumentError("_mgmfrm_confirmatory_candidate_pointwise_fixture requires dimensions >= 2"))
+    design.spec.dimensions >= 1 ||
+        throw(ArgumentError("_mgmfrm_confirmatory_candidate_pointwise_fixture requires dimensions >= 1"))
     _check_parameter_vector_length(design, direct_params)
     _mgmfrm_source_fixture_constraints(design, direct_params)
     direct = Float64.(collect(direct_params))
@@ -2770,6 +2808,9 @@ end
 function _mgmfrm_guarded_local_fit_direct_draw_values(
         target::_MGMFRMGuardedLocalFitLogDensity,
         raw_draws::AbstractMatrix{<:Real})
+    # Rebuild once per call so changes to the owned design are rechecked.
+    blueprint = _mgmfrm_source_unconstrained_blueprint(target.design)
+    loading_indices = _mgmfrm_source_loading_index_matrix(target.design)
     n_draws = size(raw_draws, 1)
     n_direct = length(target.blueprint.constrained_parameter_names)
     n_observations = target.design.spec.data.n
@@ -2778,8 +2819,8 @@ function _mgmfrm_guarded_local_fit_direct_draw_values(
     loglikelihood = Vector{Float64}(undef, n_draws)
     for draw in 1:n_draws
         raw = collect(@view raw_draws[draw, :])
-        direct = _mgmfrm_source_constrained_params_from_unconstrained(target.design, raw)
-        direct_pointwise = _mgmfrm_source_pointwise_loglikelihood(target.design, direct)
+        direct = _mgmfrm_source_constrained_params_from_unconstrained(target.design, raw, blueprint)
+        direct_pointwise = _mgmfrm_source_pointwise_loglikelihood(target.design, direct, loading_indices)
         direct_draws[draw, :] .= direct
         pointwise[draw, :] .= direct_pointwise
         loglikelihood[draw] = sum(direct_pointwise; init = 0.0)
@@ -3086,7 +3127,8 @@ function _run_generalized_candidate_advancedhmc(
         ess_threshold::Real = 400,
         progress::Bool = false,
         record_warmup::Bool = false,
-        _sampling_observer = nothing)
+        _sampling_observer = nothing,
+        _initial_transform = identity)
     _sampling_observer === nothing || _sampling_observer isa Function ||
         throw(ArgumentError("_sampling_observer must be a function or nothing"))
     step_size = _check_fit_controls(ndraws, warmup, chains, step_size)
@@ -3099,7 +3141,8 @@ function _run_generalized_candidate_advancedhmc(
     nparams = LogDensityProblems.dimension(target)
     nparams >= 1 ||
         throw(ArgumentError("at least one parameter is required for AdvancedHMC diagnostics"))
-    initial = Float64.(collect(raw_initial))
+    initialization_coordinates = Float64.(collect(raw_initial))
+    initial = _initial_transform(initialization_coordinates)
     initial_logdensity = LogDensityProblems.logdensity(target, initial)
     isfinite(initial_logdensity) ||
         throw(ArgumentError("initial raw parameter vector has non-finite log density"))
@@ -3128,12 +3171,14 @@ function _run_generalized_candidate_advancedhmc(
     )
 
     for chain in 1:chains
-        chain_initial = _with_sampler_context(:advancedhmc, chain, :initialization) do
-            values = _advancedhmc_initial(initial, fit_rng, Float64(init_jitter))
+        chain_raw_initial, chain_initial = _with_sampler_context(:advancedhmc, chain, :initialization) do
+            raw_values = _advancedhmc_initial(
+                initialization_coordinates, fit_rng, Float64(init_jitter))
+            values = _initial_transform(raw_values)
             chain_logdensity = LogDensityProblems.logdensity(target, values)
             isfinite(chain_logdensity) ||
                 throw(ArgumentError("chain $chain initial raw parameter vector has non-finite log density"))
-            values
+            (raw_values, values)
         end
         gradient_target = _with_sampler_context(:advancedhmc, chain, :initialization) do
             _logdensity_gradient_target(target, chain_initial, ad_backend).target
@@ -3161,7 +3206,7 @@ function _run_generalized_candidate_advancedhmc(
             ) :
             AdvancedHMC.NoAdaptation()
         samples, stats = _with_sampler_context(:advancedhmc, chain, :sampling) do
-            # Private timing hook: reuse AdvancedHMC's iteration notification,
+            # Private observation hook: reuse AdvancedHMC's iteration notification,
             # preserving its sampler/adaptation loop and the saved run schema.
             options = if _sampling_observer === nothing
                 (; progress)
@@ -3171,7 +3216,10 @@ function _run_generalized_candidate_advancedhmc(
                     progress && AdvancedHMC.pm_next!(pm, stat)
                     return nothing
                 end
-                _sampling_observer((; phase = :sampling_start, chain))
+                _sampling_observer((; phase = :sampling_start, chain,
+                    initial_raw = copy(chain_raw_initial),
+                    initial_sampling = copy(chain_initial),
+                    metric = deepcopy(metric_object), controls))
                 (; progress = true, pm_next! = notify)
             end
             result = AdvancedHMC.sample(
@@ -3622,6 +3670,7 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         ess_threshold::Real = 400,
         record_warmup::Bool = false,
         progress::Bool = false,
+        _sampling_observer = nothing,
         initial_source::Symbol = :sampler_raw_initial_argument)
     target.blueprint.family === :mgmfrm ||
         throw(ArgumentError("_mgmfrm_guarded_local_fit_sampler_diagnostics requires an MGMFRM guarded target"))
@@ -3647,6 +3696,7 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         ess_threshold,
         record_warmup,
         progress,
+        _sampling_observer,
     )
     return _mgmfrm_guarded_local_fit_diagnostic_surface(
         target,
@@ -4000,8 +4050,12 @@ function _fit_guarded_mgmfrm(spec::FacetSpec;
         prior = nothing,
         backend::Symbol = :advancedhmc,
         init = nothing,
+        sampling_coordinates::Symbol = :raw,
         kwargs...)
     _check_guarded_mgmfrm_spec(spec)
+    _check_mgmfrm_sampling_coordinates(spec, sampling_coordinates, backend, true)
+    sampling_coordinates === :orthogonal_person_mean_item_offset &&
+        return _fit_mgmfrm_location(spec; prior, init, kwargs...)
     backend in (:advancedhmc, :cmdstan) ||
         throw(_guarded_generalized_unsupported_error(
             "experimental MGMFRM fit",
@@ -4044,9 +4098,12 @@ function _fit_experimental_mgmfrm(spec::FacetSpec; kwargs...)
     return _fit_guarded_mgmfrm(spec; kwargs...)
 end
 
-function _fit_guarded_generalized(spec::FacetSpec; kwargs...)
+function _fit_guarded_generalized(spec::FacetSpec;
+        sampling_coordinates::Symbol = :raw, kwargs...)
+    _check_mgmfrm_sampling_coordinates(spec, sampling_coordinates,
+        get(kwargs, :backend, :advancedhmc), true)
     spec.family === :gmfrm && return _fit_experimental_gmfrm(spec; kwargs...)
-    spec.family === :mgmfrm && return _fit_experimental_mgmfrm(spec; kwargs...)
+    spec.family === :mgmfrm && return _fit_experimental_mgmfrm(spec; sampling_coordinates, kwargs...)
     throw(ArgumentError(
         "experimental fitting currently supports only family = :gmfrm or :mgmfrm",
     ))
@@ -5339,19 +5396,36 @@ function parameter_block_diagnostics(fit::MGMFRMFit;
     return fit.diagnostic_surface.block_rows
 end
 
+"""
+    diagnostics(fit::MGMFRMFit; include_location = false, view = :full, ...)
+
+Return the saved parameter and sampler assessment. With `include_location = true`,
+also compute `location_rows` and `location_summary` for fitted-person ability
+means, item difficulties, loading-weighted ability means and their differences.
+These equally weighted finite-panel quantities distinguish movement in a common
+location from movement in the response-relevant differences. Active loadings are
+used at every draw, including within-item Q structures. They are not population
+means, a new centering constraint, or a replacement for the original `summary`.
+Both views retain these optional diagnostics; default output is unchanged.
+"""
 function diagnostics(fit::MGMFRMFit;
         view::Symbol = :full,
+        include_location::Bool = false,
         split_chains::Bool = true,
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400)
     view in (:full, :public) ||
         throw(ArgumentError("view must be :full or :public"))
-    _check_mgmfrm_fit_diagnostic_policy(fit;
+    checked = _check_mgmfrm_fit_diagnostic_policy(fit;
         split_chains,
         rhat_threshold,
         ess_threshold)
     surface = fit.diagnostic_surface
+    location = include_location ? _mgmfrm_location_diagnostics(fit;
+        split_chains, rhat_threshold = checked.rhat_threshold,
+        ess_threshold = checked.ess_threshold) : (;)
     diagnostic_surface = (;
+        location...,
         schema = "bayesianmgmfrm.mgmfrm_guarded_local_fit_diagnostics.v1",
         family = :mgmfrm,
         scope = :minimal_confirmatory_mgmfrm_candidate,
@@ -6234,6 +6308,7 @@ function _fit_report_dff(fit::MFRMFit;
         dff_terms,
         dff_interval::Real,
         dff_min_n::Int,
+        dff_adjustment::Symbol,
         dff_expected_score_practical_threshold,
         dff_logit_practical_threshold,
         dff_practical_probability_threshold::Real,
@@ -6247,6 +6322,7 @@ function _fit_report_dff(fit::MFRMFit;
             terms = dff_terms,
             interval = dff_interval,
             min_n = dff_min_n,
+            adjustment = dff_adjustment,
             expected_score_practical_threshold =
                 dff_expected_score_practical_threshold,
             logit_practical_threshold = dff_logit_practical_threshold,
@@ -6779,9 +6855,21 @@ requested warmup. These events do not
 change retained-draw warnings, R-hat/ESS or posterior summaries. A computed
 section means reporting succeeded, not that adaptation passed a quality rule.
 Older saved reports without this section remain readable without adding rows.
+DFF sections default to the count-weighted additive projection. Set
+`dff_adjustment=:observed_margins` only to reproduce the historical screen;
+see [`dff_report`](@ref) for assignment support and uncertainty limits.
+
+`reporting` is an optional named tuple for the common category, agreement,
+named reliability-cohort, classification, ranking, observed-score alpha and ICC sections. It preserves explicit identities/targets,
+all retained draws for posterior quantities, warnings and section failures in public/Markdown/JSON/bundle
+output. Omitting it keeps previous report behavior. See the Saved-fit Reporting
+API guide for its request fields and uncertainty definitions. Completeness is
+execution status, not scientific or numerical acceptance. The alpha and ICC sections
+use observed ratings, not posterior draws, and supply no SE or interval.
 """
 function fit_report(fit::_ModelComparisonFit;
         view::Symbol = :full,
+        reporting = nothing,
         include_prior_predictive::Bool = false,
         prior_predictive_ndraws::Int = 100,
         prior_predictive_rng::AbstractRNG = Random.default_rng(),
@@ -6824,6 +6912,7 @@ function fit_report(fit::_ModelComparisonFit;
         dff_terms = :validation,
         dff_interval::Real = 0.95,
         dff_min_n::Int = 1,
+        dff_adjustment::Symbol = :assignment,
         dff_expected_score_practical_threshold = nothing,
         dff_logit_practical_threshold = nothing,
         dff_practical_probability_threshold::Real = 0.8,
@@ -6842,6 +6931,7 @@ function fit_report(fit::_ModelComparisonFit;
     view in (:full, :public) ||
         throw(ArgumentError("view must be :full or :public"))
     checked_on_error = _fit_report_on_section_error(on_section_error)
+    reporting_request = _saved_reporting_request(fit, reporting)
     diagnostic_surface = diagnostics(fit;
         split_chains,
         rhat_threshold,
@@ -7008,6 +7098,7 @@ function fit_report(fit::_ModelComparisonFit;
         dff_terms,
         dff_interval,
         dff_min_n,
+        dff_adjustment,
         dff_expected_score_practical_threshold =
             checked_dff_expected_score_practical_threshold,
         dff_logit_practical_threshold =
@@ -7171,6 +7262,7 @@ function fit_report(fit::_ModelComparisonFit;
             dff_terms,
             dff_interval = Float64(dff_interval),
             dff_min_n,
+            dff_adjustment,
             dff_expected_score_practical_threshold =
                 checked_dff_expected_score_practical_threshold,
             dff_logit_practical_threshold =
@@ -7205,6 +7297,7 @@ function fit_report(fit::_ModelComparisonFit;
         dff,
         artifact,
     )
+    report = _with_saved_reporting(report, fit, reporting_request, checked_on_error)
     health = fit_report_health(report)
     report = merge(report, (;
         report_status = health.status,
@@ -7466,6 +7559,13 @@ const _FIT_REPORT_SECTION_ORDER = (
     :fixed_coordinates,
     :category_functioning,
     :rater_homogeneity,
+    :category_report,
+    :posterior_reliability,
+    :posterior_classification,
+    :posterior_ranking,
+    :rater_agreement,
+    :krippendorff_alpha,
+    :intraclass_correlation,
     :q_matrix,
     :mcmc_budget_guidance,
     :prior_policy,
@@ -7632,6 +7732,13 @@ const _PUBLIC_FIT_REPORT_TOP_LEVEL_SECTIONS = (
     :fixed_coordinates,
     :category_functioning,
     :rater_homogeneity,
+    :category_report,
+    :posterior_reliability,
+    :posterior_classification,
+    :posterior_ranking,
+    :rater_agreement,
+    :krippendorff_alpha,
+    :intraclass_correlation,
     :q_matrix,
     :diagnostics,
     :warmup,
@@ -7669,6 +7776,7 @@ const _PUBLIC_FIT_REPORT_USER_VALUE_FIELDS = Set((
     :contrast,
     :dimension_label,
     :dimension_labels,
+    :dataset_id,
     :direct_parameter_names,
     :facet,
     :focal_level,
@@ -7679,6 +7787,9 @@ const _PUBLIC_FIT_REPORT_USER_VALUE_FIELDS = Set((
     :model,
     :models,
     :optional_facets,
+    :observation_id,
+    :observation_ids,
+    :problem_observation_ids,
     :parameter,
     :parameter_name,
     :parameter_names,
@@ -7689,6 +7800,18 @@ const _PUBLIC_FIT_REPORT_USER_VALUE_FIELDS = Set((
     :step_path,
     :term,
     :threshold_path,
+    :cohort_id,
+    :profile_id,
+    :id,
+    :parameters,
+    :response_id,
+    :response_ids,
+    :unmatched_observation_ids,
+    :observation_a,
+    :observation_b,
+    :rater_a,
+    :rater_b,
+    :empirical_zero_variance_parameters,
 ))
 
 function _public_fit_report_user_value_field(field::Symbol)
@@ -9225,7 +9348,8 @@ to reject captured section errors before creating the bundle directory.
 
 With CairoMakie loaded, pass a fit and select optional figures, for example
 `figures = (posterior = (block = :rater,), predictive = (;))`. Supported keys
-are `posterior`, `diagnostics`, `predictive`, and stable-MFRM-only `wright`.
+are `posterior`, `diagnostics`, `predictive`, and stable-MFRM-only `wright`
+and `pathway`.
 Each value is a NamedTuple of that plot's selection/size options. The bundle
 adds PDF/SVG figures, their captions in Markdown, and JSON numerical inputs.
 No fitting occurs. Summary-only reports cannot supply figures: reload the
@@ -9233,8 +9357,8 @@ saved fit with [`load_fit_cache`](@ref).
 
 Set shared `posterior_lower`/`posterior_upper` central bounds (default
 0.025/0.975), `predictive_interval` (0.9), and `ndraws` or `draw_indices` on
-this call, not inside plot options. Posterior and Wright figures use those
-posterior bounds; predictive figures consume the report's exact replicated
+this call, not inside plot options. Posterior, Wright and both axes of Pathway
+figures use those posterior bounds and all retained draws; predictive figures consume the report's exact replicated
 category-summary rows. `seed` defaults to 1 for figure bundles and controls
 local posterior/prior predictive RNGs; custom `rng`/`prior_predictive_rng`
 keywords are rejected there. Other report-only calls retain their RNG behavior.
@@ -11302,9 +11426,11 @@ function _fit_cache_request(design::FacetDesign;
         metric::Symbol = :diagonal,
         ad_backend::Symbol = :ForwardDiff,
         init_jitter::Real = 0.0,
+        sampling_coordinates::Symbol = :raw,
         progress::Bool = false)
     _require_canonical_design(design, "fit cache request")
     _reject_mfrm_fixed_q_fit(design.spec, "fit cache request")
+    _check_mgmfrm_sampling_coordinates(design.spec, sampling_coordinates, backend, experimental)
     experimental && backend !== :advancedhmc &&
         throw(ArgumentError(
             "experimental fit caches currently support only backend = :advancedhmc"))
@@ -11320,6 +11446,8 @@ function _fit_cache_request(design::FacetDesign;
         metric,
         ad_backend,
         init_jitter)
+    # Omit the default coordinate tag to preserve existing request bytes and keys.
+    sampling_coordinates === :raw || (controls = merge(controls, (; sampling_coordinates)))
     return (;
         schema = "bayesianmgmfrm.fit_request.v2",
         julia_version = string(VERSION),
@@ -11350,6 +11478,9 @@ Anchored designs use the canonical semantic design identity, so reordering
 otherwise identical anchor declarations does not change the key.
 Numeric sampler controls use the same bounds as [`fit`](@ref) and are checked
 before cache lookup.
+For independent experimental MGMFRM, `sampling_coordinates` also distinguishes
+the optional `:orthogonal_person_mean_item_offset` computation. Omitting it or
+passing `:raw` retains the existing default key and model/prior identity.
 """
 function fit_cache_key(design::FacetDesign; kwargs...)
     return _cache_hash(_fit_cache_request(design; kwargs...))
@@ -11496,7 +11627,8 @@ Base.@nospecializeinfer function _check_fit_cache_record(@nospecialize(record), 
     canonical_mfrm = isequal(_nt_get(record, :schema, nothing), "bayesianmgmfrm.fit_cache.v2")
     if canonical_mfrm
         _check_mfrm_fixed_q_cache_record(record, path)
-    elseif isequal(_nt_get(record, :schema, nothing), "bayesianmgmfrm.correlated_mgmfrm_fit_cache.v1")
+    elseif _nt_get(record, :schema, nothing) in ("bayesianmgmfrm.correlated_mgmfrm_fit_cache.v1",
+            "bayesianmgmfrm.normalized_mgmfrm_fit_cache.v1")
         _check_mgmfrm_correlated_2d_cache_record(record, path)
     else
         _nt_get(record, :schema, nothing) == "bayesianmgmfrm.fit_cache.v1" ||
@@ -11556,6 +11688,34 @@ function _check_optional_cache_hash_value(record::NamedTuple,
     return nothing
 end
 
+function _fit_cache_summary_rows_equal(actual, expected)
+    actual isa AbstractVector && length(actual) == length(expected) || return false
+    return all(zip(actual, expected)) do (a, b)
+        a isa NamedTuple && keys(a) == keys(b) || return false
+        isequal(a, b) && return true
+        moments = (; mean = nothing, sd = nothing)
+        isequal(Base.structdiff(a, moments), Base.structdiff(b, moments)) || return false
+        # Recomputed reductions need not be bitwise identical. Scale by spread
+        # as well as location so cancellation near a zero mean remains covered.
+        all(x -> x isa Float64 && isfinite(x), (a.mean, a.sd, b.mean, b.sd)) || return false
+        a.sd >= 0 && b.sd >= 0 && b.n_draws > 1 || return false
+        budget = 8.0 * b.n_draws * eps(Float64)
+        0 < budget < 1 || return false
+        tolerance = budget * max(abs(b.mean), b.sd)
+        isfinite(tolerance) || return false
+        return abs(a.mean - b.mean) <= tolerance && abs(a.sd - b.sd) <= tolerance
+    end
+end
+
+function _fit_cache_artifact_equal(actual::NamedTuple, expected::NamedTuple)
+    keys(actual) == keys(expected) || return false
+    return all(keys(expected)) do key
+        key in (:posterior_summary, :direct_posterior_summary) ?
+            _fit_cache_summary_rows_equal(actual[key], expected[key]) :
+            isequal(actual[key], expected[key])
+    end
+end
+
 function _verify_fit_cache_record(record::NamedTuple, path::AbstractString)
     expected = _cache_hash_value(record, :artifact_content_hash,
         "fit cache at $path")
@@ -11603,6 +11763,9 @@ artifact agreement and archive hashes are always verified, including when
 the saved environment metadata.
 Explicit correlated MGMFRM caches likewise always verify their sample,
 artifact and archive integrity, even with `verify_hash = false`.
+Recorded-fit readers allow only roundoff-sized differences in recomputed summary
+means/SDs. Saved payload hashes, other summary fields and metadata remain exact;
+loading never rewrites the stored summaries.
 """
 function load_fit_cache(path::AbstractString;
         expected_cache_key = nothing,
@@ -11619,7 +11782,8 @@ function load_fit_cache(path::AbstractString;
         throw(ArgumentError("fit cache key mismatch for $path"))
     end
     (verify_hash || record.schema in ("bayesianmgmfrm.fit_cache.v2",
-        "bayesianmgmfrm.correlated_mgmfrm_fit_cache.v1")) &&
+        "bayesianmgmfrm.correlated_mgmfrm_fit_cache.v1",
+        "bayesianmgmfrm.normalized_mgmfrm_fit_cache.v1")) &&
         _verify_fit_cache_record(record, path)
     return return_record ? record : record.fit
 end
@@ -11666,6 +11830,7 @@ function cached_fit(design::FacetDesign;
         metric::Symbol = :diagonal,
         ad_backend::Symbol = :ForwardDiff,
         init_jitter::Real = 0.0,
+        sampling_coordinates::Symbol = :raw,
         progress::Bool = false,
         artifact_include_draws::Bool = false,
         artifact_include_log_posterior::Bool = artifact_include_draws,
@@ -11694,6 +11859,7 @@ function cached_fit(design::FacetDesign;
         metric,
         ad_backend,
         init_jitter,
+        sampling_coordinates,
         progress)
     if isfile(path) && !refresh
         record = load_fit_cache(path; expected_cache_key = key, return_record = true)
@@ -11717,6 +11883,7 @@ function cached_fit(design::FacetDesign;
             metric,
             ad_backend,
             init_jitter,
+            sampling_coordinates,
             progress)
     else
         fit(design;
@@ -13277,9 +13444,10 @@ function _check_loo_refit_plan_for_execution(data::FacetData, plan)
         throw(ArgumentError("loo_refit requires a loo_refit_plan result"))
     hasproperty(plan, :fold_rows) ||
         throw(ArgumentError("loo_refit plan must contain fold_rows"))
-    hasproperty(plan, :n_observations) && Int(plan.n_observations) == data.n ||
-        throw(ArgumentError("loo_refit plan n_observations does not match the supplied data"))
-    diagnostics = kfold_plan_diagnostics(data, plan; facets = :all)
+    _check_refit_plan_partition(data, plan; loo = true)
+    # Current supported refit likelihoods do not fit optional metadata levels.
+    diagnostics = kfold_plan_diagnostics(data, plan;
+        facets = (:person, :rater, :item, :category))
     diagnostics.passed ||
         throw(ArgumentError(
             "loo_refit plan has heldout-only facet levels; inspect kfold_plan_diagnostics"))
@@ -13300,7 +13468,7 @@ end
 function _loo_refit_training_data(data::FacetData, observations::AbstractVector{Int})
     table = facet_response_table(data; observations)
     optional_kwargs = _facet_data_optional_kwargs(data)
-    return FacetData(
+    training = FacetData(
         table;
         person = :person,
         rater = :rater,
@@ -13309,6 +13477,17 @@ function _loo_refit_training_data(data::FacetData, observations::AbstractVector{
         category_levels = data.category_levels,
         optional_kwargs...,
     )
+    # Explicitly encoded source data may differ from FacetData(table)'s sorted order.
+    # Keep reference labels fixed for raw-coordinate priors across folds.
+    maps = map((:person, :rater, :item)) do facet
+        levels = getproperty(training, Symbol(facet, :_levels))
+        source_levels = getproperty(data, Symbol(facet, :_levels))
+        order = sortperm([_loo_refit_level_index(source_levels, level, facet) for level in levels])
+        (; indices=invperm(order)[getproperty(training, facet)], levels=levels[order])
+    end
+    return FacetData(training.n, maps[1].indices, maps[2].indices, maps[3].indices,
+        training.score, training.category, maps[1].levels, maps[2].levels, maps[3].levels,
+        training.category_levels, training.optional, training.optional_levels, training.columns)
 end
 
 _refit_default_prior(spec::FacetSpec) =
@@ -13342,6 +13521,7 @@ function _refit_training_spec(spec::FacetSpec, training_data::FacetData)
         thresholds = spec.thresholds,
         family = spec.family,
         dimensions = spec.dimensions,
+        dimension_labels = spec.dimension_labels,
         discrimination = spec.discrimination,
         q_matrix = _refit_q_matrix_for_training(spec, training_data),
         bias = spec.validation_bias_terms,
@@ -13396,13 +13576,20 @@ function _loo_refit_score_data(source::FacetData,
                 "loo_refit cannot score heldout optional facet :$facet " *
                 "because it is absent from the training fold"))
         optional_index = Int[]
+        levels = copy(training.optional_levels[facet])
         for row in rows
             label = source.optional_levels[facet][source.optional[facet][row]]
-            push!(optional_index,
-                _loo_refit_level_index(training.optional_levels[facet], label, facet))
+            # Preserve training indexes and append heldout metadata labels.
+            # These are grouping/reporting IDs, not new fitted coefficients.
+            index = findfirst(level -> isequal(level, label), levels)
+            if index === nothing
+                push!(levels, label)
+                index = length(levels)
+            end
+            push!(optional_index, index)
         end
         optional[facet] = optional_index
-        optional_levels[facet] = copy(training.optional_levels[facet])
+        optional_levels[facet] = levels
     end
 
     return FacetData(
@@ -13578,10 +13765,17 @@ Each plan row is refit on the complementary training observations, scored on
 its single heldout observation, and summarized with the same heldout log-score
 contract as [`kfold`](@ref).
 
-Plans are checked with [`kfold_plan_diagnostics`](@ref) before fitting; rows
-with heldout-only person, rater, item, score-category, or optional-facet levels
+Before fitting, all plan rows must have disjoint heldout/training sets with
+training equal to the full heldout complement. Each heldout row occurs at most
+once; fold IDs, counts and scored-row labels must agree with the plan rows.
+Subset LOO follow-up and an empty no-flag plan remain supported. Training specs
+retain the declared dimension labels and item-specific Q rows.
+Plans are also checked with [`kfold_plan_diagnostics`](@ref); rows
+with heldout-only person, rater, item, or score-category levels
 are rejected because the heldout observation cannot be scored against the
-training-fold parameter map.
+training-fold parameter map. Optional facets are metadata in these supported
+likelihoods; their heldout-only labels are preserved without adding fitted
+effects. The general `kfold_plan_diagnostics` default still audits all facets.
 """
 function loo_refit(spec::FacetSpec, plan = loo_refit_plan(spec);
         prior = _refit_default_prior(spec),
@@ -13667,16 +13861,98 @@ function loo_refit(fit::_ModelComparisonFit, plan = loo_refit_plan(fit.design);
     return loo_refit(fit.design.spec, plan; prior, experimental, kwargs...)
 end
 
+function _check_refit_plan_count(value, expected::Int, name::AbstractString)
+    value isa Integer && !(value isa Bool) && value == expected ||
+        throw(ArgumentError("invalid refit plan: $name must equal $expected"))
+    return nothing
+end
+
+function _check_refit_plan_partition(data::FacetData, plan; loo::Bool)
+    for field in (:n_observations, :n_folds, :folds, :heldout_observation_indices)
+        hasproperty(plan, field) || throw(ArgumentError("invalid refit plan: missing $field"))
+    end
+    n = length(plan.fold_rows)
+    _check_refit_plan_count(plan.n_observations, data.n, "n_observations")
+    _check_refit_plan_count(plan.n_folds, n, "n_folds")
+    loo || n >= 2 || throw(ArgumentError("invalid refit plan: K-fold requires at least two folds"))
+    plan.folds === nothing && throw(ArgumentError("invalid refit plan: explicit fold IDs required"))
+    folds = _kfold_fold_ids(n, plan.folds)
+    group_by = hasproperty(plan, :group_by) ? plan.group_by : :observation
+    group_by isa Union{Nothing,Symbol} || throw(ArgumentError("invalid refit plan: invalid group_by"))
+    loo && !(group_by in (nothing, :observation)) &&
+        throw(ArgumentError("invalid refit plan: LOO must hold out individual observations"))
+    units = _kfold_plan_units(data, group_by)
+    heldout_by_fold = Vector{Int}[]
+    counts = Int[]
+    seen = falses(data.n)
+    observation_fold = Any[missing for _ in 1:data.n]
+    # Validate every fold before the caller starts its first fit.
+    for (index, row) in enumerate(plan.fold_rows)
+        all(field -> hasproperty(row, field),
+            (:fold, :heldout_observations, :training_observations)) ||
+            throw(ArgumentError("invalid refit plan: incomplete fold row $index"))
+        if row.heldout_observations === nothing || row.training_observations === nothing
+            throw(ArgumentError("invalid refit plan: explicit training and heldout rows required"))
+        end
+        heldout = _check_observation_indices(data, row.heldout_observations, "invalid refit plan heldout")
+        training = _check_observation_indices(data, row.training_observations, "invalid refit plan training")
+        !isempty(heldout) && !isempty(training) ||
+            throw(ArgumentError("invalid refit plan: training and heldout sets must be nonempty"))
+        loo && length(heldout) != 1 &&
+            throw(ArgumentError("invalid refit plan: LOO requires one heldout row per fold"))
+        isempty(intersect(training, heldout)) ||
+            throw(ArgumentError("invalid refit plan: training and heldout observations overlap"))
+        sort(vcat(training, heldout)) == collect(1:data.n) ||
+            throw(ArgumentError("invalid refit plan: training must be the full heldout complement"))
+        any(seen[heldout]) && throw(ArgumentError("invalid refit plan: heldout observations repeat across folds"))
+        isequal(row.fold, folds[index]) ||
+            throw(ArgumentError("invalid refit plan: fold IDs disagree with fold rows"))
+        seen[heldout] .= true
+        observation_fold[heldout] .= Ref(row.fold)
+        push!(heldout_by_fold, heldout); push!(counts, length(heldout))
+        for (field, expected) in ((:n_heldout_observations, length(heldout)),
+                (:n_training_observations, length(training)))
+            hasproperty(row, field) && _check_refit_plan_count(getproperty(row, field), expected, string(field))
+        end
+        selected = Set(heldout)
+        unit_indices = findall(rows -> any(in(selected), rows), units.rows)
+        all(i -> all(in(selected), units.rows[i]), unit_indices) ||
+            throw(ArgumentError("invalid refit plan: a declared grouping unit spans training and heldout"))
+        if hasproperty(row, :heldout_units)
+            labels = row.heldout_units
+            length(labels) == length(unit_indices) && Set(labels) == Set(units.levels[unit_indices]) ||
+                throw(ArgumentError("invalid refit plan: heldout unit labels disagree with rows"))
+        end
+        hasproperty(row, :n_heldout_units) &&
+            _check_refit_plan_count(row.n_heldout_units, length(unit_indices), "n_heldout_units")
+    end
+    loo || all(seen) || throw(ArgumentError("invalid refit plan: K-fold must hold out every observation once"))
+    plan.heldout_observation_indices === nothing &&
+        throw(ArgumentError("invalid refit plan: explicit scored observation IDs required"))
+    expected_indices = isempty(heldout_by_fold) ? Int[] : vcat(heldout_by_fold...)
+    isequal(_kfold_observation_indices(counts, plan.heldout_observation_indices), expected_indices) ||
+        throw(ArgumentError("invalid refit plan: scored observation IDs disagree with heldout row order"))
+    for (field, expected) in ((:n_heldout_by_fold, counts), (:observation_fold, observation_fold))
+        hasproperty(plan, field) && !isequal(getproperty(plan, field), expected) &&
+            throw(ArgumentError("invalid refit plan: $field disagrees with fold rows"))
+    end
+    for (field, expected) in ((:k, n), (:n_refits, n), (:refits_per_model_required, n), (:n_units, length(units.rows)))
+        hasproperty(plan, field) && _check_refit_plan_count(getproperty(plan, field), expected, string(field))
+    end
+    return nothing
+end
+
 function _check_kfold_refit_plan_for_execution(data::FacetData, plan)
     hasproperty(plan, :object) && plan.object === :kfold_plan ||
         throw(ArgumentError("kfold_refit requires a kfold_plan result"))
     hasproperty(plan, :fold_rows) ||
         throw(ArgumentError("kfold_refit plan must contain fold_rows"))
-    hasproperty(plan, :n_observations) && Int(plan.n_observations) == data.n ||
-        throw(ArgumentError("kfold_refit plan n_observations does not match the supplied data"))
     isempty(plan.fold_rows) &&
         throw(ArgumentError("kfold_refit requires at least one fold row"))
-    diagnostics = kfold_plan_diagnostics(data, plan; facets = :all)
+    _check_refit_plan_partition(data, plan; loo = false)
+    # Current supported refit likelihoods do not fit optional metadata levels.
+    diagnostics = kfold_plan_diagnostics(data, plan;
+        facets = (:person, :rater, :item, :category))
     diagnostics.passed ||
         throw(ArgumentError(
             "kfold_refit plan has heldout-only facet levels; inspect kfold_plan_diagnostics"))
@@ -13702,10 +13978,22 @@ GMFRM/MGMFRM likelihood when `experimental = true` is supplied. Each fold is
 refit on its training observations, scored on all heldout observations in that
 fold, and summarized with the same heldout log-score contract as [`kfold`](@ref).
 
-Plans are checked with [`kfold_plan_diagnostics`](@ref) before fitting; rows
-with heldout-only person, rater, item, score-category, or optional-facet levels
+All folds are validated before the first fit. Each training set must be the full
+heldout complement; K-fold holds out every observation exactly once, with at
+least two nonempty folds. Declared grouping units cannot span training and
+heldout. Fold IDs, counts, observation-to-fold maps and scored-row labels must
+agree with the fold rows, including their heldout order. Training specs retain
+dimension labels and remap Q by item label.
+Plans are also checked with [`kfold_plan_diagnostics`](@ref); rows
+with heldout-only person, rater, item, or score-category levels
 are rejected because the heldout observations cannot be scored against the
-training-fold parameter map.
+training-fold parameter map. Optional facets are metadata in these supported
+likelihoods, so `group_by = :response_id` or `:occasion` can keep whole rating
+events together without rejecting their heldout-only labels. Those labels are
+preserved for reporting and add no fitted effects. The general
+`kfold_plan_diagnostics` default still audits all facets. Scores remain
+pointwise marginal log scores; grouping the split does not turn their sum into
+a joint predictive score for a whole event.
 """
 function kfold_refit(spec::FacetSpec, plan;
         prior = _refit_default_prior(spec),
@@ -13903,6 +14191,10 @@ for person, rater, item, score category, and optional facets by default. A row
 with `refit_blocker = true` has heldout-only levels for that facet, so an
 external refit using only that training fold would need a fixed level map,
 pooled treatment, or a different fold assignment before heldout scoring.
+This is a level-availability audit, not a partition-integrity or source-data
+identity certificate. Automatic `kfold_refit` and `loo_refit` additionally check
+the complete partition and scoring metadata before starting any fits. Plan row
+indices remain positional and must refer to the supplied source data/order.
 """
 function kfold_plan_diagnostics(data::FacetData, plan; facets = :all)
     checked_plan = _check_kfold_plan_for_diagnostics(data, plan)
@@ -17460,6 +17752,18 @@ error-adjusted dispersion, separation, and reliability. Reliability is computed
 as adjusted variance divided by adjusted-plus-error variance; use the included
 caveat flag because these rows are practical screening summaries rather than
 full generalizability-study coefficients.
+
+This historical screen is not a validated FACETS separation estimator or EAP
+score-reliability estimator. It subtracts the average marginal posterior variance
+from the cross-level variance within each draw, truncates at zero, then summarizes
+the resulting ratios. Equal posterior means can therefore yield positive values;
+shared location uncertainty can change the result even when all pairwise
+contrasts stay fixed. The returned interval is a distribution of this screening
+statistic, not an established credible interval for a reliability coefficient.
+Do not convert these values into reportable Strata or interpret rater separation
+as score agreement. Use qualified `BayesianMGMFRM.posterior_reliability` for an
+explicit finite-cohort target; its definition and return schema differ. This
+legacy call now warns but preserves historical numerical values.
 """
 function separation_reliability_summary(design::FacetDesign,
         draws::AbstractMatrix;
@@ -17474,6 +17778,7 @@ function separation_reliability_summary(design::FacetDesign,
         throw(ArgumentError("draws contain non-finite values"))
     lower_probability, upper_probability = _interval_probabilities(interval)
     requested_facets = _separation_reliability_facets(facets)
+    @warn "separation_reliability_summary is a legacy screen requiring methodological review; use BayesianMGMFRM.posterior_reliability with an explicit finite-cohort target. Do not derive reportable Strata from this screen." maxlog=1
     return [
         _separation_reliability_row(
             design,
@@ -19254,6 +19559,7 @@ function _dff_report_terms(design::FacetDesign, terms)
             throw(ArgumentError("terms must contain at least one DFF term"))
     end
     for term in out
+        term[1] != term[2] || throw(ArgumentError("DFF requires two distinct facets"))
         _fit_stat_groups(data, term[1])
         _fit_stat_groups(data, term[2])
     end
@@ -19383,6 +19689,50 @@ function _dff_cell_flag(n_observations::Int,
     return :ok
 end
 
+# Project only observed cells; no row/column reference level or missing-cell imputation.
+function _dff_assignment_projection(counts::AbstractMatrix{<:Integer})
+    cells = findall(>(0), counts)
+    isempty(cells) && throw(ArgumentError("DFF requires observed cells"))
+    sqrt_weights = sqrt.([Float64(counts[cell]) for cell in cells])
+    X = zeros(length(cells), sum(size(counts)))
+    for (j, cell) in pairs(cells)
+        X[j, cell[1]] = sqrt_weights[j]
+        X[j, size(counts, 1) + cell[2]] = sqrt_weights[j]
+    end
+    factor = svd(X)
+    rank_rtol = max(size(X)...) * eps(Float64)
+    additive_rank = count(>(rank_rtol * first(factor.S)), factor.S)
+    basis = factor.U[:, 1:additive_rank]
+    residual_fraction = clamp.(1 .- vec(sum(abs2, basis; dims=2)), 0, 1)
+    support_tolerance = 64 * rank_rtol
+    supported = residual_fraction .> support_tolerance
+    active_levels = count(j -> any(>(0), @view(counts[j, :])), axes(counts, 1)) +
+        count(j -> any(>(0), @view(counts[:, j])), axes(counts, 2))
+    return (; cells, sqrt_weights, basis, additive_rank, rank_rtol,
+        support_tolerance, residual_fraction, supported,
+        n_components = active_levels - additive_rank,
+        interaction_df = length(cells) - additive_rank)
+end
+
+function _dff_project_draws(projection, values::AbstractMatrix{<:Real})
+    size(values, 1) == length(projection.cells) ||
+        throw(ArgumentError("DFF projection cell count mismatch"))
+    out = fill(NaN, size(values))
+    for draw in axes(values, 2)
+        all(isfinite, @view(values[:, draw])) || continue
+        weighted = projection.sqrt_weights .* @view(values[:, draw])
+        remainder = weighted - projection.basis * (projection.basis' * weighted)
+        # Prevent floating-point cancellation alone from creating a directional flag.
+        tolerance = projection.support_tolerance * max(1.0, maximum(abs, weighted))
+        for cell in eachindex(weighted)
+            projection.supported[cell] || continue
+            out[cell, draw] = abs(remainder[cell]) <= tolerance ? 0.0 :
+                remainder[cell] / projection.sqrt_weights[cell]
+        end
+    end
+    return out
+end
+
 function _dff_report_rows_for_term(design::FacetDesign,
         expected::AbstractMatrix{<:Real},
         residuals::AbstractMatrix{<:Real},
@@ -19394,7 +19744,8 @@ function _dff_report_rows_for_term(design::FacetDesign,
         min_n::Int,
         expected_score_practical_threshold,
         logit_practical_threshold,
-        practical_probability_threshold::Float64)
+        practical_probability_threshold::Float64,
+        adjustment::Symbol)
     data = design.spec.data
     focal_facet, comparison_facet = term
     focal_index, focal_levels = _fit_stat_groups(data, focal_facet)
@@ -19402,43 +19753,65 @@ function _dff_report_rows_for_term(design::FacetDesign,
     validation_counts = get(design.spec.validation.dff_counts, term, nothing)
     validation_status = term in design.spec.validation_bias_terms ?
         :declared_validation_term : :ad_hoc_term
-    all_observations = collect(1:data.n)
-    grand = _dff_group_draws(expected, residuals, slopes, all_observations)
-    focal_draws = [
-        _dff_group_draws(
-            expected,
-            residuals,
-            slopes,
-            _dff_observations(focal_index, focal_level),
-        )
-        for focal_level in eachindex(focal_levels)
-    ]
-    comparison_draws = [
-        _dff_group_draws(
-            expected,
-            residuals,
-            slopes,
-            _dff_observations(comparison_index, comparison_level),
-        )
-        for comparison_level in eachindex(comparison_levels)
-    ]
+    observations_by_cell = [_dff_observations(focal_index, a, comparison_index, b)
+        for a in eachindex(focal_levels), b in eachindex(comparison_levels)]
+    counts = length.(observations_by_cell)
+    cells = [_dff_group_draws(expected, residuals, slopes, observations)
+        for observations in observations_by_cell]
+    projection = _dff_assignment_projection(counts)
+    observed_position = Dict(cell => j for (j, cell) in pairs(projection.cells))
+    if adjustment === :assignment
+        cell_residuals = reduce(hcat, [cells[c].residual for c in projection.cells])'
+        cell_logits = reduce(hcat, [cells[c].logit_shift for c in projection.cells])'
+        adjusted_scores = _dff_project_draws(projection, cell_residuals)
+        adjusted_logits = _dff_project_draws(projection, cell_logits)
+    else
+        all_observations = collect(1:data.n)
+        grand = _dff_group_draws(expected, residuals, slopes, all_observations)
+        focal_draws = [
+            _dff_group_draws(
+                expected,
+                residuals,
+                slopes,
+                _dff_observations(focal_index, focal_level),
+            )
+            for focal_level in eachindex(focal_levels)
+        ]
+        comparison_draws = [
+            _dff_group_draws(
+                expected,
+                residuals,
+                slopes,
+                _dff_observations(comparison_index, comparison_level),
+            )
+            for comparison_level in eachindex(comparison_levels)
+        ]
+    end
 
     rows = NamedTuple[]
     for (focal_level_index, focal_level) in pairs(focal_levels),
             (comparison_level_index, comparison_level) in pairs(comparison_levels)
-        observations = _dff_observations(
-            focal_index,
-            focal_level_index,
-            comparison_index,
-            comparison_level_index,
-        )
-        cell = _dff_group_draws(expected, residuals, slopes, observations)
-        focal = focal_draws[focal_level_index]
-        comparison = comparison_draws[comparison_level_index]
-        expected_score_dff = cell.residual .- focal.residual .-
-            comparison.residual .+ grand.residual
-        logit_dff = cell.logit_shift .- focal.logit_shift .-
-            comparison.logit_shift .+ grand.logit_shift
+        cell_index = CartesianIndex(focal_level_index, comparison_level_index)
+        observations = observations_by_cell[cell_index]
+        cell = cells[cell_index]
+        position = get(observed_position, cell_index, 0)
+        contrast_status = position == 0 ? :empty_cell :
+            projection.supported[position] ? :supported : :no_independent_cell_contrast
+        if adjustment === :assignment
+            expected_score_dff = position == 0 ? fill(NaN, size(expected, 1)) :
+                vec(adjusted_scores[position, :])
+            logit_dff = position == 0 ? fill(NaN, size(expected, 1)) :
+                vec(adjusted_logits[position, :])
+        else
+            focal = focal_draws[focal_level_index]
+            comparison = comparison_draws[comparison_level_index]
+            expected_score_dff = cell.residual .- focal.residual .-
+                comparison.residual .+ grand.residual
+            logit_dff = cell.logit_shift .- focal.logit_shift .-
+                comparison.logit_shift .+ grand.logit_shift
+        end
+        n_expected_score_dff_draws = count(isfinite, expected_score_dff)
+        n_logit_dff_draws = count(isfinite, logit_dff)
 
         expected_summary = _finite_draw_summary(
             cell.expected,
@@ -19495,6 +19868,21 @@ function _dff_report_rows_for_term(design::FacetDesign,
             validation_cell_count,
             n_draws = size(expected, 1),
             method = :posterior_predictive_interaction_residual,
+            adjustment,
+            assignment_weighting = :observed_rating_counts,
+            assignment_n_observations = sum(counts),
+            assignment_n_observed_cells = length(projection.cells),
+            assignment_n_components = projection.n_components,
+            assignment_additive_rank = projection.additive_rank,
+            assignment_interaction_df = projection.interaction_df,
+            assignment_rank_rtol = projection.rank_rtol,
+            assignment_support_tolerance = projection.support_tolerance,
+            cell_residual_fraction = position == 0 ? NaN : projection.residual_fraction[position],
+            contrast_status,
+            n_expected_score_dff_draws,
+            n_logit_dff_draws,
+            uncertainty = :conditional_on_observed_scores_and_assignment,
+            multiplicity_adjustment = :none,
             logit_method = :local_expected_score_residual_divided_by_predictive_variance,
             scale = :expected_score_and_logit,
             interval_probability = Float64(interval),
@@ -19550,7 +19938,10 @@ function _dff_report_rows_for_term(design::FacetDesign,
                 logit_practical_summary.practical_magnitude,
             validation_status,
             caveat = :dff_screening_not_fitted_dff_effect,
-            flag = _dff_cell_flag(
+            flag = adjustment === :assignment && contrast_status === :no_independent_cell_contrast ?
+                :no_independent_cell_contrast :
+                adjustment === :assignment && 0 < n_logit_dff_draws < size(expected, 1) ?
+                :incomplete_logit_draws : _dff_cell_flag(
                 n_observations,
                 min_n,
                 expected_score_dff_summary,
@@ -19562,13 +19953,13 @@ function _dff_report_rows_for_term(design::FacetDesign,
 end
 
 """
-    dff_report(fit::MFRMFit; terms = :validation, interval = 0.95,
+    dff_report(fit::MFRMFit; terms = :validation, adjustment = :assignment, interval = 0.95,
         min_n = 1, expected_score_practical_threshold = nothing,
         logit_practical_threshold = nothing,
         practical_probability_threshold = 0.8, ndraws = nothing,
         draw_indices = nothing, rng = Random.default_rng())
     dff_report(design::FacetDesign, draws; terms = :validation,
-        interval = 0.95, min_n = 1,
+        adjustment = :assignment, interval = 0.95, min_n = 1,
         expected_score_practical_threshold = nothing,
         logit_practical_threshold = nothing,
         practical_probability_threshold = 0.8)
@@ -19592,16 +19983,56 @@ These rows are not fitted DFF model effects. The logit scale is a local
 screening approximation that divides expected-score residuals by posterior
 predictive variance, so results should be used for fairness review triage and
 sensitivity planning rather than confirmatory unfairness claims.
+
+By default `adjustment=:assignment` removes the weighted least-squares additive
+focal/comparison surface separately from each draw's cell score residuals and
+local logit shifts. Weights are observed rating counts, not inverse variances or
+model/sampling weights. No missing cell is imputed. On observed cells, with
+indicator matrix `X` and count weights `W`, the residual is
+`W^(-1/2) * (I-U*U') * W^(1/2) * y`, where `U` spans `W^(1/2)*X`.
+Thus additive cell composition is removed even under unbalanced assignment.
+The target is the remainder under this observed allocation, not a balanced
+population contrast or a fitted interaction. Scores/draws remain jointly aligned.
+
+Rows retain the complete cell roster, counts, additive rank, assignment component
+count, interaction degrees of freedom and `cell_residual_fraction` (one minus
+weighted projection leverage). A cell without independent interaction support
+has `contrast_status=:no_independent_cell_contrast` and NaN interaction summaries,
+not a zero effect. Disconnected components may support their own within-component
+contrasts; they do not support between-component comparisons. `min_n` flags cells
+without removing them from the projection. Floating-point rank/support tolerances
+are reported; cancellation at that tolerance is set to zero before directional
+summaries. This is not a practical-effect threshold.
+
+`n_expected_score_dff_draws` and `n_logit_dff_draws` report usable draw counts. If
+any observed cell has an undefined local logit shift, that whole term's logit
+projection is unavailable for that draw; summaries use finite draws and an
+incomplete-draw flag remains. Intervals condition on the observed scores and
+assignment and propagate base-model uncertainty only. They are neither repeated-
+sample error intervals nor calibrated multiplicity-adjusted tests. Practical
+probabilities describe the residual statistic, not a fitted bias parameter.
+
+For reproduction only, `adjustment=:observed_margins` retains the historical
+row/column/grand-margin arithmetic and emits a warning. That arithmetic can
+retain additive composition under unbalanced assignment. `fit_report` forwards
+`dff_adjustment` and records it in report controls. A formal bias claim needs a
+defined contrast, adequate linking, and an appropriate fitted interaction model
+or separately validated conditional procedure. Neither mode establishes unfairness.
+
 """
 function dff_report(design::FacetDesign,
         draws::AbstractMatrix;
         terms = :validation,
+        adjustment::Symbol = :assignment,
         interval::Real = 0.95,
         min_n::Int = 1,
         expected_score_practical_threshold = nothing,
         logit_practical_threshold = nothing,
         practical_probability_threshold::Real = 0.8)
     _check_fit_supported_mfrm(design, "dff_report")
+    adjustment in (:assignment, :observed_margins) ||
+        throw(ArgumentError("adjustment must be :assignment or :observed_margins"))
+    adjustment === :observed_margins && @warn "Legacy observed-margin DFF screening can retain additive composition under unbalanced assignment; use adjustment=:assignment for the count-weighted additive projection."
     min_n >= 1 || throw(ArgumentError("min_n must be positive"))
     lower_probability, upper_probability = _interval_probabilities(interval)
     checked_expected_score_threshold = _dff_practical_threshold(
@@ -19627,6 +20058,7 @@ function dff_report(design::FacetDesign,
             slopes,
             term;
             interval,
+            adjustment,
             lower_probability,
             upper_probability,
             min_n,
@@ -19642,6 +20074,7 @@ end
 
 function dff_report(fit::MFRMFit;
         terms = :validation,
+        adjustment::Symbol = :assignment,
         interval::Real = 0.95,
         min_n::Int = 1,
         expected_score_practical_threshold = nothing,
@@ -19653,6 +20086,7 @@ function dff_report(fit::MFRMFit;
     indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
     return dff_report(fit.design, fit.draws[indices, :];
         terms,
+        adjustment,
         interval,
         min_n,
         expected_score_practical_threshold,
@@ -20219,15 +20653,31 @@ function _guarded_generalized_prior_draw_bundle(
     )
     design = getdesign(spec; preview = true)
     target = _guarded_generalized_prior_target(design, prior)
+    raw_draws = _guarded_generalized_prior_draws(target, ndraws, rng)
+    return _generalized_prior_bundle_from_draws(target, raw_draws)
+end
+
+# Retain the legacy draw order and RNG consumption for successful generation.
+# Alternative targets transform these normals before direct reconstruction.
+function _guarded_generalized_prior_draws(target::_GeneralizedCandidateLogDensity,
+        ndraws::Int, rng::AbstractRNG)
+    ndraws >= 1 || throw(ArgumentError("ndraws must be positive"))
     nraw = target.blueprint.n_parameters
-    ndirect = length(target.design.parameter_names)
     raw_draws = Matrix{Float64}(undef, ndraws, nraw)
-    direct_draws = Matrix{Float64}(undef, ndraws, ndirect)
     for draw in 1:ndraws
         for parameter in 1:nraw
             raw_draws[draw, parameter] =
                 _source_fixture_prior_sd(target, parameter) * randn(rng)
         end
+    end
+    return raw_draws
+end
+
+function _generalized_prior_bundle_from_draws(target::_GeneralizedCandidateLogDensity,
+        raw_draws::Matrix{Float64}; prior_record = target.prior)
+    ndirect = length(target.design.parameter_names)
+    direct_draws = Matrix{Float64}(undef, size(raw_draws, 1), ndirect)
+    for draw in axes(raw_draws, 1)
         direct = _guarded_generalized_direct_params(
             target,
             @view(raw_draws[draw, :]),
@@ -20240,7 +20690,7 @@ function _guarded_generalized_prior_draw_bundle(
     end
     return (;
         design = target.design,
-        prior = target.prior,
+        prior = prior_record,
         raw_draws,
         direct_draws,
         raw_parameter_names = copy(target.blueprint.parameter_names),
@@ -21008,6 +21458,22 @@ function _experimental_generalized_prior_predictive_check(
         ndraws,
         rng,
     )
+    prior_record = (;
+        parameter_space = :raw_unconstrained_coordinates,
+        family = :independent_zero_centered_normal,
+        scales = _source_fixture_prior_values(bundle.prior),
+        jacobian_policy = :none_raw_coordinate_density,
+    )
+    return _generalized_prior_check_from_bundle(bundle; prior_record, rng,
+        min_category_probability, prior_warning_probability, wide_facet_range_fraction)
+end
+
+# The caller must supply the actual distribution record. Free coordinates alone
+# do not imply independent raw priors (normalized priors use the same chart).
+function _generalized_prior_check_from_bundle(bundle; prior_record, rng::AbstractRNG,
+        min_category_probability::Real = 0.01,
+        prior_warning_probability::Real = 0.95,
+        wide_facet_range_fraction::Real = 0.8)
     replicated = _guarded_generalized_replicate_scores(
         bundle,
         rng,
@@ -21024,12 +21490,6 @@ function _experimental_generalized_prior_predictive_check(
         min_category_probability,
         prior_warning_probability,
         wide_facet_range_fraction,
-    )
-    prior_record = (;
-        parameter_space = :raw_unconstrained_coordinates,
-        family = :independent_zero_centered_normal,
-        scales = _source_fixture_prior_values(bundle.prior),
-        jacobian_policy = :none_raw_coordinate_density,
     )
     return (;
         schema =

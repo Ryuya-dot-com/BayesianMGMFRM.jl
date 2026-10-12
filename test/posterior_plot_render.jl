@@ -172,3 +172,7 @@ else
     mkpath(only(ARGS))
     check_posterior_render(only(ARGS))
 end
+
+include("figure_annotations.jl")
+
+include("wright_histogram_render.jl")

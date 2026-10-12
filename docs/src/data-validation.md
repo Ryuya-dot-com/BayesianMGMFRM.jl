@@ -1,5 +1,10 @@
 # Long-Format Data and Pre-Fit Validation
 
+!!! note "Unreleased documentation preview — 13 October 2026"
+    This manual includes unreleased interfaces and examples. It is not the
+    documentation of an installed release. Model support and scientific
+    acceptance remain as stated on each page.
+
 `BayesianMGMFRM.jl` starts from long-format rating data: one row per rating
 event. The data and validation layer is intentionally sampler-free. Its purpose
 is to make common weak or non-estimable many-facet design patterns visible
@@ -261,7 +266,9 @@ MGMFRM previews expose person-by-dimension, item-dimension-discrimination,
 rater-consistency, and item-step blocks. The separate guarded generalized fit
 paths use `BayesianMGMFRM.Experimental.fit(spec)` and are limited to the
 one-dimensional rater-consistency GMFRM candidate and the fixed-Q
-confirmatory MGMFRM candidate with `dimensions >= 2`.
+confirmatory MGMFRM candidate with `dimensions >= 1` and an explicit Q.
+The one-column restriction retains the MGMFRM equation and item-owned steps;
+it is distinct from the scalar rater-step GMFRM.
 
 Use [`design_row_table`](@ref) when you need row-level compiler evidence. The
 table shows the facet labels, identified parameter indexes, source-step path, and

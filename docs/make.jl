@@ -5,6 +5,7 @@ const ROOT_API_REFERENCE_PAGES = (
     "api-data-design.md",
     "api-fitting-artifacts.md",
     "api-workflow-diagnostics.md",
+    "api-saved-reporting.md",
     "api-validation-evidence.md",
 )
 
@@ -42,38 +43,42 @@ check_root_api_documentation()
 makedocs(;
     sitename = "BayesianMGMFRM.jl",
     modules = [BayesianMGMFRM, BayesianMGMFRM.Experimental],
-    remotes = Dict(
-        ".." => (
-            Documenter.Remotes.GitHub(
-                "Ryuya-dot-com",
-                "BayesianMGMFRM.jl",
-            ),
-            "main",
-        ),
-    ),
+    remotes = nothing,
     checkdocs = :exports,
     build = get(ENV, "BAYESIANMGMFRM_DOCS_BUILD", "build"),
     format = Documenter.HTML(;
-        edit_link = "main",
+        edit_link = nothing,
+        repolink = "https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl",
         size_threshold = 100 * 2^10,
         size_threshold_warn = nothing,
     ),
     pagesonly = true,
     pages = [
         "Home" => "index.md",
+        "Learn the Models" => [
+            "Getting Started" => "learning-guide.md",
+            "Visualization Gallery" => "visualization-gallery.md",
+            "Prior Sensitivity Candidate" => "prior-sensitivity.md",
+            "How Rating Models Work" => "rating-model-theory.md",
+            "Reading Results and Comparing Models" => "interpreting-results.md",
+        ],
         "Data Validation" => "data-validation.md",
         "Model Equations" => "model-equations.md",
         "Bayesian Workflow" => "bayesian-workflow.md",
         "Bayesian Fitting" => "fitting.md",
         "Experimental Models" => "experimental.md",
         "Examples" => "examples.md",
+        "Saved Prediction and Recovery" => "common_prediction_comparison.md",
         "Migrating from FACETS and ConQuest" => "migration-facets-conquest.md",
         "Scope and Releases" => "scope.md",
         "API" => [
             "Overview" => "api.md",
+            "Prediction and Recovery Candidate" => "api-prediction-recovery.md",
+            "Experimental Models" => "api-experimental.md",
             "Data and Design" => "api-data-design.md",
             "Fitting and Artifacts" => "api-fitting-artifacts.md",
             "Workflow and Diagnostics" => "api-workflow-diagnostics.md",
+            "Saved-fit Reporting Candidate" => "api-saved-reporting.md",
             "Validation and Evidence" => "api-validation-evidence.md",
         ],
     ],

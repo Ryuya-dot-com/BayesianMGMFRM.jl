@@ -20759,7 +20759,8 @@ function check_scalar_validation_stan_pair(known_fixture_path::AbstractString,
     )
 end
 
-if test_group_enabled(:core)
+# Select before expanding these large test blocks, including on other shards.
+@static if test_group_enabled(:core)
 include("test_group_selection.jl")
 include("intended_category_scale.jl")
 @testset "optional research fixture boundary" begin
@@ -20952,6 +20953,8 @@ include("cmdstan_backend.jl")
 include("cmdstan_validation_contract.jl")
 test_flag("BAYESIANMGMFRM_CMDSTAN_TESTS") &&
     include("cmdstan_sampling.jl")
+test_flag("BAYESIANMGMFRM_CMDSTAN_TESTS") &&
+    include("cmdstan_adaptation_sampling.jl")
 test_flag("BAYESIANMGMFRM_CMDSTAN_PAIRED_TESTS") &&
     include("cmdstan_paired_validation.jl")
 test_flag("BAYESIANMGMFRM_CMDSTAN_RECOVERY_PILOT_TESTS") &&
@@ -26957,7 +26960,48 @@ end
 end
 end
 
-if test_group_enabled(:fitting_core)
+@static if test_group_enabled(:fitting_core)
+include("refit_plan_integrity.jl")
+include("common_prediction_refit.jl")
+mktempdir(CommonPredictionRefitChecks.checks)
+include("common_prediction_kfold.jl")
+include("prediction_mcse.jl")
+mktempdir() do directory
+    PredictionMCSEChecks.checks(directory)
+end
+mktempdir(CommonPredictionKfoldChecks.checks)
+include("common_recovery_evaluation.jl")
+mktempdir(CommonRecoveryEvaluationChecks.checks)
+include("common_recovery_replications.jl")
+mktempdir(CommonRecoveryReplicationChecks.checks)
+include("refit_metadata.jl")
+include("prior_sensitivity.jl")
+include("prior_sensitivity_roundoff.jl")
+include("prior_predictive_sensitivity.jl")
+include("posterior_ranking.jl")
+mktempdir(PosteriorRankingChecks.checks)
+include("posterior_classification.jl")
+mktempdir(PosteriorClassificationChecks.checks)
+include("posterior_reliability.jl")
+mktempdir(PosteriorReliabilityChecks.checks)
+include("rater_agreement.jl")
+mktempdir(RaterAgreementChecks.checks)
+include("intraclass_correlation.jl")
+IntraclassCorrelationChecks.finite_checks()
+mktempdir() do directory
+    IntraclassCorrelationChecks.report_checks(directory, CommonPredictionKfoldChecks.fixture_cases())
+end
+include("krippendorff_alpha.jl")
+KrippendorffAlphaChecks.finite_checks()
+mktempdir() do directory
+    KrippendorffAlphaChecks.report_checks(directory,CommonPredictionKfoldChecks.fixture_cases())
+end
+include("dff_assignment.jl")
+mktempdir(DFFAssignmentChecks.checks)
+include("category_report.jl")
+mktempdir(CategoryReportChecks.checks)
+include("saved_reporting.jl")
+mktempdir(SavedReportingChecks.checks)
 println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     "; Julia threads=", Threads.nthreads(), "; BLAS threads=", BLAS.get_num_threads())
 # Include compilation of the large test expression, not only its timed body.
@@ -32495,12 +32539,14 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     @test grouped_waic_rows[1].optional.group ==
         grouped_data.optional_levels[:group][grouped_data.optional[:group][1]]
 
-    grouped_dff = dff_report(grouped_design, result.draws[1:2, :]; interval = 0.8)
+    grouped_dff = dff_report(grouped_design, result.draws[1:2, :];
+        adjustment = :observed_margins, interval = 0.8)
     @test length(grouped_dff) ==
         length(grouped_data.rater_levels) * length(grouped_data.optional_levels[:group])
     @test isequal(
         dff_report(grouped_design, result.draws[1:2, :];
             terms = (:rater, :group),
+            adjustment = :observed_margins,
             interval = 0.8),
         grouped_dff,
     )
@@ -32599,6 +32645,7 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     @test r1_a.flag in (:ok, :dff_interval_excludes_zero)
 
     practical_dff = dff_report(grouped_design, result.draws[1:2, :];
+        adjustment = :observed_margins,
         interval = 0.8,
         expected_score_practical_threshold = 0.0,
         logit_practical_threshold = 0.0,
@@ -32948,6 +32995,8 @@ end
 test_group_enabled(:fitting_core) && include("fitting_boundaries.jl")
 test_group_enabled(:fitting_core) && include("warmup_diagnostics.jl")
 test_group_enabled(:fitting_core) && include("posterior_plot.jl")
+test_group_enabled(:fitting_core) && include("pathway_plot.jl")
+test_group_enabled(:fitting_core) && include("response_surface.jl")
 
 if test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS
     include("existing_api_design_robustness_recovery_scorer.jl")
@@ -33001,9 +33050,26 @@ if test_group_enabled(:generalized)
     include("mgmfrm_validation_execution_design.jl")
     include("mgmfrm_validation_analysis_contract.jl")
     include("generalized_prior.jl")
+    include("mgmfrm_location_diagnostics.jl")
+    include("mgmfrm_location_parameterization.jl")
+    include("mgmfrm_core_location_section.jl")
+    include("mgmfrm_core_nuts_stationarity.jl")
+    include("mgmfrm_core_coupled_geometry.jl")
+    include("mgmfrm_location_api.jl")
+    include("mgmfrm_adaptation_record.jl")
+    include("cmdstan_adaptation_record.jl")
+    include("mgmfrm_adaptation_review.jl")
     include("mgmfrm_density_measure.jl")
     include("mgmfrm_prior_measure.jl")
+    include("mgmfrm_normalized_prior_predictive.jl")
+    withenv("BAYESIANMGMFRM_NORMALIZED_FIT_SMOKE" => "true") do
+        include("mgmfrm_normalized_fit.jl")
+        include("mgmfrm_normalized_location.jl")
+    end
     include("mgmfrm_normalized_samples.jl")
+    include("mgmfrm_unidimensional.jl")
+    include("mgmfrm_slope_restriction.jl")
+    include("matched_dimension_refit_plans.jl")
     include("mfrm_fixed_q_result.jl")
     include("mfrm_fixed_q_spec.jl")
     include("mfrm_correlated_2d.jl")
@@ -33027,7 +33093,9 @@ if test_group_enabled(:generalized)
     include("mfrm_fixed_q_samples.jl")
     include("generalized_guard_contract.jl")
     include("fixed_q_identification.jl")
+    include("mgmfrm_estimand_invariance.jl")
 end
+test_group_enabled(:fitting_reports) && include("common_prediction_tests.jl")
 test_group_enabled(:fitting_reports) && include("fit_report_completeness.jl")
 test_group_enabled(:fitting_reports) && include("report_columns.jl")
 test_group_enabled(:fitting_reports) && include("report_figures.jl")
@@ -33080,7 +33148,10 @@ test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS &&
 if test_group_enabled(:fitting_reports)
     include("public_language_gate.jl")
     include("cache_hash.jl")
+    include("cache_summary_roundoff.jl")
+    CacheSummaryRoundoffChecks.checks()
     include("posterior_mcse.jl")
+    include("saved_mgmfrm_contrasts.jl")
     include("rank_normalized_diagnostics.jl")
     include("scientific_payload_digest.jl")
     RUN_RESEARCH_EVIDENCE_TESTS &&

@@ -13,6 +13,10 @@ The package deliberately distinguishes supported models from experimental
 ones. A successful experimental fit is evidence about that exact configuration;
 it is not evidence for broader GMFRM or MGMFRM support.
 
+New to many-facet measurement? Start with the [beginner's guide](docs/src/learning-guide.md),
+then explore the [worked theory](docs/src/rating-model-theory.md) and
+[result interpretation and model comparison](docs/src/interpreting-results.md).
+
 ## Installation
 
 Install the registered release from Julia General:
@@ -22,17 +26,38 @@ using Pkg
 Pkg.add("BayesianMGMFRM")
 ```
 
-To test unreleased development code, install an explicit Git revision:
+The [13 October development guide](https://ryuya-dot-com.github.io/BayesianMGMFRM.jl/preview/20261013/)
+corresponds to the `development/20261013-guide` source branch, including the
+saved-result, sensitivity, alpha and ICC candidates. Install it into a separate
+project with Julia 1.10.8 or newer:
 
 ```julia
 using Pkg
-Pkg.add(url = "https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl", rev = "main")
+Pkg.activate("rating-preview")
+Pkg.add(url = "https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl",
+    rev = "development/20261013-guide")
+Pkg.pin("BayesianMGMFRM")
 ```
 
-Pin a commit or tag instead of `main` for reproducible analyses. This README
-and its examples describe the same repository revision; a registered release
-may not include development features shown here. Use the documentation and
-examples for the version you install.
+Keep the resulting `Project.toml` and `Manifest.toml` with the analysis. The
+[preview landing page](https://ryuya-dot-com.github.io/BayesianMGMFRM.jl/)
+also gives the exact source commit; use that hash as `rev` to select the recorded
+snapshot directly. `main` and the registered release may not contain these
+interfaces. This is an unreleased development preview, not a new stable release
+or scientific acceptance of its experimental models.
+
+Run the installed no-fit example from any working directory:
+
+```julia
+using BayesianMGMFRM
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "inspect_ratings.jl"))
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "observed_icc.jl"))
+[(r.definition, r.unit, r.icc) for r in observed_icc_example().results]
+```
+
+The ICC values are approximately `2/3`, `0.8`, `1.0` and `1.0`, in that order.
+They illustrate agreement versus consistency under an explicit equal-gap score
+assumption; they are not evidence of population reliability. No model is fitted.
 
 ## Model Support
 
@@ -71,15 +96,25 @@ item/task discrimination multiplied by positive rater consistency. Its
 partial-credit step vector is rater-specific and shared across items and
 persons on the direct parameter scale. It does not accept anchors or fitted DFF
 terms.
-The experimental MGMFRM configuration requires at least two dimensions, a
+The experimental MGMFRM configuration admits one or more dimensions with an explicit
 fixed confirmatory Q-matrix, partial-credit steps, identity latent correlation,
-no anchors, and no fitted DFF terms.
+no anchors, and no fitted DFF terms. An all-active one-column Q selects its
+unidimensional restriction, which retains item-owned steps and the 1.7 constant
+and is distinct from scalar GMFRM. The [matched-dimension example](docs/src/common_prediction_comparison.md#Matched-dimensionality-comparison)
+aligns this kernel and prior conventions when comparing one versus multiple dimensions.
 
 MGMFRM estimates a person ability vector and positive loadings in the active
 Q cells. Its response equation uses an additive weighted ability sum. See the
 [model equations](docs/src/model-equations.md) for the source terminology,
 between-/within-item distinction, and step sharing, and the
 [experimental guide](docs/src/experimental.md) for priors and identification.
+
+Independent fixed-Q MGMFRM also accepts an explicit
+`Experimental.NormalizedMGMFRMPrior` for normalized exchangeable or source
+priors. The same distribution and scales flow through prior prediction,
+Julia/CmdStan fitting, manual fit caches and report/figure bundles. All scales
+must be supplied; existing defaults are unchanged. See
+[prior choice and the saved-result workflow](docs/src/experimental.md#mgmfrm-prior-choice-and-comparable-scales).
 
 ## Quick Start
 

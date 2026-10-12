@@ -59,6 +59,45 @@ end
 const CASES = [reference_case(q) for q in
     (Bool[1 0; 1 0; 0 1; 0 1], Bool[1 0; 1 1; 0 1; 0 1])]
 
+@testset "MGMFRM batched draw conversion retains checked equations and boundaries" begin
+    for categories in (2, 4), q in (Bool[1 0; 1 0; 0 1; 0 1],
+            Bool[1 0; 1 1; 0 1; 0 1], Bool[1 0 0; 0 1 0; 0 0 1; 1 1 1])
+        case = reference_case(q; categories)
+        target = case.target
+        draws = reduce(vcat, permutedims.(case.points))
+        original = copy(draws)
+        actual = B._mgmfrm_guarded_local_fit_direct_draw_values(target, draws)
+        for (i, raw) in enumerate(eachrow(draws))
+            direct = B._mgmfrm_source_constrained_params_from_unconstrained(target.design, raw)
+            pointwise = B._mgmfrm_source_pointwise_loglikelihood(target.design, direct)
+            @test actual.direct_draws[i, :] == direct
+            @test actual.pointwise_loglikelihood[i, :] == pointwise
+            @test actual.loglikelihood[i] == sum(pointwise; init=0.0)
+            @test actual.direct_draws[i, :] ≈ case.direct(raw) atol=1e-12
+            @test actual.pointwise_loglikelihood[i, :] ≈ case.pointwise(raw) atol=1e-12
+        end
+        @test draws == original
+        @test isequal(B._mgmfrm_guarded_local_fit_direct_draw_values(target, draws), actual)
+        empty = B._mgmfrm_guarded_local_fit_direct_draw_values(target, draws[1:0, :])
+        @test size(empty.direct_draws) == (0, size(actual.direct_draws, 2))
+        @test size(empty.pointwise_loglikelihood) == (0, size(actual.pointwise_loglikelihood, 2))
+        @test_throws ArgumentError B._mgmfrm_guarded_local_fit_direct_draw_values(target, draws[:, 1:end-1])
+        # A valid first row must not bypass checks for later invalid draws.
+        for block in (:log_item_dimension_discrimination, :log_rater_consistency_free),
+                value in (NaN, Inf, 1000.0, -1000.0)
+            bad = copy(draws)
+            bad[2, first(target.blueprint.blocks[block])] = value
+            @test_throws ArgumentError B._mgmfrm_guarded_local_fit_direct_draw_values(target, bad)
+        end
+        # Preparation is local to each call, never a cache of a mutable design.
+        bad = deepcopy(target)
+        bad.design.spec.q_matrix .= false
+        @test_throws ArgumentError B._mgmfrm_guarded_local_fit_direct_draw_values(bad, draws)
+        @test_throws ArgumentError B._mgmfrm_source_pointwise_loglikelihood(
+            bad.design, vec(actual.direct_draws[1, :]))
+    end
+end
+
 @testset "MGMFRM threshold reuse preserves pointwise density and derivatives" begin
     for categories in (2,3,4,5), q in (Bool[1 0; 1 0; 0 1; 0 1], Bool[1 0; 1 1; 0 1; 0 1])
         case = reference_case(q; categories)

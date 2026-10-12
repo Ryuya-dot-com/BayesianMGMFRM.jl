@@ -21,18 +21,27 @@ export DEVELOPER_DOCUMENTATION_PAGES,
 
 const PUBLIC_DOCUMENTATION_PAGES = (
     "index.md",
+    "learning-guide.md",
+    "visualization-gallery.md",
+    "prior-sensitivity.md",
+    "rating-model-theory.md",
+    "interpreting-results.md",
     "data-validation.md",
     "model-equations.md",
     "bayesian-workflow.md",
     "fitting.md",
     "experimental.md",
     "examples.md",
+    "common_prediction_comparison.md",
     "migration-facets-conquest.md",
     "scope.md",
     "api.md",
+    "api-prediction-recovery.md",
+    "api-experimental.md",
     "api-data-design.md",
     "api-fitting-artifacts.md",
     "api-workflow-diagnostics.md",
+    "api-saved-reporting.md",
     "api-validation-evidence.md",
 )
 
@@ -243,7 +252,9 @@ function _language_rule_hits(text::AbstractString, rules)
                     :private_identifier,
                     :runtime_private_identifier,
                     :rendered_private_identifier) &&
-                    _markdown_italic_placeholder(text, matched.offset)
+                    (_markdown_italic_placeholder(text, matched.offset) ||
+                     (matched.match == "__FILE__" && matched.offset > firstindex(text) &&
+                      text[prevind(text, matched.offset)] == '@'))
                 continue
             end
             line = _line_number_at(text, matched.offset)

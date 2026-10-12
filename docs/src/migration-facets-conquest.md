@@ -1,5 +1,10 @@
 # Migrating from FACETS and ACER ConQuest
 
+!!! note "Unreleased documentation preview — 13 October 2026"
+    This manual includes unreleased interfaces and examples. It is not the
+    documentation of an installed release. Model support and scientific
+    acceptance remain as stated on each page.
+
 This page maps the smallest genuinely overlapping many-facet models from
 FACETS and ACER ConQuest to `BayesianMGMFRM.jl`. It is a semantic migration
 guide, not a parser for FACETS specification files or ConQuest command files.
@@ -402,7 +407,8 @@ nor a package refit. A supported numerical declaration can be passed to
 | Fair average | `fair_average_summary` | Posterior balanced-reference expected score; document the reference grid. |
 | Infit/outfit with uncertainty | `fit_stats` | Default Bayesian posterior diagnostic. |
 | FACETS-labelled MnSq/df/ZSTD | `facets_report` | Unit-weighted posterior-mean plug-in approximation; posterior uncertainty is not propagated and FACETS numerical equality is not claimed. |
-| Separation/reliability | `separation_reliability_summary` | Posterior screening summary, not an estimator-identical copy of source output. |
+| Separation/reliability | `separation_reliability_summary` (legacy); `BayesianMGMFRM.posterior_reliability` (explicit cohort) | The legacy screen warns and must not supply reportable Strata. The new posterior variance ratio has an explicit finite-cohort target; it is not FACETS separation or population/design reliability. |
+| Common-response score agreement | `BayesianMGMFRM.rater_agreement` | Observed exact/adjacent rates and joint-posterior model expectations use original categories and explicit response/item matching. No recentering at each rater's lowest PCM category, predictive interval or FACETS numerical identity is claimed. See the [agreement guide](interpreting-results.md#Agreement-and-practical-decisions). |
 | Machine-readable report | `fit_report(fit_result; view = :public)` | Hashable package report; it is not a FACETS Scorefile or ConQuest export parser. |
 
 FACETS can write measure tables for transfer to SPSS, Excel, R, and text files;

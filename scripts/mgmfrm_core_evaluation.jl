@@ -29,7 +29,8 @@ end
 """One condition/backend's preparation roster; never authorizes a study run.
 The fixed mode exists only to replay the historical engineering pilot.
 """
-function evaluation_plan(ids; mode::Symbol, condition=nothing, backend::Symbol, generator_sha256)
+function evaluation_plan(ids; mode::Symbol, condition=nothing, backend::Symbol, generator_sha256,
+        retained_per_chain=1000)
     !isempty(ids) && all(id -> id isa AbstractString && !isempty(strip(id)), ids) &&
         length(unique(ids)) == length(ids) || throw(ArgumentError("Unique nonempty planned IDs required"))
     mode in (:fixed, :recovery, :prior) && backend in (:advancedhmc, :cmdstan) ||
@@ -37,9 +38,12 @@ function evaluation_plan(ids; mode::Symbol, condition=nothing, backend::Symbol, 
     (mode === :recovery ? condition in ("R0", "R1") : condition === nothing) ||
         throw(ArgumentError("Only recovery has an R0/R1 condition"))
     occursin(r"\A[0-9a-f]{64}\z", generator_sha256) || throw(ArgumentError("Generator SHA256 required"))
+    retained_per_chain isa Integer && !(retained_per_chain isa Bool) && retained_per_chain > 0 &&
+        (mode === :prior || retained_per_chain == P.CONTROLS.ndraws) ||
+        throw(ArgumentError("Positive fixed retained length required; length overrides are currently for joint-prior evaluation only"))
     return seal((; ids=String.(ids), mode, condition, backend, generator_sha256=String(generator_sha256),
         prior=B._source_fixture_prior_values(B._source_fixture_prior(P.prior())),
-        controls=P.CONTROLS, criteria=P.CRITERIA, execution_allowed=false))
+        controls=merge(P.CONTROLS,(;ndraws=Int(retained_per_chain))), criteria=P.CRITERIA, execution_allowed=false))
 end
 
 function checked_bytes(path, expected)
@@ -137,7 +141,8 @@ function check_fit(plan, input, fit::B.MGMFRMFit; seed, training_rows=collect(1:
     fit.diagnostic_surface.raw_parameter_names == expected.blueprint.parameter_names == input.truth.raw_names &&
         fit.diagnostic_surface.direct_parameter_names == expected.blueprint.constrained_parameter_names ||
         throw(ArgumentError("Fit coordinate names/order mismatch"))
-    size(fit.draws) == (4000,128) && all(isfinite,fit.draws) && all(isfinite,fit.log_posterior) ||
+    size(fit.draws) == (plan.controls.chains*plan.controls.ndraws,128) &&
+        all(isfinite,fit.draws) && all(isfinite,fit.log_posterior) ||
         throw(ArgumentError("Incomplete or nonfinite retained draws"))
     direct = reduce(vcat, [permutedims(B._mgmfrm_source_constrained_params_from_unconstrained(expected.design,collect(r)))
         for r in eachrow(fit.draws)])
@@ -165,7 +170,9 @@ function qualification(fit, checked, values, names)
         model=diagnostic(checked.direct,blueprint.constrained_parameter_names;
             fixed=B._structurally_fixed_constrained_parameter_names(blueprint)),
         focal=diagnostic(values,names))
-    complete = length(fit.sampler_stats) == 4000 && all(enumerate(fit.sampler_stats)) do (n,r)
+    complete = length(fit.sampler_stats) == size(fit.draws,1) ==
+        length(fit.chain_ids) == length(fit.iterations) == 4*fit.sampler_controls.ndraws &&
+        all(enumerate(fit.sampler_stats)) do (n,r)
         r.chain == fit.chain_ids[n] && r.iteration == fit.iterations[n] && r.is_adapt === false &&
             r.numerical_error isa Bool && r.n_steps isa Integer && !(r.n_steps isa Bool) && r.n_steps > 0 &&
             r.tree_depth isa Integer && !(r.tree_depth isa Bool) && r.tree_depth > 0 && V._finite_number(r.hamiltonian_energy)
@@ -227,7 +234,7 @@ function prepare_sbc(plan,input,reference;dependence,rank_rng::AbstractRNG)
     truth = sbc_quantities(checked.target,permutedims(Float64.(input.truth.raw));parameter_names=input.truth.raw_names)
     q = qualification(fit,checked,quantities.values,quantities.names)
     selected = sbc_rank_draws(checked.target,fit.draws;parameter_names=input.truth.raw_names,
-        fit.chain_ids,fit.iterations)
+        fit.chain_ids,fit.iterations,retained_iteration=plan.controls.ndraws)
     status = V._sbc_status(q,dependence)
     ranks = status === :rank_prepared ? [merge((;parameter=name),
         V.randomized_rank(truth.values[1,j],selected.values[:,j],rank_rng))

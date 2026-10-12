@@ -2,6 +2,238 @@
 
 ## 0.1.2 (unreleased)
 
+### Isolated API candidate (not merged or released)
+
+- Publish the development source corresponding to the 13 October guide on
+  `development/20261013-guide`. Document a separate project, revision pinning
+  and installed examples independent of the working directory. This introduces
+  no runtime changes, new model fits or stable-release promotion.
+
+- Add qualified `intraclass_correlation` for complete crossed observed ratings
+  on one item. Require explicit random/fixed rater, agreement/consistency,
+  single/average and equal-gap score choices. Retain ANOVA components, response
+  identities, negative estimates and unavailable-denominator statuses; reject
+  incomplete rosters without deletion. Optional `reporting.icc` survives common
+  public bundles and saved workflows. No fitting, CI/SE, sparse-design model or
+  severity adjustment is supplied.
+
+- Add qualified `krippendorff_alpha` for observed `FacetData`, requiring one
+  item label and an explicit nominal or ordinal measurement level. Preserve
+  pairable category margins, coincidence weighting, singleton exclusions,
+  negative values and undefined results. Add optional `reporting.alpha` to
+  common report bundles and saved examples. No fitting, interval, SE,
+  missingness correction or severity-adjusted reliability is supplied.
+
+- Add `Experimental.slope_restriction` for one-dimensional item-step MGMFRM
+  with fixed-one or estimated-positive item slopes and fixed-one rater
+  consistency. Require an explicit normalized exchangeable prior; support
+  Julia raw-coordinate fitting, manual persistence and common K-fold refit
+  preparation. Retain structural constants and policy identity. Public CmdStan
+  fitting and transformed coordinates remain unsupported for this restriction;
+  short workflow checks do not establish model-selection performance.
+
+- Add qualified `posterior_ranking` for explicit person cohorts in one ability
+  dimension. Require rank direction; retain joint-draw midranks, discrete
+  pointwise intervals, mean MCSE and optional top-k inclusion bounds when ties
+  cross the boundary. Integrate opt-in `ranking` into common reports and saved
+  workflows across eight fit types. No automatic selection, composite ability,
+  population rank or known-truth rank-recovery claim is supplied.
+
+- Add qualified `posterior_classification` for explicitly selected people in
+  one fitted ability dimension, with required cutoff and probability decision
+  rule. Report conditional ability SD/ETI, posterior qualification/error
+  probabilities, joint-draw cohort error counts and any-error probability,
+  retaining numerical MCSE and sampling warnings. All eight common saved-fit
+  types and opt-in `fit_report(reporting=(;classification=(...)))` persistence
+  are supported without refitting. These are posterior risks, not known-truth
+  repeated-sampling error rates or a multidimensional composite decision.
+
+- Add opt-in `prediction_kfold(...; mcse=:delta)` for first-order numerical
+  error of held-out log predictive scores, preserving joint rating covariance
+  and chain autocorrelation. Combining fold/model errors requires explicit
+  independent-RNG declarations; detect known sample reuse, retain incomplete
+  folds and diagnostics, and report insufficient/degenerate precision as missing.
+  Extend `saved_kfold_comparison` with the same options. Defaults retain prior
+  result structures. This is not data-sampling K-fold SE, a precision guarantee,
+  PSIS, or an automatic model-selection rule; no fitting is performed.
+
+- Admit the explicit one-dimensional restriction of the fixed-Q MGMFRM kernel
+  through `Experimental.fit` on Julia and CmdStan, retaining item-owned steps,
+  positive loadings, the 1.7 constant and existing raw/normalized prior rules.
+  Add a distinct family-contract branch and a matched-dimension refit example.
+  The scalar rater-step GMFRM and two-dimensional correlation boundary remain
+  separate. Native density/gradient checks and short saved-workflow fits establish
+  numerical/operational compatibility, not recovery, calibration or a model-choice
+  recommendation.
+
+- Extend `examples/saved_prediction_workflow.jl` to all eight common saved-fit
+  types, including scalar MFRM/GMFRM and raw MGMFRM. Optional explicit per-model
+  category, agreement and reliability choices share the comparison's dataset
+  and rating IDs and survive report save/reload. Preserve existing five-type
+  calls, native report schemas and warnings; reject invalid requests before
+  writing. This example uses existing APIs and performs no fitting.
+
+- Reconcile the public support table with all eight common result types,
+  including normalized MGMFRM and exchangeable-rater MFRM. Connect model/prior
+  choices to operation limits and the current recovery/prediction evidence.
+  Translate the saved comparison/recovery guide into English, preserving its
+  examples, uncertainty definitions and legacy heading links. No model, prior,
+  sampler, cache format or scientific acceptance changes.
+
+- Recorded MGMFRM and multidimensional MFRM caches now tolerate floating-point
+  roundoff in reconstructed posterior means and SDs. Original sample/artifact
+  hashes, other summary fields and metadata remain strictly checked; stored
+  summaries are preserved without rewriting or refitting.
+
+- Integrate category, finite-cohort posterior reliability and common-response
+  agreement through optional `fit_report(...; reporting=(...))` across the eight
+  common saved-fit types. Require explicit cohorts/targets and shared rating
+  identities; preserve all draws, native results, MCSE, warnings and failures.
+  Include named reliability cohorts, table-ready rows, public/Markdown/JSON/bundle
+  output and saved-fit replay. Keep old report behavior when the option is omitted
+  and the historical replicated-category section distinct. No new estimator,
+  inference calibration, HDI, Strata, predictive interval or model fitting is added.
+
+- Add qualified `BayesianMGMFRM.category_report` across the eight common saved-fit
+  types. Retain declared categories, observed denominators and actual step-owner
+  groups; summarize native shared/item/rater steps, joint-draw ordering and gaps,
+  and optional conditional probability slices and adjacent crossings. Distinguish
+  expected-use posterior intervals from the existing replicated-use intervals.
+  Preserve native scale, all draws, source identity, MCSE and sampling warnings.
+  Include saved-cache replay and English help. No category collapse, new fit,
+  simultaneous band or HDI is introduced.
+
+- Change ordinary-MFRM `dff_report` to a count-weighted additive projection by
+  default (`adjustment=:assignment`), removing the documented unbalanced-margin
+  counterexample. Retain empty and unsupported cells, assignment rank/components,
+  interaction support, usable-draw counts and uncertainty/multiplicity labels.
+  Preserve historical arithmetic with an explicit warning-bearing
+  `:observed_margins` option. `fit_report` forwards `dff_adjustment` and saves it.
+  This changes residual-screen values, not fitted parameters or fitted DFF effects.
+
+- Add qualified `BayesianMGMFRM.rater_agreement` across the eight common saved-fit
+  types. Require explicit response identities, retain all fitted rater pairs
+  and their common-response/item denominators, and report observed exact/adjacent
+  agreement and joint-draw model expectations. Separate expected-rate posterior
+  intervals and MCSE from optional person-cluster observed-rate SEs. Repeated
+  ratings, context conflicts and resource overruns fail explicitly. Include
+  saved-cache replay, help and an English reporting example. No predictive
+  interval, kappa, mechanism diagnosis or reliability correction is implied.
+
+- Add qualified `BayesianMGMFRM.posterior_reliability` for an explicitly selected
+  finite cohort of estimated location coordinates across the eight common saved
+  fit types. Require an absolute or jointly centered target; retain normalized
+  weights, variance components, chain-aware delta-method MCSE and sampling
+  warnings. Reject anchors, mixed dimensions and non-location parameters.
+  The historical separation screen now warns but preserves numerical values.
+  No reliability CrI, population/design coefficient or Strata is inferred.
+
+- Clarify MFRM reporting scope for residual DFF screening, reliability, Strata
+  and score agreement. Deterministic counterexamples expose assignment-dependent
+  residual centering and limitations of the historical posterior separation
+  screen. Strengthen help and the English results guide without changing fitted
+  targets or existing numerical outputs. No validated replacement reliability,
+  reporting Strata or joint DFF estimator is introduced by this documentation.
+
+- Add prior-predictive sensitivity comparison for normalized MGMFRM loading-prior
+  widths, using the existing generator with explicit draw counts and seeds.
+  Bind optional saved posterior comparisons through data/prior/target identities;
+  preserve missing/failed variants and distinguish predictive intervals, IID MCSE
+  and posterior uncertainty. Add category/item/rater views with external notes,
+  sealed save/reload, an English worked example and numerical downloads. No new
+  posterior fit, calibrated prior-conflict test or automatic prior recommendation
+  is implied.
+
+- Add qualified `BayesianMGMFRM.plot_pathway` for stable unidimensional MFRM
+  RSM/PCM, with infit/outfit, facet selection and configurable central intervals.
+  Preserve fixed locations, fit uncertainty, rating counts, numerical flags and
+  whole-fit diagnostics. Titles/notes are external by default. Saved-fit replay
+  and `figures = (pathway = (...),)` bundles retain PDF/SVG, JSON inputs and notes.
+  Multidimensional and generalized fit estimands remain unsupported. No new
+  fitting or statistical validation is implied by this presentation API.
+
+- Add `person_display = :histogram` to `plot_wright` for stable MFRM/RSM/PCM.
+  Count one posterior median per person on the shared logit axis, retain the
+  individual-interval default, and support explicit bin counts or edges.
+  External notes and report JSON preserve counts, edges and the full roster;
+  aggregated persons do not consume the individual-position display limit.
+  This is a distribution of estimates, not a population density or uncertainty
+  distribution. Add an English gallery illustration without new fitting.
+
+- Plot titles and notes now appear outside images by default. `annotation_io`
+  defaults to `stdout`, accepts a writable stream for saving the text, and accepts
+  `nothing` for the previous embedded layout. Figures remain editable; report
+  bundles preserve matching external titles/notes and numerical inputs. The
+  English visualization gallery uses the new layout. This does not establish
+  APA compliance or add new model/plot support.
+
+- Add an English visualization gallery with Wright Maps, a downloadable
+  Pathway-style CairoMakie example, and a saved MGMFRM response surface.
+  Explain artificial inputs, uncertainty, fit statistics and display dimensions.
+
+- Add a sampler-free first example and a guide to Julia's REPL help. Explain
+  data inputs, validation results and model specification in their docstrings;
+  separate concise fitting help from full backend controls with `??fit`.
+  Preserve existing defaults, including the random-walk `:julia` backend.
+
+- Add an English beginner learning path covering rating data, model choice,
+  worked category probabilities, Bayesian interpretation and simulation for
+  study planning. Link it from the manual home and preserve experimental limits.
+
+- Add a rendered API reference and task-based guide for saved prediction and
+  recovery. Clarify available K-fold aggregation, separate automatic refitting,
+  and keep scientific support and uncertainty limits explicit.
+
+- Add qualified `recovery_replications` and a saved-evaluation example for
+  fixed-truth scenarios. Keep the complete dataset roster, failures, missing
+  quantities and numerical warnings. Report each focal quantity separately,
+  with declared-independence replication SE and unresolved coverage envelopes.
+  Separate warning-inclusive from warning-free descriptive subsets; neither
+  establishes calibration, precision qualification or design adequacy. This
+  does not generate data, fit models, verify independence or run SBC.
+
+- Add qualified `recovery_quantities` and `recovery_evaluation` for named,
+  model-coordinate truths across eight saved-fit types, with native reconstruction,
+  recovery arithmetic and MCMC MCSE. Retain diagnostics, fixed-value/truth
+  mismatches and source identities. Structural constants have missing coverage;
+  do not treat them as estimated calibration. Existing vector-truth recovery
+  methods remain unchanged. This is a single-dataset evaluator, not a simulation
+  runner, joint-prior SBC or replication-level precision assessment.
+
+- Add qualified `prediction_kfold` and `compare_kfold_predictions`, plus a saved
+  K-fold comparison example. Retain missing/failed folds and diagnostic warnings;
+  require complete results before reporting full scores and all candidates before
+  reporting contrasts. Match source, split, persistent rating IDs and target;
+  preserve model/dimension/Q contracts. Do not infer a winner or fold-independent
+  uncertainty. Prepared plans and fold scores now use content-bound v2 records;
+  existing fit-cache and fold-request formats remain unchanged.
+
+- Add qualified `prediction_refit_plan` and `prediction_fold_observations` for
+  source-bound known-level K-fold requests and heldout scoring across eight
+  supported fit types. Require explicit priors; validate the actual training
+  target and retain sampling warnings. These calls do not execute fits or
+  compare models. Training-row criteria continue to reject heldout results.
+
+- Reject invalid K-fold/LOO plans before the first refit: overlapping or incomplete
+  training sets, duplicated or missing heldout rows, split grouping units, and
+  inconsistent scoring labels/counts. Valid subset and empty LOO plans remain
+  supported. Preserve custom dimension labels when constructing training specs
+  and source order among observed fitted levels, keeping raw-coordinate priors
+  on the same reference labels across folds.
+- Connect eight concrete saved-fit types to qualified prediction/comparison
+  APIs with persistent dataset/rating IDs, explicit model/dimension/Q axes,
+  warnings and uncertainty limits. No automatic model winner is selected.
+- Add opt-in WAIC and raw importance-sampling LOO report sections for normalized
+  and correlated MGMFRM and canonical fixed-coefficient multidimensional MFRM,
+  preserving warnings through public reports and save/reload. This is not
+  reference-validated PSIS. Legacy scalar defaults and fit-cache formats are
+  unchanged; old fixed-Q v1 records still reject public report generation.
+- Register comparison/report checks in the existing `fitting_reports` test
+  group and add a saved-fit workflow with fresh-process replay. Link its guide
+  from the documentation navigation and correct the outdated module help on
+  experimental correlated fitting and manual caches. Scientific support,
+  common refitting, independent review and release verification remain open.
+
 ### Changed
 
 - Split ordinary fitting and local-dependence CI into two shards each, retaining
@@ -455,3 +687,9 @@
   MFRM/RSM/PCM design and Bayesian fitting, diagnostics, predictive checks,
   reporting artifacts, and opt-in scalar GMFRM and fixed-Q confirmatory MGMFRM
   experiments.
+
+### Unreleased isolated prior-sensitivity candidate
+
+- Compare named model coordinates and within-fit paired contrasts across saved normalized MGMFRM loading-prior SD variants, with equal-tailed intervals, chain-aware MCSE, explicit failure rosters and cutoff screens.
+- Add interval/ridge displays and verified bundles with external notes and positive-support log-KDE. No new sampling or stable API promotion is implied.
+- Accept bounded floating reduction differences when validating historical saved sampler summaries; preserve content hashes and exact discrete diagnostic fields.

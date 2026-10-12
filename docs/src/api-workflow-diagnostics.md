@@ -1,5 +1,10 @@
 # Workflow and Diagnostics API
 
+!!! note "Unreleased documentation preview — 13 October 2026"
+    This manual includes unreleased interfaces and examples. It is not the
+    documentation of an installed release. Model support and scientific
+    acceptance remain as stated on each page.
+
 ```@docs
 diagnostics
 sampler_diagnostics
@@ -57,6 +62,16 @@ fit_stats
 facets_report
 facets_compatibility_stats
 ```
+
+The [Saved-fit Reporting API](api-saved-reporting.md) groups the common
+reliability, agreement and category reports.
+
+For owner-aware category summaries across the eight common saved-fit types,
+use [`BayesianMGMFRM.category_report`](@ref). Its expected-use posterior intervals
+differ from the replicated-use intervals below. Optional profiles specify the
+item, rater, plotted dimension and every fixed other ability. Request it through `fit_report(...; reporting=(; category=(...), ...))`
+to add the distinct `category_report` section; the historical section below
+keeps its original interpretation.
 
 For a fitted minimal MFRM/RSM/PCM model, category-use and pairwise rater
 diagnostics can be requested without changing the fitted data or model:

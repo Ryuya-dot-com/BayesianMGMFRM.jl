@@ -84,7 +84,7 @@ function run(input::AbstractString, output::AbstractString; reference = nothing)
             @assert B._mgmfrm_normalized_sample_hash(record) == record.content_hash
         end
         measure(:run_validation) do
-            B._check_mgmfrm_normalized_prior_run(target, record.run)
+            B._check_generalized_sample_run(target, record.run)
         end
         tables = measure(:diagnostic_tables) do
             B._generalized_candidate_diagnostic_tables(target.base, record.run)

@@ -1,7 +1,7 @@
 """
     BayesianMGMFRM.plot_posterior(fit; scale = :model, interval = 0.95,
         block = nothing, dimension = nothing, parameters = nothing,
-        max_parameters = 60, size = nothing)
+        max_parameters = 60, size = nothing, annotation_io = stdout)
 
 Draw posterior medians and central credible intervals from an existing MFRM,
 experimental GMFRM, or experimental fixed-Q MGMFRM fit. Load `CairoMakie` first.
@@ -28,6 +28,10 @@ retain the experimental status of their fitted models.
 Saved fixed-coefficient multidimensional MFRM fits also support this entry
 point. They use only `scale = :model` in unit logits, including fixed Q
 coefficients and reconstructed constraints; dimensions accept stored labels.
+The default `annotation_io = stdout` writes the title and complete note outside
+the image. Pass a writable IO stream to save that text, or `nothing` for
+the previous embedded format. The editable Figure return is unchanged;
+keep the external note with the exported image.
 """
 function plot_posterior(fit::_ModelComparisonFit; kwargs...)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
@@ -211,7 +215,7 @@ end
 """
     BayesianMGMFRM.plot_diagnostics(fit; scale = :raw, block = nothing,
         dimension = nothing, parameters = nothing, max_parameters = 12,
-        bins = 20, size = nothing)
+        bins = 20, size = nothing, annotation_io = stdout)
 
 Draw retained-chain traces and pooled-rank histograms directly from an MFRM,
 experimental GMFRM, or experimental fixed-Q MGMFRM fit. Load `CairoMakie` first;
@@ -233,7 +237,7 @@ histograms alone do not establish convergence.
 
 Parameter labels show existing rank-normalized R-hat and bulk/tail ESS where
 available. Derived coordinates without stored diagnostic rows are explicitly
-unavailable. The footer retains whole-fit diagnostics, including unselected
+unavailable. The note retains whole-fit diagnostics, including unselected
 parameters, and per-chain sampler counts/coverage. Generalized diagnostic
 settings are those stored with the fit; older incompatible records retain the
 existing diagnostic-contract rejection. Warmup parameter draws are not stored;
@@ -250,6 +254,10 @@ The default `view = :parameters` retains the individual coordinates. Both views
 show the separate location-check status alongside the whole-fit assessment.
 These equally weighted panel means are not population-mean parameters;
 within-item and mixed Q do not support the location view.
+The default `annotation_io = stdout` writes the title and complete note outside
+the image. Pass a writable IO stream to save that text, or `nothing` for
+the previous embedded format. The editable Figure return is unchanged;
+keep the external note with the exported image.
 """
 function plot_diagnostics(fit::_ModelComparisonFit; kwargs...)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
@@ -333,7 +341,7 @@ end
 
 """
     BayesianMGMFRM.plot_predictive(fit; interval = 0.9, ndraws = nothing,
-        draw_indices = nothing, seed = 1, size = nothing)
+        draw_indices = nothing, seed = 1, size = nothing, annotation_io = stdout)
 
 Compare observed category proportions with posterior predictive replicated
 proportions for an MFRM, experimental GMFRM, or experimental fixed-Q MGMFRM fit.
@@ -368,6 +376,10 @@ options and seed.
 The whole-fit MCMC diagnostic note remains visible. This same-data check does
 not establish convergence or performance for new persons, items or raters.
 This optional entry point is qualified, not exported.
+The default `annotation_io = stdout` writes the title and complete note outside
+the image. Pass a writable IO stream to save that text, or `nothing` for
+the previous embedded format. The editable Figure return is unchanged;
+keep the external note with the exported image.
 """
 function plot_predictive(fit::_ModelComparisonFit; kwargs...)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
@@ -419,7 +431,7 @@ function _prior_predictive_plot_data(check::NamedTuple; interval::Real = 0.9)
 end
 
 """
-    BayesianMGMFRM.plot_predictive(check::NamedTuple; interval = 0.9, size = nothing)
+    BayesianMGMFRM.plot_predictive(check::NamedTuple; interval = 0.9, size = nothing, annotation_io = stdout)
 
 Plot observed category proportions alongside prior-predictive means and central
 intervals from a `prior_predictive_check` result, including experimental models.
@@ -429,12 +441,16 @@ The numerical values are `predictive_check_summary(check; interval)` rows with
 `statistic = :category_proportion`. Ratings are a comparison, not an update to
 the prior. Prior plausibility does not establish posterior convergence, recovery
 or performance for new persons, items or raters.
+The default `annotation_io = stdout` writes the title and complete note outside
+the image. Pass a writable IO stream to save that text, or `nothing` for
+the previous embedded format. The editable Figure return is unchanged;
+keep the external note with the exported image.
 """
-function plot_predictive(check::NamedTuple; interval::Real = 0.9, size = nothing)
+function plot_predictive(check::NamedTuple; interval::Real = 0.9, size = nothing, annotation_io = stdout)
     data = _prior_predictive_plot_data(check; interval)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
     extension === nothing && throw(ArgumentError("plot_predictive requires `using CairoMakie`"))
-    return _render_prior_predictive(extension, data; size)
+    return _render_prior_predictive(extension, data; size, annotation_io)
 end
 
 function _prior_predictive_caption(data)
@@ -448,14 +464,15 @@ function _prior_predictive_caption(data)
     return caption
 end
 
-function _render_prior_predictive(extension, data; size = nothing)
+function _render_prior_predictive(extension, data; size = nothing, annotation_io = stdout)
     return extension._render_predictive(data; title = "Prior predictive check\nCategory proportions",
-        caption = _prior_predictive_caption(data), size)
+        caption = _prior_predictive_caption(data), size, annotation_io)
 end
 
 """
     BayesianMGMFRM.plot_wright(fit; facets = :all, include_thresholds = true,
-        interval = 0.95, max_levels = 60, size = nothing)
+        interval = 0.95, person_display = :intervals, bins = nothing,
+        max_levels = 60, size = nothing, annotation_io = stdout)
 
 Draw a Wright map from a stable MFRM rating-scale or partial-credit fit.
 Load `CairoMakie` first; returns its editable `Figure` for `display` and PDF/SVG
@@ -467,6 +484,19 @@ adjacent-category log odds; higher rater severity or item difficulty decreases
 them. Points show medians and bars show central credible intervals. Diamonds
 identify fixed references or hard anchors; their external uncertainty is excluded.
 
+Set `person_display = :histogram` for horizontal person-frequency bars on the
+same vertical scale, retaining item/rater intervals. Each person contributes
+one posterior median; these shrunken estimates are not a population density,
+pooled posterior draws, or individual uncertainty intervals. `bins` accepts a
+positive bin count or strictly increasing finite edges covering every median.
+By default use `min(20, ceil(Int, sqrt(n_persons)))` equal-width bins over the
+median range; equal medians use a range of median ± 0.5 logits. Bins are left
+closed/right open, except the last includes its upper edge. Exact edges and
+counts accompany the external note and report figure JSON; all person rows
+remain in that JSON. Histogram mode requires the person facet; explicit `bins`
+require histogram mode. With unequal widths, compare bar lengths (counts), not
+areas or density. The default `:intervals` retains the individual view.
+
 The optional boundary panel shows item difficulty plus category step, summed
 draw by draw with their joint uncertainty. These are adjacent-category
 equal-probability boundaries at zero rater severity, not expected-score
@@ -477,11 +507,16 @@ visible; the map is not a convergence or model-fit check.
 `facets` accepts `:all`, a single `:person`, `:rater` or `:item`, or an ordered
 tuple of these facets. `include_thresholds = true` adds boundaries for all items,
 independently of facet selection. Original level/category labels and order are
-preserved. More than `max_levels` displayed positions raises an error: narrow
+preserved. More than `max_levels` individual positions raises an error: narrow
 facets, omit boundaries, or increase the limit and Figure `size` explicitly.
-No positions are silently omitted. Reuse the same options after `load_fit_cache`
+People aggregated in a histogram do not count toward this individual-mark limit.
+No people or other selected positions are silently omitted. Reuse the same options after `load_fit_cache`
 to regenerate the map. [`wright_map_data`](@ref) returns its numerical inputs.
 This optional entry point is qualified, not exported.
+The default `annotation_io = stdout` writes the title and complete note outside
+the image. Pass a writable IO stream to save that text, or `nothing` for
+the previous embedded format. The editable Figure return is unchanged;
+keep the external note with the exported image.
 """
 function plot_wright(fit::_ModelComparisonFit; kwargs...)
     fit isa MFRMFit || throw(ArgumentError("plot_wright supports stable MFRM fits only; generalized scales are unsupported"))
@@ -491,21 +526,126 @@ function plot_wright(fit::_ModelComparisonFit; kwargs...)
     return extension.plot_wright(fit; kwargs...)
 end
 
+function _wright_person_histogram(values, bins)
+    lo, hi = extrema(values)
+    specification = bins === nothing ? min(20, ceil(Int, sqrt(length(values)))) : bins
+    edges = if specification isa Integer && !(specification isa Bool) && 0 < specification < typemax(Int)
+        lo == hi && ((lo, hi) = (lo - 0.5, hi + 0.5))
+        collect(range(lo, hi; length = Int(specification) + 1))
+    elseif specification isa AbstractVector && length(specification) >= 2 &&
+            all(x -> x isa Real && !(x isa Bool) && isfinite(x), specification)
+        Float64.(specification)
+    else
+        throw(ArgumentError("bins must be a positive integer or a vector of at least two finite edges"))
+    end
+    all(isfinite, edges) && all(x -> isfinite(x) && x > 0, diff(edges)) ||
+        throw(ArgumentError("histogram edges must be finite and strictly increasing at Float64 precision"))
+    first(edges) <= minimum(values) && maximum(values) <= last(edges) ||
+        throw(ArgumentError("histogram edges must cover every person median; no people may be dropped"))
+    counts = zeros(Int, length(edges) - 1)
+    for value in values
+        counts[min(searchsortedlast(edges, value), length(counts))] += 1
+    end
+    return (; edges, counts, n_persons = length(values), summary = :posterior_median,
+        closure = :left_closed_last_closed)
+end
+
 function _wright_plot_data(fit::MFRMFit; facets = :all, include_thresholds::Bool = true,
-        interval::Real = 0.95, max_levels = 60)
+        interval::Real = 0.95, person_display = :intervals, bins = nothing, max_levels = 60)
     max_levels isa Integer && !(max_levels isa Bool) && max_levels > 0 ||
         throw(ArgumentError("max_levels must be a positive integer"))
+    person_display isa Symbol && person_display in (:intervals, :histogram) ||
+        throw(ArgumentError("person_display must be :intervals or :histogram"))
+    person_display === :histogram || bins === nothing ||
+        throw(ArgumentError("bins requires person_display = :histogram"))
+    person_display !== :histogram || :person in _wright_map_facets(facets) ||
+        throw(ArgumentError("person_display = :histogram requires the person facet"))
     _fit_draws_per_chain(fit)
     rows = wright_map_data(fit; facets, include_thresholds, interval)
-    length(rows) <= max_levels || throw(ArgumentError(
-        "selected $(length(rows)) positions (limit $max_levels); narrow facets, set include_thresholds=false, or increase max_levels and figure size"))
+    n_individual_positions = count(row -> person_display === :intervals || row.facet !== :person, rows)
+    n_individual_positions <= max_levels || throw(ArgumentError(
+        "selected $n_individual_positions individual positions (limit $max_levels); use person_display=:histogram, narrow facets, set include_thresholds=false, or increase max_levels and figure size"))
     all(row -> isfinite(row.position_median) && isfinite(row.position_lower) &&
         isfinite(row.position_upper), rows) || throw(ArgumentError("Wright-map summaries must be finite"))
+    histogram = person_display === :histogram ?
+        _wright_person_histogram([row.position_median for row in rows if row.facet === :person], bins) : nothing
     return (; rows, groups = unique(getproperty.(rows, :facet)), interval = Float64(interval),
+        person_display, histogram, n_individual_positions,
         n_draws = size(fit.draws, 1), diagnostic = _plot_diagnostic_note(diagnostics(fit).summary))
 end
 
-const _FIT_REPORT_FIGURE_KINDS = (:posterior, :diagnostics, :predictive, :wright, :prior, :prior_predictive)
+"""
+    BayesianMGMFRM.plot_pathway(fit; facets = :all, metric = :infit,
+        interval = 0.95, min_n = 1, max_levels = 60, size = nothing,
+        annotation_io = stdout)
+
+Draw a Pathway map for a stable unidimensional MFRM rating-scale or partial-credit
+fit. Load CairoMakie first; returns an editable Figure for display or PDF/SVG
+saving. This qualified entry point is not exported. Other model families and
+multidimensional fits are unsupported until their fit estimands are defined.
+
+Choose `metric = :infit` or `:outfit` mean square. Facet panels share horizontal
+fit and vertical logit axes. `facets` accepts `:all`, one of `:person`, `:rater`,
+`:item`, or an ordered tuple. Positions retain their identified signs without
+recentering: higher ability increases, and higher severity/difficulty decreases,
+adjacent-category log odds. Points are marginal medians; horizontal and vertical
+bars are separate central credible intervals, **not a joint credible region**.
+Set `interval = 0.99` for 99% intervals on both axes. All retained draws are used;
+no refitting, random selection or extra draws occur. [`diagnostic_map_data`](@ref)
+with matching facets, metrics, interval and min_n returns the numerical rows.
+
+Diamonds mark fixed reference/anchor locations; their fit statistic can still
+be uncertain and retain a horizontal interval. External anchor uncertainty is
+excluded. Labels include the number of contributing ratings; a trailing `*`
+marks a numerical flag detailed in the external note. Tiny predictive variances
+are clipped in the existing fit statistic; inspect flagged rows before use.
+Missing/nonfinite summaries (including levels below `min_n`) raise an error,
+never silently omit levels. More than `max_levels` selected levels raises an
+error; narrow facets or explicitly increase the limit and figure size.
+
+The line at 1 is a mean-square reference, not an acceptance threshold. This is
+a same-data residual diagnostic, not ZSTD, a convergence check or model-selection
+evidence. Whole-fit MCMC warnings remain in the note, even for selected facets.
+The default `annotation_io = stdout` writes the title and complete note outside
+the image. Pass a writable IO to save the text, or `nothing` to embed it. Keep
+the note with exported images. Reuse the options after `load_fit_cache` to
+reproduce the figure, or use `save_fit_report_bundle(...; figures =
+(pathway = (metric = :outfit,),))` for PDF/SVG, numerical JSON and external notes.
+Report bundles use their central `posterior_lower`/`posterior_upper` for both axes.
+"""
+function plot_pathway(fit; kwargs...)
+    fit isa MFRMFit || throw(ArgumentError(
+        "plot_pathway supports stable unidimensional MFRM fits only; multidimensional fit estimands are not implemented"))
+    extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
+    extension === nothing && throw(ArgumentError("plot_pathway requires `using CairoMakie`"))
+    return extension.plot_pathway(fit; kwargs...)
+end
+
+function _pathway_plot_data(fit::MFRMFit; facets = :all, metric = :infit,
+        interval::Real = 0.95, min_n = 1, max_levels = 60)
+    metric isa Symbol && metric in (:infit, :outfit) ||
+        throw(ArgumentError("metric must be :infit or :outfit mean square"))
+    min_n isa Int && min_n > 0 || throw(ArgumentError("min_n must be a positive Int"))
+    max_levels isa Integer && !(max_levels isa Bool) && max_levels > 0 ||
+        throw(ArgumentError("max_levels must be a positive integer"))
+    groups = _wright_map_facets(facets)
+    _fit_draws_per_chain(fit)
+    rows = diagnostic_map_data(fit; facets = groups, metrics = metric,
+        include_thresholds = false, interval, min_n)
+    length(rows) <= max_levels || throw(ArgumentError(
+        "selected $(length(rows)) levels (limit $max_levels); narrow facets or increase max_levels and figure size"))
+    for row in rows
+        all(x -> !ismissing(x) && isfinite(x), (row.fit_median, row.fit_lower,
+            row.fit_upper, row.logit_median, row.logit_lower, row.logit_upper)) ||
+            throw(ArgumentError("missing/nonfinite Pathway summaries for $(row.facet) $(row.level) (flag $(row.flag)); inspect diagnostic_map_data and min_n"))
+    end
+    rows = [merge(row, (; is_fixed = _wright_map_facet_parameter(
+        fit.design, row.facet, row.level_index).is_fixed)) for row in rows]
+    return (; rows, groups, metric, interval = Float64(interval), min_n,
+        n_draws = size(fit.draws, 1), diagnostic = _plot_diagnostic_note(diagnostics(fit).summary))
+end
+
+const _FIT_REPORT_FIGURE_KINDS = (:posterior, :diagnostics, :predictive, :wright, :pathway, :prior, :prior_predictive)
 
 function _fit_report_figure_file_hash(bytes)
     return (; algorithm = :sha256, value = bytes2hex(sha256(bytes)),
@@ -561,7 +701,8 @@ function _fit_report_figure_options(figures)
         predictive = (:size,),
         prior = (:scale, :block, :dimension, :parameters, :max_parameters, :size),
         prior_predictive = (:size,),
-        wright = (:facets, :include_thresholds, :max_levels, :size))
+        wright = (:facets, :include_thresholds, :person_display, :bins, :max_levels, :size),
+        pathway = (:facets, :metric, :min_n, :max_levels, :size))
     for (kind, options) in pairs(figures)
         kind in _FIT_REPORT_FIGURE_KINDS || throw(ArgumentError("unknown figure kind: $kind"))
         options isa NamedTuple && all(key -> key in getproperty(allowed, kind), keys(options)) ||
@@ -592,8 +733,8 @@ function _save_fit_report_figure_bundle(directory, fit, figures;
     seed isa Integer && !(seed isa Bool) || throw(ArgumentError("figure seed must be an integer"))
     any(key -> haskey(report_kwargs, key), (:rng, :prior_predictive_rng)) &&
         throw(ArgumentError("use seed instead of rng/prior_predictive_rng for reproducible figure bundles"))
-    fit isa MFRMFit || !haskey(figures, :wright) ||
-        throw(ArgumentError("Wright-map bundles support stable MFRM fits only"))
+    fit isa MFRMFit || !any(kind -> haskey(figures, kind), (:wright, :pathway)) ||
+        throw(ArgumentError("Wright/Pathway-map bundles support stable MFRM fits only"))
     extension = _check_fit_report_figure_destination(directory, figures; overwrite, max_rows)
 
     # Existing plots use these diagnostic settings; do not give the report a different gate.
@@ -608,9 +749,9 @@ function _save_fit_report_figure_bundle(directory, fit, figures;
     end
     lower, upper = get(report_kwargs, :posterior_lower, 0.025), get(report_kwargs, :posterior_upper, 0.975)
     interval = upper - lower
-    if haskey(figures, :posterior) || haskey(figures, :wright)
+    if any(kind -> haskey(figures, kind), (:posterior, :wright, :pathway))
         0 < interval < 1 && isapprox(lower + upper, 1; atol = 8eps(Float64), rtol = 0) ||
-            throw(ArgumentError("posterior and Wright figures require central posterior_lower/posterior_upper bounds"))
+            throw(ArgumentError("posterior, Wright and Pathway figures require central posterior_lower/posterior_upper bounds"))
     end
     report = fit_report(fit; report_kwargs..., diagnostic_options..., view = :full,
         rng = MersenneTwister(seed), prior_predictive_rng = MersenneTwister(seed), require_complete)
@@ -619,12 +760,13 @@ function _save_fit_report_figure_bundle(directory, fit, figures;
     exported_report = view === :public ? fit_report_public(report) : report
     identity = (; family = fit.design.spec.family, dimension_labels = fit.design.spec.dimension_labels)
     return _write_fit_report_figures(directory, exported_report, figures;
-            identity, seed, overwrite, label, title, max_rows, include_empty, require_complete) do kind, numerical, size
+            identity, seed, overwrite, label, title, max_rows, include_empty, require_complete) do kind, numerical, size, annotation_io
         data = kind === :posterior ? _posterior_plot_data(fit; numerical..., interval) :
             kind === :diagnostics ? _diagnostic_plot_data(fit; numerical...) :
             kind === :wright ? _wright_plot_data(fit; numerical..., interval) :
+            kind === :pathway ? _pathway_plot_data(fit; numerical..., interval) :
             _report_predictive_plot_data(fit, report, report_kwargs, seed)
-        figure = getproperty(extension, Symbol("_render_", kind))(fit, data; size)
+        figure = getproperty(extension, Symbol("_render_", kind))(fit, data; size, annotation_io)
         (; data, figure)
     end
 end
@@ -657,7 +799,10 @@ function _write_fit_report_figures(prepare, directory, report, figures;
         println(markdown, "\n## Figures\n")
         for (kind, options) in pairs(figures)
             numerical = Base.structdiff(options, (; size = nothing))
-            data, figure = prepare(kind, numerical, get(options, :size, nothing))
+            annotation_io = IOBuffer()
+            data, figure = prepare(kind, numerical, get(options, :size, nothing), annotation_io)
+            annotation_text = String(take!(annotation_io))
+            figure_title = first(split(annotation_text, '\n'; limit = 2))
             caption = kind === :prior ? _prior_caption(data) :
                 kind === :prior_predictive ? _prior_predictive_caption(data) :
                 getproperty(extension, Symbol("_", kind, "_caption"))(data)
@@ -665,7 +810,7 @@ function _write_fit_report_figures(prepare, directory, report, figures;
             payload = (; schema = "bayesianmgmfrm.fit_report_figure_data.v1", kind,
                 identity...,
                 report_content_hash = _fit_report_content_hash_record(report),
-                caption, options, seed, data = exported_data)
+                caption, figure_title, annotation_text, options, seed, data = exported_data)
             _write_json_record(joinpath(staging, "figures", "$kind.json"), payload)
             for ext in ("pdf", "svg")
                 extension.save(joinpath(staging, "figures", "$kind.$ext"), figure)
@@ -673,10 +818,10 @@ function _write_fit_report_figures(prepare, directory, report, figures;
             files = [(; path = "figures/$kind.$ext",
                 content_hash = _fit_report_figure_file_hash(read(joinpath(staging, "figures", "$kind.$ext"))))
                 for ext in ("pdf", "svg", "json")]
-            push!(entries, (; kind, caption, files))
+            push!(entries, (; kind, caption, figure_title, files))
             heading = kind === :prior ? "Prior parameters" : uppercasefirst(replace(String(kind), '_' => ' '))
-            println(markdown, "### $heading\n\n![$heading figure](figures/$kind.svg)\n")
-            println(markdown, caption, "\n\n[PDF](figures/$kind.pdf) · [SVG](figures/$kind.svg) · [Numerical inputs](figures/$kind.json)\n")
+            println(markdown, "**Figure $(length(entries))**\n\n*$figure_title*\n\n![$heading figure](figures/$kind.svg)\n")
+            println(markdown, "*Note.* ", caption, "\n\n[PDF](figures/$kind.pdf) · [SVG](figures/$kind.svg) · [Numerical inputs](figures/$kind.json)\n")
         end
         return _save_fit_report_bundle(directory, report;
             overwrite, label, title, max_rows, include_empty, require_complete,

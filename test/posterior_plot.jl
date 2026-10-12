@@ -397,3 +397,5 @@ end
     @test rand() == expected
 end
 end
+
+include("wright_histogram.jl")
