@@ -11,35 +11,36 @@ pre{overflow-x:auto;padding:16px;background:#edf2f7;font-size:14px}code{overflow
 <main>
 <p>BayesianMGMFRM.jl</p>
 <h1>Learn many-facet measurement</h1>
-<p class="notice"><strong>Unreleased documentation preview · 13 October 2026.</strong>
-This site includes interfaces and examples that are not in the published package.
+<p class="notice"><strong>Development successor preview · 13 October 2026.</strong>
+This site includes interfaces and examples that are not in the registered release.
 Experimental models retain the support and validation limits stated in the manual.</p>
 <ul>
-<li><a href="preview/20261013/learning-guide/">Start with the beginner's guide</a> — ratings, raters and model choice.</li>
-<li><a href="preview/20261013/visualization-gallery/">Explore the visualization gallery</a> — Wright Maps, Pathway Maps and MGMFRM response surfaces.</li>
-<li><a href="preview/20261013/rating-model-theory/">Understand the model</a> — probabilities, priors and identification.</li>
-<li><a href="preview/20261013/interpreting-results/">Read results and compare models</a> — uncertainty, prediction and simulation.</li>
-<li><a href="preview/20261013/interpreting-results/#Choosing-an-ICC">Choose an agreement or reliability summary</a> — ICC, ordinal alpha and their different questions.</li>
-<li><a href="preview/20261013/api-saved-reporting/">Use the saved-result reporting guide</a> — categories, reliability, classification and ranking.</li>
-<li><a href="preview/20261013/prior-sensitivity/">Examine prior sensitivity</a> — saved-fit comparisons and distribution plots.</li>
-<li><a href="preview/20261013/">Browse the complete manual</a></li>
+<li><a href="preview/20261013-successor/learning-guide/">Start with the beginner's guide</a> — ratings, raters and model choice.</li>
+<li><a href="preview/20261013-successor/visualization-gallery/">Explore the visualization gallery</a> — Wright Maps, Pathway Maps and MGMFRM response surfaces.</li>
+<li><a href="preview/20261013-successor/rating-model-theory/">Understand the model</a> — probabilities, priors and identification.</li>
+<li><a href="preview/20261013-successor/interpreting-results/">Read results and compare models</a> — uncertainty, prediction and simulation.</li>
+<li><a href="preview/20261013-successor/interpreting-results/#Choosing-an-ICC">Choose an agreement or reliability summary</a> — ICC, ordinal alpha and their different questions.</li>
+<li><a href="preview/20261013-successor/api-saved-reporting/">Use the saved-result reporting guide</a> — categories, reliability, classification and ranking.</li>
+<li><a href="preview/20261013-successor/prior-sensitivity/">Examine prior sensitivity</a> — saved-fit comparisons and distribution plots.</li>
+<li><a href="preview/20261013-successor/examples/#Mean-profile-prior-example">Inspect the mean-profile example</a> — explicit prior means without fitting.</li>
+<li><a href="preview/20261013-successor/">Browse the complete manual</a></li>
 </ul>
 <h2>Install the matching development source</h2>
 <p>Use Julia 1.10.8 or newer. This revision contains the candidate interfaces in this guide:</p>
-<p><a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/tree/fe523ff8f50c6f0d1b3ba57263731e9c80a3422f">Source commit <code>fe523ff8f50c6f0d1b3ba57263731e9c80a3422f</code></a></p>
+<p><a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/tree/88bd6b422bb8afeb43a4a936376efad9ea2070c8">Source commit <code>88bd6b422bb8afeb43a4a936376efad9ea2070c8</code></a></p>
 <pre><code>using Pkg
 Pkg.activate("rating-preview")
 Pkg.add(url="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl",
-    rev="fe523ff8f50c6f0d1b3ba57263731e9c80a3422f")
+    rev="88bd6b422bb8afeb43a4a936376efad9ea2070c8")
 Pkg.pin("BayesianMGMFRM")
 using BayesianMGMFRM
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "inspect_ratings.jl"))</code></pre>
 <p>Keep the project's Project.toml and Manifest.toml. The example inspects artificial
 ratings without fitting. This is a development preview, not a new stable release
-or scientific acceptance. <a href="preview/20261013/#Install-this-development-preview">Read the installation guide</a>.</p>
+or scientific acceptance. <a href="preview/20261013-successor/#Install-this-development-preview">Read the installation guide</a>.</p>
 <p>Figures distinguish artificial display inputs from saved fits to simulated data.
 They explain outputs; they do not establish statistical acceptance.</p>
-<p><a href="preview/20261012/">Previous preview · 12 October 2026</a></p>
+<p><a href="preview/20261013/">Earlier preview · 13 October 2026</a> · <a href="preview/20261012/">12 October preview</a></p>
 <p><a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl">Source repository</a></p>
 </main>
 </html>
