@@ -176,6 +176,11 @@ points. See [Reading Results](interpreting-results.md) for the surrounding workf
 
 ## MGMFRM in 3D: abilities become probabilities
 
+The callable surface method currently accepts independent `MGMFRMFit` results
+with `GeneralizedPrior` and at least two ability dimensions. It does not accept
+normalized or correlated fit types. See the [fitting guide](fitting.md#3D-item-response-surfaces-for-MGMFRM)
+for the exact method and conditioning choices.
+
 **Figure 4**
 
 *Rating Probabilities Across Two MGMFRM Abilities*

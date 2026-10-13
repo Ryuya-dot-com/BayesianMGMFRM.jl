@@ -86,7 +86,7 @@ The plotting and response-surface interfaces instead take a single mass:
 | --- | --- | --- |
 | Parameter interval plot | `BayesianMGMFRM.plot_posterior(fit; interval = 0.99)` | Supported saved-fit types; model coordinates by default. |
 | Wright Map | `BayesianMGMFRM.plot_wright(fit; interval = 0.99)` | Stable scalar MFRM. |
-| Numerical response surface | `BayesianMGMFRM.item_response_surface(fit; item = "I1", rater = "R1", interval = 0.99)` | Independent fixed-Q MGMFRM; substitute actual labels. |
+| Numerical response surface | `BayesianMGMFRM.item_response_surface(fit; item = "I1", rater = "R1", interval = 0.99)` | Only `MGMFRMFit` with `GeneralizedPrior`, D≥2; use actual labels. |
 | Rendered response surface | `BayesianMGMFRM.plot_response_surface(fit; item = "I1", rater = "R1", interval = 0.99)` | Same surface scope; includes interval-width panels. |
 
 Load `CairoMakie` for the plotting calls; the numerical surface needs no renderer.

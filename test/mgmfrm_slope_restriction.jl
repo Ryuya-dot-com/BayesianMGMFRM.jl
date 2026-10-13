@@ -82,6 +82,12 @@ end
             prior_predictive_ndraws=5,seed=32,require_complete=true)
         @test report.report_status===:complete
         @test occursin("fixed at one",report.metadata.interpretation)
+        @test all(r->r.loading===policy,report.q_matrix.rows)
+        @test occursin("Rater consistencies are fixed at one",report.fixed_coordinates.interpretation)
+        if policy===:fixed_one
+            @test occursin("Active loadings are fixed at one",report.q_matrix.interpretation)
+            @test !occursin("estimated",report.fixed_coordinates.interpretation)
+        end
         @test all(r->r.fixed && r.mean==1,filter(r->r.block===:rater_consistency,report.direct_posterior.rows))
         @test only(filter(r->r.parameter===:log_consistency_sd,report.prior_policy.rows)).active===false
         if policy===:fixed_one

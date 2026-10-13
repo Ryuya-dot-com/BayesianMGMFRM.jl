@@ -1,11 +1,67 @@
 # Version Update Handoff
 
-This page records the manual handoff boundary for the BayesianMGMFRM.jl
-version `0.1.2` update in Julia General. It does not publish anything, update
-the registry, or approve research claims.
+This page separates development-preview delivery from the manual handoff for
+the BayesianMGMFRM.jl version `0.1.2` update in Julia General. Neither the page
+nor the handoff script publishes a package or approves research claims.
 
-Before requesting the version update, run the full local gate from the
-repository root:
+## Development Preview and Successor Changes
+
+The published 13 October preview is commit
+`fe523ff8f50c6f0d1b3ba57263731e9c80a3422f` on
+`development/20261013-guide`. The `development/20261013-successor` source and
+`preview/20261013-successor/` manual retain the same package version while adding
+opt-in mean profiles and fixing slope-comparison/report behavior. The preview
+landing page identifies the exact source commit after delivery. The version number alone does not identify the source or its evidence.
+Record the commit (or, before publication, the candidate's source hashes), Julia
+version and complete `Project.toml`/`Manifest.toml` with the analysis.
+
+| Successor change | Effect on an existing analysis | Migration |
+| --- | --- | --- |
+| `Experimental.MeanProfilePrior` | A newly selected prior target; old zero-mean fits keep their original prior. | Opt in only for the documented D1, fixed-one item/rater slopes and item-owned PCM route. This does not modify a saved posterior. |
+| Restricted-slope K-fold aggregation | Fixes a metadata-branch error and retains item/rater coefficient policies; likelihood and fitting are unchanged. | Recompute aggregation from matching saved fold scores. Missing folds and warnings remain; do not replace them with full-data fits. |
+| Fixed-slope report labels | Active Q entries say `fixed_one`; explanations identify fixed rater consistency. Estimates and uncertainty are unchanged. | Regenerate a report from the matching native fit and save it under a new path. Loading an old JSON report preserves its original text. |
+
+For the report correction, use `fit_report(fit; include_prior_predictive=false,
+include_posterior_predictive=false)` to avoid generating new replicated ratings.
+Pass the saved analysis's reporting requests, intervals and other options
+explicitly when they are needed: report defaults do not reconstruct those
+choices or historical predictive sections. Preserve the original report and
+record the new source version. See the [saved-report workflow](api-saved-reporting.md).
+
+Restore native `.jls` files with their original Julia and complete dependency
+environment. Pinning only this package is insufficient; do not bypass integrity
+failures or assume that a newer Julia cache works on an older Julia. Portable
+JSON shares already computed results, not posterior draws or a refittable model.
+For rollback, return to the archived project/manifest and pinned source in a
+separate project, retaining the original results. A changed prior requires its
+own inference; it is not a cache migration.
+
+Before delivering a selected successor:
+
+- [ ] Identify the exact source/manual pair and intended destination; update
+  installation instructions and the preview landing page together.
+- [ ] Reconcile [model/operation scope](scope.md), NEWS, examples and the changes
+  above. A published experimental interface is still experimental.
+- [ ] Reuse applicable evidence by source, environment and settings, then close
+  missing or invalidated checks. The current bounded 1.10.8 profile/report/cache
+  checks and 1.12.5 saved-fit checks are not a current full-suite, actual
+  minimum-version fitting, clean-install or all-platform pass.
+- [ ] After authorized delivery, read back the identified source, verify its
+  installation route and inspect the hosted manual. A successful push alone
+  does not establish delivery. Keep the earlier pinned preview available.
+
+These steps do not close scientific or independent workflow acceptance. The
+existing [roadmap](../../ROADMAP.md) distinguishes those gates from preview
+delivery. The release-scope summary and registration script below record the
+older release boundary and available tooling; they do not inspect all later
+candidate evidence, hosted content or reviewer acceptance.
+
+## Registered Version Update
+
+For an actual registered version update, apply the release gates below to the
+selected release commit. They include new fitting and are not a no-fit preview
+check. Run them when that release work and its execution scope are authorized;
+do not rerun successful numerical work solely for a documentation change.
 
 ```bash
 julia --startup-file=no scripts/distribution_archive_smoke.jl

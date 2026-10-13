@@ -153,7 +153,8 @@ end
 # In-memory record verification; this does not read or reuse any fit cache.
 function _MGMFRMNormalizedPriorLogDensity(spec::FacetSpec, record::NamedTuple;
         expected_identity::AbstractString)
-    get(record, :schema, nothing) === Symbol("bayesianmgmfrm.normalized_slope_restricted_prior.v1") &&
+    get(record, :schema, nothing) in (Symbol("bayesianmgmfrm.normalized_slope_restricted_prior.v1"),
+        Symbol("bayesianmgmfrm.normalized_mean_profile_prior.v1")) &&
         return _restore_slope_target(spec, record; expected_identity)
     Set(keys(record)) == Set((:schema, :prior_model, :scale_convention,
         :parameter_measure, :source_rater, :scales)) || throw(ArgumentError(

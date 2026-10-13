@@ -6,7 +6,7 @@ function _normalized_mgmfrm_target(spec, prior::_NormalizedMGMFRMPrior)
         scales=prior.scales, source_rater=prior.source_rater)
 end
 
-function _normalized_mgmfrm_fit(spec, prior::_NormalizedMGMFRMPrior;
+function _normalized_mgmfrm_fit(spec, prior::_SlopePrior;
         backend::Symbol=:advancedhmc, init=nothing, sampling_coordinates::Symbol=:raw, kwargs...)
     target = _normalized_mgmfrm_target(spec, prior)
     _check_mgmfrm_sampling_coordinates(spec, sampling_coordinates, backend, true)
@@ -31,7 +31,7 @@ function _normalized_mgmfrm_prior_check(target::Union{_MGMFRMNormalizedPriorLogD
         prediction_target=:existing_rating_rows,
         prior_metadata=merge(check.prior_metadata, (; public_fit=true))))
 end
-_normalized_mgmfrm_prior_check(spec, prior::_NormalizedMGMFRMPrior; kwargs...) =
+_normalized_mgmfrm_prior_check(spec, prior::_SlopePrior; kwargs...) =
     _normalized_mgmfrm_prior_check(_normalized_mgmfrm_target(spec, prior); kwargs...)
 
 function _recorded_mgmfrm_samples(fit::_NormalizedMGMFRMFit)
@@ -86,7 +86,8 @@ end
 
 _normalized_mgmfrm_label(target) = "Normalized-prior MGMFRM (estimated loadings and consistency)"
 _normalized_mgmfrm_label(t::_MGMFRMSlopeLogDensity) =
-    "Slope-restricted MGMFRM (item slopes $(t.item_slopes); rater consistency fixed at one)"
+    "Slope-restricted MGMFRM (item slopes $(t.item_slopes); rater consistency fixed at one)" *
+    (t.profile === nothing ? "" : "; fixed location and step mean profile")
 
 function Base.show(io::IO, fit::_NormalizedMGMFRMFit)
     print(io, "NormalizedMGMFRMFit (", fit.record.prior.prior_model, "; ",

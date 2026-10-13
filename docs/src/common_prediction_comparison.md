@@ -294,6 +294,94 @@ source, split and prediction target rather than matching only row counts or
 positions. It cannot detect whether held-out outcomes informed later model or
 prior tuning. Fitting and figure rendering are separate operations.
 
+## Matched fixed versus free item slopes
+
+**Question:** does allowing items to discriminate differently improve prediction
+of another rating involving the existing people, items and raters? Start with
+the same one-dimensional, item-step model and change only the item-slope policy.
+This answers a narrower question than choosing between every MFRM, GMFRM and
+MGMFRM family. It does not decide how many ability dimensions the construct needs.
+
+Both alternatives use adjacent-category log odds
+`1.7 * (a_i * theta_p - b_i - r_j - t_i,k)`. The fixed model sets every `a_i=1`;
+the free model estimates positive item slopes. Both fix rater consistency at one,
+retain item-owned steps and use the same scale and priors on shared parameters.
+The free model additionally has a log-slope prior. Equal shared prior settings
+do not make the two models' prior predictive distributions equal. This comparison
+does not substitute the scalar rater-step GMFRM for the fixed model.
+
+```julia
+using BayesianMGMFRM
+const B = BayesianMGMFRM
+const E = B.Experimental
+
+# Supply your observed data, persistent rating_ids, prespecified split and prior.
+# Use an exchangeable NormalizedMGMFRMPrior with explicit study-specific SDs.
+spec = mfrm_spec(data; family=:mgmfrm, dimensions=1,
+    thresholds=:partial_credit, q_matrix=trues(length(data.item_levels), 1))
+fixed = E.slope_restriction(spec; item_slopes=:fixed_one,
+    rater_consistency=:fixed_one)
+free = E.slope_restriction(spec; item_slopes=:estimated_positive,
+    rater_consistency=:fixed_one)
+fixed_prepared = B.prediction_refit_plan(fixed, split; prior,
+    dataset_id="rating-study-v1", observation_ids=rating_ids)
+free_prepared = B.prediction_refit_plan(free, split; prior,
+    dataset_id="rating-study-v1", observation_ids=rating_ids)
+@assert fixed_prepared.split_binding == free_prepared.split_binding
+```
+
+Preparation performs no fitting. Inspect the heldout unit and validate every
+training design: a connected full dataset can yield rank-deficient training
+folds. The deterministic `kfold_plan` default depends on row order; neither
+balanced fold sizes nor choosing a particular number of folds guarantees a
+usable allocation. Keep ratings of the same response together when the research
+question requires that grouping. The current scoring target requires every
+heldout person's, item's and rater's level to occur in training.
+
+Fit each request separately with `E.fit(request.model; prior=request.prior, ...)`
+using the planned Julia `:advancedhmc` backend and raw coordinates, then save
+each training fit. A full-data fit cannot stand in for a fold's training fit.
+Do not add a mean-profile prior only to one side and still describe the contrast
+as changing slopes alone; the current mean-profile option supports fixed slopes.
+
+The existing [saved-fold example](#Aggregate-all-saved-folds-and-compare-models)
+works with these prepared requests:
+
+```julia
+include("examples/saved_kfold_comparison.jl")
+# Map actual fold IDs to their matching saved training caches. Empty dictionaries
+# are valid before fits exist: every fold and every contrast will remain missing.
+fixed_caches = Dict{Int,String}()
+free_caches = Dict{Int,String}()
+comparison = saved_kfold_comparison(
+    "Fixed slopes" => (; prepared=fixed_prepared, caches=fixed_caches),
+    "Free slopes" => (; prepared=free_prepared, caches=free_caches);
+    comparison_axis=:model, baseline="Fixed slopes", mcse=:delta)
+
+[(; row.model, row.model_contract.item_slopes, row.n_scored_folds,
+    row.complete, row.status, row.sampling_warning, row.elpd_difference,
+    row.difference_mcmc_error, row.se_elpd_difference) for row in comparison.rows]
+```
+
+Start interpretation with availability and warnings, then read the score:
+
+| What you see | What you can conclude |
+| --- | --- |
+| Missing or failed fold | The comparison is incomplete; no full-data score difference is available. Preserve the complete roster. |
+| Complete folds with sampler warnings | Scores are retained for diagnosis; they do not establish a model-choice recommendation. |
+| Positive free-minus-fixed ELPD | The free model has the higher estimated predictive score for this target and split. Inspect its uncertainty and assumptions before interpreting an advantage. |
+| Missing difference MCSE | Numerical precision of the contrast is unresolved. It is not zero error. |
+| Finite MCSE with no recorded sampler warning | Numerical evidence is available, but no data-sampling SE, construct validity or selection-performance guarantee follows. |
+
+Total/difference MCSE additionally requires explicit independent random-stream
+declarations for actual fold/model fits; see [numerical error](#Numerical-error-of-the-K-fold-comparison).
+Do not turn those options on merely to obtain a number. `diagnostics_ok` only
+summarizes recorded sampling flags and fold completeness; also inspect
+`mcse_warning`, `difference_mcmc_error` and the status. No automatic winner is
+returned. The short fixed/free workflow caches retained by development both have
+`insufficient_draws`; earlier numerical pilots qualified 0/16 and 0/8 fits. Those
+checks establish neither a preferred model nor model-selection accuracy.
+
 ## Matched dimensionality comparison
 
 To ask whether the same ratings benefit from multiple ability dimensions,

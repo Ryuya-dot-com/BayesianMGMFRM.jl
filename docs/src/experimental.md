@@ -12,12 +12,13 @@ GMFRM or MGMFRM support.
 
 ## Boundary
 
-Use [Scope and Releases](scope.md#Current-Support) to choose among the eight
-documented result types and their prior routes. The
+Use [Scope and Releases](scope.md#Current-Support) to choose a model, prior and
+backend together. Eight documented result types cover several distinct policies;
+the type count is not the number of fitted models. The
 [current evidence summary](scope.md#current-scientific-evidence) separates
 implementation checks, recovery findings and unresolved scientific acceptance.
 
-The fitting entry currently admits five configurations:
+The unwrapped fitting entry admits these five structural configurations:
 
 - fixed-coefficient multidimensional MFRM with at least two dimensions, fixed Q
   coefficients, item-specific partial-credit steps and identity latent correlation;
@@ -42,6 +43,13 @@ see the [equations](model-equations.md#One-versus-multiple-dimensions-under-the-
 All five reject anchors and fitted DFF terms. Broader discrimination, rating-scale
 generalized kernels, exploratory or rotated loadings, and higher-dimensional
 correlation estimation remain outside the fitting boundary.
+
+The [D1 slope restriction](#Matched-fixed-and-estimated-item-slopes) and
+[mean-profile prior](#Fixed-location-and-step-mean-profiles) refine the independent
+MGMFRM route and have narrower restrictions. Both require raw-coordinate Julia
+AdvancedHMC fitting and return `NormalizedMGMFRMFit`. They do not inherit
+CmdStan support from the unwrapped family. Use the wrapper-specific
+`surface_contract(model; prior)` and inspect the saved `fit_metadata`.
 
 The compatibility selector `discrimination = :none` on MGMFRM means that no
 broader generic discrimination family is selected. The experimental kernel still
@@ -71,6 +79,10 @@ contract.candidate_surfaces.mgmfrm_free_latent_correlation_2d
 ```
 
 ## Matched fixed and estimated item slopes
+
+The [matched comparison guide](common_prediction_comparison.md#Matched-fixed-versus-free-item-slopes)
+connects this specification to K-fold preparation, saved scores, numerical error
+and an explicitly unresolved model-choice result when evidence is insufficient.
 
 Use `Experimental.slope_restriction` to compare item slopes while keeping the
 threshold owner, coefficient placement, scale constant and shared priors fixed.
@@ -143,6 +155,76 @@ and automatic request caching are rejected. Separate native Stan density checks
 support the equations; they are not a public CmdStan fitting route. Small pilots
 remain numerically unqualified and do not establish recovery, SBC calibration,
 a default coordinate choice or empirical model-selection performance.
+
+## Fixed location and step mean profiles
+
+**Local candidate:** `Experimental.MeanProfilePrior` adds explicit fixed means
+on the independent D1, item-owned PCM route with item slopes and rater
+consistency both fixed at one. This option is not in the published
+`fe523ff8f50c6f0d1b3ba57263731e9c80a3422f` preview. Other models retain their
+existing priors; this is neither a scalar MFRM prior replacement nor a learned
+population distribution.
+
+A mean profile separates two questions: where a reference person's ratings lie
+on the category ladder, and how the adjacent transitions are arranged. Person
+and rater prior means stay zero. An item's mean difficulty sets its location;
+its K-1 step means sum to zero and describe shape. There is no extra free common
+location mean. The numerical values below are illustrations, not selected
+priors for Chopin or another dataset.
+
+```julia
+using Random
+E = BayesianMGMFRM.Experimental
+# `fixed` is the fixed-one model constructed in the preceding section.
+base_prior = E.NormalizedMGMFRMPrior(; prior_model=:exchangeable,
+    person_sd=.8/1.7, rater_sd=.6/1.7, item_sd=.5/1.7,
+    log_discrimination_sd=.3, log_consistency_sd=.4, step_sd=.3/1.7)
+# Dictionaries must name every actual item; example with item IDs 1 and 2,
+# and declared categories 0, 1, 2:
+profile_prior = E.MeanProfilePrior(fixed, base_prior;
+    item_means=Dict(1 => -.2, 2 => .3),
+    step_means=Dict(1 => [-.5, .5], 2 => [-.8, .8]),
+    category_levels=0:2, units=:unit_logit)
+check = E.prior_predictive_check(fixed; prior=profile_prior,
+    ndraws=100, rng=Random.MersenneTwister(21))
+```
+
+The category order is checked against the complete declared ladder, including
+unused categories. Each vector has K-1 transition means; omit the structural
+baseline. Binary responses have only the zero step mean. Missing/extra item IDs,
+wrong category order, nonfinite means and noncentered step vectors are rejected.
+Saved results store means in the model's raw units together with their IDs.
+`units=:unit_logit` divides the supplied means by 1.7; it does **not** convert
+base-prior SDs, so the example converts those explicitly. `units=:raw` supplies
+means directly on the same scale as the base SDs.
+
+For H=K-1, steps have mean m and residual covariance
+`step_sd^2 * (I - ones(H,H)/H)`. Residuals are exchangeable; the full step prior
+with unequal means is not. Its marginal SD is `step_sd*sqrt((H-1)/H)` and its
+pairwise contrast SD is `sqrt(2)*step_sd` when H>1. The profile remains a soft
+Gaussian law: **ordered means do not forbid threshold reversals**. No sorting,
+truncation or hard-order normalization is applied.
+
+At fixed reference ability and severity zero, a positive reference probability
+vector q corresponds to unit-logit location
+`eta0=(log(q[end])-log(q[1]))/(K-1)`, item mean `-eta0`, and step means
+`eta0 .- diff(log.(q))`. These are probabilities at the means, not averages over
+the joint prior. Check joint prior predictions rather than treating a chosen
+q, a centered score mean or an ordered mean profile as adequate calibration.
+Do not derive q from heldout outcomes and then call the resulting comparison
+out of sample.
+
+Pass `prior=profile_prior` to the existing `Experimental.fit`, prior prediction
+and common K-fold refit-plan APIs. Reports, target identities and manual fit
+caches retain the profile. Julia raw-coordinate fitting is supported; CmdStan
+fitting, automatic caches, free slopes, correlation, additional dimensions,
+other threshold owners and learned profile hyperparameters are unavailable.
+Existing prior-sensitivity wrappers remain limited to loading-SD changes;
+use explicit per-profile prior predictions for this option.
+Statistical acceptance, recovery/SBC and an application-specific prior choice
+remain separate from this API's operation checks. The
+[callable example](examples.md#Mean-profile-prior-example) constructs a complete
+artificial model without starting a sampler.
 
 ## Settings and help
 
@@ -738,13 +820,16 @@ example; choose and report a larger budget when diagnostics or the inferential
 target require it. The stable MFRM `fit` entry point has a separate default of
 1,000 warm-up plus 1,000 retained draws per chain.
 
-Both guarded configurations accept either `backend = :advancedhmc` or
-`backend = :cmdstan`. Each CmdStan route uses a package-owned Stan model,
+The unwrapped scalar GMFRM and independent MGMFRM routes accept either
+`backend = :advancedhmc` or `backend = :cmdstan`. This does not extend to the
+Julia-only slope/mean-profile wrappers above. Each CmdStan route uses a package-owned Stan model,
 samples the same raw-coordinate prior, applies the Julia identification
 transform, and checks Stan's generated pointwise log likelihood against Julia
 at every retained draw. An unwrapped MGMFRM specification retains fixed Q and
 identity correlation; the explicit correlated workflow below has a separate result type.
-Experimental `cached_fit` remains AdvancedHMC-only for the unwrapped specifications.
+Experimental `cached_fit` remains AdvancedHMC-only for unwrapped specifications
+with `GeneralizedPrior`; normalized priors and slope/mean-profile wrappers
+require manual `save_fit_cache`/`load_fit_cache`.
 CmdStan is an optional external runtime; inspect it with
 `cmdstan_backend_check()` before requesting that backend.
 

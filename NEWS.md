@@ -2,7 +2,34 @@
 
 ## 0.1.2 (unreleased)
 
-### Isolated API candidate (not merged or released)
+### Development successor (not merged or released)
+
+- Align the existing version handoff with the development successor: distinguish
+  source identity from package version, explain slope/report and mean-profile
+  migration, preserve original environments/results, and name the remaining
+  delivery and compatibility checks. No release gate is executed by this change.
+
+- Correct recorded MGMFRM reports for fixed item slopes: active Q entries now
+  say `fixed_one`, and Q/fixed-coordinate explanations agree with the coefficient
+  policy. Fixed rater consistency is explicit for both restricted slope routes.
+  Saved historical reports retain their original text; regenerate from the
+  matching native fit to obtain corrected report fields without refitting.
+
+- Fix K-fold aggregation for fixed/free item-slope restrictions, including the
+  mean-profile prior. These independent models no longer enter the correlated
+  model metadata branch. Retain explicit item-slope and rater-consistency
+  policies in comparison rows; add a matched-slope guide and deterministic
+  aggregation/comparison checks. No likelihood, prior, sampler or selection
+  rule changes; missing folds and numerical warnings remain visible.
+
+- Add experimental `MeanProfilePrior` for independent D1, fixed-one slopes and
+  item-owned steps. Require explicit item/category IDs and mean units; retain
+  centered Gaussian residuals, raw-scale base SDs and existing zero-mean records.
+  Prior prediction, Julia raw-coordinate fitting, reports, manual caches and
+  existing-level refit requests preserve the profile. Ordered means do not impose
+  hard ordering. This addition requires the `development/20261013-successor`
+  source and matching guide; the earlier October preview remains unchanged.
+  Application-prior selection and statistical acceptance remain open.
 
 - Publish the development source corresponding to the 13 October guide on
   `development/20261013-guide`. Document a separate project, revision pinning

@@ -5,7 +5,10 @@
         category = :all, interval = 0.9, draw_indices = nothing)
 
 Summarize a conditional item response surface from an existing independent
-fixed-Q MGMFRM fit, without fitting or requiring a renderer. Select item and
+fixed-Q `MGMFRMFit` obtained with `GeneralizedPrior`, without fitting or requiring
+a renderer. This entry requires at least two ability dimensions; it does not
+accept `NormalizedMGMFRMFit` (including slope/mean-profile policies), correlated
+fits or fixed-coefficient multidimensional MFRM. Select item and
 rater by their stored labels. The two ability dimensions accept indices or
 stored labels; specify every remaining dimension in `fixed_abilities`.
 Axes are abilities on the fitted model's scale, not estimated person scores.

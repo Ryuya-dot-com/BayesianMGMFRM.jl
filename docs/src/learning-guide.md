@@ -46,6 +46,49 @@ These influences are called *facets*. What counts as an item depends on the
 study: a task–criterion combination may be an item, but that coding alone does
 not model dependence between scores on the same response.
 
+## [Facets, levels and dimensions are different](@id facets-levels-dimensions)
+
+Five raters are five **levels** of the rater facet. Five facets are five kinds
+of influence: for example, person, task, rater, scoring criterion and occasion.
+Five ability **dimensions** instead describe five latent traits of each person.
+Increasing one of these counts does not automatically increase the others.
+
+Consider a student who performs a task on two occasions. Several raters score
+each performance for accuracy and fluency. Decide what each role means before
+choosing columns or a model:
+
+| Role | Possible model meaning | What must be decided |
+| --- | --- | --- |
+| Person | Ability to be measured | One trait or several; stable ability or change over time |
+| Physical task | Difficulty of the eliciting task | Shared across criteria or criterion-specific |
+| Rater | Severity, and possibly consistency | Which effects the chosen model estimates |
+| Criterion | Scoring dimension, location and/or category steps | Which role it has in Q and which thresholds it owns |
+| Occasion | A systematic shift between measurement occasions | Common shift, individual growth or rater drift are different models |
+| Response ID | The performance shared by several ratings | An observation/dependence identifier; not automatically another estimated effect |
+
+The public rating workflow uses `person`, `item` and `rater` as model roles.
+Metadata such as `task` or `occasion` preserve information but do **not** add
+task difficulty, change over time or shared-response dependence to the likelihood.
+Likewise, joining task and criterion labels into an item ID does not separately
+estimate their two effects. A general fitted five-facet composition is not yet
+available through the public API; see [the support boundary](scope.md#Current-Support).
+
+Why does assignment matter? If task A occurs only at the first occasion and
+task B only at the second, a score difference can be attributed to task or
+occasion. Even many ratings may not separate them. Shared tasks across occasions
+can help, under a model that makes the required stability assumptions. A proper
+prior can regularize this ambiguity; that is different from the ratings
+identifying the effects. Inspect the intended training split as well as the
+complete dataset. More sampling cannot replace missing design information.
+
+For a small simulation, first name the effects, scale, threshold owner and
+constraints, then check whether the allocation separates them. Only after a
+generator and matching fitter exist should you evaluate bias, interval coverage,
+failure rates and cost. A few successful fits do not establish recovery or SBC.
+The package's current [recovery operations](scope.md#common-operation-support)
+evaluate supplied fits and truths; they are not an automatic five-facet
+simulation or study-planning service.
+
 ## Understand one row of data
 
 Use one row per observed rating. For example:

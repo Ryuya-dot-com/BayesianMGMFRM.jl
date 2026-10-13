@@ -191,6 +191,75 @@ function checks(output)
     boundary_checks(cases[1],summaries[1])
     arithmetic_checks(cases[1],summaries[1])
     axes_and_group_checks()
+    slope_checks()
+end
+
+function slope_checks()
+    @testset "Slope restrictions reach aggregation and comparison without fitting" begin
+        E=B.Experimental
+        record=R.F.synthetic_record(R.F.target()) # Deterministic arithmetic fixtures.
+        spec=mfrm_spec(record.spec.data;family=:mgmfrm,dimensions=1,
+            thresholds=:partial_credit,q_matrix=trues(length(record.spec.data.item_levels),1))
+        prior=E.NormalizedMGMFRMPrior(;prior_model=:exchangeable,record.prior.scales...)
+        results=Any[];plans=Any[];scores_by_model=Any[];fits=Any[]
+        for policy in (:fixed_one,:estimated_positive)
+            wrap=s->E.slope_restriction(s;item_slopes=policy,rater_consistency=:fixed_one)
+            prepared=R.prepare(R.source_case(spec,wrap),prior)
+            target=B._normalized_mgmfrm_target(prepared.folds[1].model,prior)
+            fit=R.normalized_fixture(record;target)
+            scores=[B.prediction_fold_observations(fit,r;include_probabilities=false) for r in prepared.folds]
+            result=B.prediction_kfold(prepared,scores;mcse=:delta)
+            @test result.complete && result.sampling_warning && !result.diagnostics_ok
+            @test result.status===:warning
+            @test result.model_contract.covariance===:independent
+            @test result.model_contract.lkj_eta===nothing
+            @test result.model_contract.item_slopes===policy
+            @test result.model_contract.rater_consistency===:fixed_one
+            @test result.model_contract.prior.values.scales==prior.scales
+            @test ismissing(result.mcmc_error.value) # No independence declaration.
+            @test all(r->!ismissing(r.mcmc_error.value),result.folds)
+            # The fixture deliberately reuses one fit across two identical training
+            # tables. It must never masquerade as independent MCMC streams.
+            @test_throws ArgumentError B.prediction_kfold(prepared,scores;
+                mcse=:delta,independent_fold_rng=true)
+            push!(results,result);push!(plans,prepared);push!(scores_by_model,scores);push!(fits,fit)
+        end
+        @test plans[1].source_binding==plans[2].source_binding
+        @test plans[1].split_binding==plans[2].split_binding
+        cmp=B.compare_kfold_predictions("Fixed"=>results[1],"Free"=>results[2];comparison_axis=:model)
+        @test cmp.complete && cmp.status===:warning && cmp.mcse_warning
+        @test cmp.rows[2].elpd_difference≈results[2].elpd-results[1].elpd
+        @test cmp.rows[1].difference_mcmc_error.value==0
+        @test ismissing(cmp.rows[2].difference_mcmc_error.value)
+        @test all(r->ismissing(r.se_elpd_difference),cmp.rows)
+        @test cmp.model_selection===:not_performed && cmp.scientific_acceptance===:not_established
+        @test_throws ArgumentError B.prediction_fold_observations(fits[1],plans[2].folds[1])
+        absent=B.prediction_kfold(plans[2],[];mcse=:delta)
+        @test absent.status===:incomplete && absent.n_scored_folds==0
+        failed=B.prediction_kfold(plans[2],scores_by_model[2][1:1];failures=[2=>"not available"])
+        @test failed.folds[2].status===:failed
+        partial=B.compare_kfold_predictions("Fixed"=>results[1],"Free"=>failed;comparison_axis=:model)
+        @test partial.status===:incomplete && all(r->ismissing(r.elpd_difference),partial.rows)
+
+        # The newer mean-profile prior uses the same slope wrapper, but must keep
+        # its separate prior identity in the aggregation contract.
+        model=plans[1].folds[1].model
+        profiled=E.MeanProfilePrior(model,prior;
+            item_means=Dict(i=>.2 for i in spec.data.item_levels),
+            step_means=Dict(i=>[-.5,0.,.5] for i in spec.data.item_levels),
+            category_levels=spec.data.category_levels,units=:raw)
+        wrap=s->E.slope_restriction(s;item_slopes=:fixed_one,rater_consistency=:fixed_one)
+        prepared=R.prepare(R.source_case(spec,wrap),profiled)
+        target=B._normalized_mgmfrm_target(prepared.folds[1].model,profiled)
+        fit=R.normalized_fixture(record;target)
+        scores=[B.prediction_fold_observations(fit,r;include_probabilities=false) for r in prepared.folds]
+        result=B.prediction_kfold(prepared,scores)
+        @test result.complete && result.model_contract.covariance===:independent
+        @test result.model_contract.item_slopes===:fixed_one
+        @test result.model_contract.prior.values.profile==profiled.profile
+        @test result.model_contract.source_target!=results[1].model_contract.source_target
+        @test_throws ArgumentError B.prediction_fold_observations(fits[1],prepared.folds[1])
+    end
 end
 
 function axes_and_group_checks()

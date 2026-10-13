@@ -79,6 +79,36 @@ and automatic request caching are unavailable; use manual fit caches.
 const NormalizedMGMFRMPrior = getfield(_PACKAGE, :_NormalizedMGMFRMPrior)
 
 """
+    MeanProfilePrior(model, base; item_means, step_means, category_levels, units)
+
+Opt-in fixed location/step means for independent D1 item-owned PCM with
+`model = slope_restriction(spec; item_slopes=:fixed_one, rater_consistency=:fixed_one)`
+and `base = NormalizedMGMFRMPrior(prior_model=:exchangeable, ...)`.
+`item_means` and `step_means` are dictionaries keyed by every actual item ID.
+Each step vector contains K-1 adjacent-transition means, sums to zero and excludes
+the structural baseline. `category_levels` must match the full declared order.
+Person and rater means remain zero; the item mean carries the reference location.
+
+Explicit `units=:raw` or `:unit_logit` applies to the supplied means only.
+Unit-logit means are divided by 1.7; all six base-prior SDs remain raw-scale inputs.
+No numerical prior or default is chosen. Values are copied, canonicalized and
+bound to item/category IDs in saved results and refit requests.
+
+Step residual covariance is `step_sd^2*(I-ones(H,H)/H)`, H=K-1. Nonconstant
+means make the full step prior nonexchangeable, despite exchangeable residuals.
+Ordered means do not enforce hard ordering. Binary responses have zero step shape.
+Probabilities at prior means are not integrated prior-predictive probabilities.
+Use `prior_predictive_check` to examine the joint prior before fitting.
+
+Supports Julia raw-coordinate `fit`, prior prediction, summaries, reports,
+existing-level K-fold refit planning and manual fit caches. Automatic caching,
+CmdStan fitting, free slopes, correlated/multidimensional models and learned
+profile hyperparameters are unavailable. This is experimental engineering
+support, not recovery/SBC or scientific acceptance of any application prior.
+"""
+const MeanProfilePrior = getfield(_PACKAGE, :_MGMFRMMeanProfilePrior)
+
+"""
 Result of `Experimental.fit(spec; prior=NormalizedMGMFRMPrior(...))`.
 Also represents `slope_restriction` fits; inspect `fit_metadata` for the saved
 coefficient policy. Supports summaries, MCSE, diagnostics, existing-row prediction, manual fit
@@ -424,12 +454,19 @@ end
     surface_contract()
     surface_contract(family)
     surface_contract(correlated_spec)
+    surface_contract(slope_spec; prior)
 
 Return the machine-readable stability boundary for the experimental namespace.
 The zero-argument form describes the executable configurations and constraints
 for independent fixed-coefficient MFRM and both generalized families.
 Pass `:mfrm`, `:gmfrm` or `:mgmfrm` for one family contract, or a
 specification returned by `correlated` for its correlation model contract.
+For `slope_restriction`, pass that wrapper and its explicit `prior` to inspect
+the actual free-parameter layout and Julia-only backend. Family-level backend
+lists do not apply to every prior/wrapper combination. In particular, fixed/free
+slope and mean-profile fits share `NormalizedMGMFRMFit` with other normalized
+models but have narrower fitting restrictions. Inspect `fit_metadata` on a
+saved result; the result type alone does not identify its coefficient/prior policy.
 """
 function surface_contract()
     return (
@@ -451,6 +488,7 @@ function surface_contract()
             :ExchangeableMFRMFit,
             :GeneralizedPrior,
             :NormalizedMGMFRMPrior,
+            :MeanProfilePrior,
             :NormalizedMGMFRMFit,
             :cached_fit,
             :correlated,
@@ -525,7 +563,7 @@ reproducibility without advancing the global RNG.
 """
 function prior_predict(spec; kwargs...)
     _reject_legacy_keyword(kwargs, "Experimental.prior_predict")
-    if get(kwargs, :prior, nothing) isa NormalizedMGMFRMPrior
+    if get(kwargs, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior}
         options = Base.structdiff((; kwargs...), (; prior=nothing))
         return getfield(_PACKAGE, :_normalized_mgmfrm_prior_check)(spec, kwargs[:prior]; options...).replicated_scores
     end
@@ -568,7 +606,7 @@ the supplied persons, items, raters and rating rows, not new facet levels.
 """
 function prior_predictive_check(spec; kwargs...)
     _reject_legacy_keyword(kwargs, "Experimental.prior_predictive_check")
-    if get(kwargs, :prior, nothing) isa NormalizedMGMFRMPrior
+    if get(kwargs, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior}
         options = Base.structdiff((; kwargs...), (; prior=nothing))
         return getfield(_PACKAGE, :_normalized_mgmfrm_prior_check)(spec, kwargs[:prior]; options...)
     end
@@ -916,7 +954,10 @@ Callers should not pass an `experimental` keyword. Family-specific structural
 constraints are validated before numerical execution. Pass `correlated(spec)`
 to estimate population correlation for two between-item MFRM dimensions; both
 backends then return `CorrelatedMFRMFit` when using `MFRMPrior`.
-Supported configurations accept `backend = :advancedhmc` or `:cmdstan`.
+The unwrapped configurations described below accept `backend = :advancedhmc`
+or `:cmdstan`, subject to their category restrictions. The `slope_restriction`
+and `MeanProfilePrior` routes are Julia/AdvancedHMC-only; see their separate
+requirements below. A supported family does not admit every prior/backend pair.
 For an MGMFRM `correlated(spec)`, an explicit `prior = GeneralizedPrior(...)`
 is required. Both backends return `CorrelatedMGMFRMFit`; summaries, MCSE,
 diagnostics, existing-row prediction and manual fit caches are available.
@@ -929,7 +970,19 @@ Both backends support manual caches and saved-result reports/figures. This
 prior requires all six scales and, for `:source`, a distinguished rater ID.
 AdvancedHMC also accepts `sampling_coordinates = :orthogonal_person_mean_item_offset`;
 CmdStan requires `:raw`. Inspect coordinates with `fit_metadata(result).sampler_controls`.
-Automatic request caching is unavailable.
+Automatic request caching is unavailable. This unwrapped normalized route admits
+binary categories on Julia; CmdStan requires at least three categories.
+
+For `slope_restriction(spec; item_slopes, rater_consistency=:fixed_one)`, supply
+an explicit exchangeable `NormalizedMGMFRMPrior`. The wrapper requires D1,
+item-owned partial-credit steps, `backend=:advancedhmc` and
+`sampling_coordinates=:raw`. Its optional `MeanProfilePrior` additionally
+requires `item_slopes=:fixed_one` and explicit item/category IDs and mean units.
+Both return `NormalizedMGMFRMFit` and support manual caches and existing-level
+refit planning. CmdStan, alternative coordinates, source priors and correlated
+specifications are unavailable for these wrappers. Use
+`surface_contract(model; prior)` before supplying initial coordinates and
+`fit_metadata(result)` to distinguish the saved policies.
 
 The independent MGMFRM kernel also accepts `dimensions=1` with an explicit
 all-active, one-column Q. This is an item-step generalized model for comparison
@@ -965,9 +1018,9 @@ summary, report, plotting and manual cache operations.
 """
 function fit(spec; kwargs...)
     _reject_legacy_keyword(kwargs, "Experimental.fit")
-    spec isa getfield(_PACKAGE, :_SlopeRestrictedSpec) && !(get(kwargs, :prior, nothing) isa NormalizedMGMFRMPrior) &&
+    spec isa getfield(_PACKAGE, :_SlopeRestrictedSpec) && !(get(kwargs, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior}) &&
         throw(ArgumentError("slope_restriction requires an explicit NormalizedMGMFRMPrior"))
-    if get(kwargs, :prior, nothing) isa NormalizedMGMFRMPrior
+    if get(kwargs, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior}
         options = Base.structdiff((; kwargs...), (; prior=nothing))
         return getfield(_PACKAGE, :_normalized_mgmfrm_fit)(spec, kwargs[:prior]; options...)
     end
@@ -997,7 +1050,7 @@ The namespace records the experimental identity and selects the generalized
 backend unless the backend is overridden explicitly.
 """
 function fit_cache_key(spec; backend::Symbol = :advancedhmc, kwargs...)
-    get(kwargs, :prior, nothing) isa NormalizedMGMFRMPrior && throw(ArgumentError(
+    get(kwargs, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior} && throw(ArgumentError(
         "normalized MGMFRM requires fit followed by save_fit_cache/load_fit_cache; automatic request caching is unavailable"))
     checked = _require_generalized_spec(spec, "Experimental.fit_cache_key")
     _reject_legacy_keyword(kwargs, "Experimental.fit_cache_key")
@@ -1017,7 +1070,7 @@ keeping its experimental identity explicit in the cache contract. The
 generalized backend is selected by default.
 """
 function cached_fit(spec; backend::Symbol = :advancedhmc, kwargs...)
-    get(kwargs, :prior, nothing) isa NormalizedMGMFRMPrior && throw(ArgumentError(
+    get(kwargs, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior} && throw(ArgumentError(
         "normalized MGMFRM requires fit followed by save_fit_cache/load_fit_cache; automatic request caching is unavailable"))
     checked = _require_generalized_spec(spec, "Experimental.cached_fit")
     _reject_legacy_keyword(kwargs, "Experimental.cached_fit")

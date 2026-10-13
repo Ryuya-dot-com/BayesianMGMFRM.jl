@@ -76,6 +76,8 @@ check and fitting call:
 | Fixed-coefficient multidimensional MFRM, independent or correlated | `MFRMPrior`, or the explicit `BayesianMGMFRM.Experimental.ExchangeablePrior` alternative for rater severities | `BayesianMGMFRM.Experimental.prior_predictive_check` |
 | Scalar GMFRM or independent fixed-Q MGMFRM | `BayesianMGMFRM.Experimental.GeneralizedPrior` | `BayesianMGMFRM.Experimental.prior_predictive_check` |
 | Independent fixed-Q MGMFRM with normalized centered priors | Explicit `Experimental.NormalizedMGMFRMPrior`; all six scales and the prior family are required | `Experimental.prior_predictive_check` |
+| D1 matched fixed/free item-slope wrapper | Explicit exchangeable `Experimental.NormalizedMGMFRMPrior`; rater consistency fixed at one | `Experimental.prior_predictive_check`; fitting uses Julia/AdvancedHMC and raw coordinates only |
+| D1 fixed-slope wrapper with fixed mean profiles | `Experimental.MeanProfilePrior` over the exchangeable base; requires the matching successor source | `Experimental.prior_predictive_check`; the same Julia/raw restriction applies |
 | Two-dimensional correlated MGMFRM | An explicitly supplied `BayesianMGMFRM.Experimental.GeneralizedPrior`; the specification also declares the LKJ correlation prior | `BayesianMGMFRM.Experimental.prior_predictive_check` |
 
 Look for implausible score distributions, category use, or facet ranges before

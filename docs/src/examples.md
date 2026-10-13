@@ -785,6 +785,10 @@ person lists and substantive purposes need not be identical.
 
 ## Matched item-slope workflow
 
+For a comparison that starts with the same heldout split and preserves missing
+folds, follow [fixed versus free item slopes](common_prediction_comparison.md#Matched-fixed-versus-free-item-slopes).
+That preparation and saved-scoring example performs no new estimation.
+
 `examples/matched_slope_workflow.jl`
 provides `matched_slope_workflow(spec; prior, output_dir, ndraws, warmup, chains, seed)`.
 It requires an explicit one-dimensional MGMFRM specification and normalized
@@ -798,3 +802,29 @@ Read [matched fixed and estimated item slopes](experimental.md#Matched-fixed-and
 for the equation, inactive prior inputs, free-coordinate order and common
 heldout comparison workflow. This is an unreleased candidate example; obtain
 it from the same candidate checkout as the package.
+
+## Mean-profile prior example
+
+`examples/mean_profile_prior.jl` provides `mean_profile_example()`, which returns
+an artificial three-category specification, fixed-slope model and explicitly
+scaled prior. It performs no fitting and uses named item IDs. Load it from the
+installed package's examples directory as described above, then inspect the
+[mean-profile contract](experimental.md#Fixed-location-and-step-mean-profiles).
+Use the [successor installation](index.md#Install-this-development-preview);
+the earlier 13 October preview does not contain this example.
+
+```julia
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "mean_profile_prior.jl"))
+setup = mean_profile_example()
+contract = BayesianMGMFRM.Experimental.surface_contract(setup.model; prior=setup.prior)
+# Choose sampling controls for your analysis; these are deliberately not inferred.
+# fit = BayesianMGMFRM.Experimental.fit(setup.model; prior=setup.prior,
+#     ndraws=..., warmup=..., chains=..., seed=...)
+# save_fit_cache("profile-fit.jls", fit)
+# reopened = load_fit_cache("profile-fit.jls")
+```
+
+Use an explicit existing-level split with `prediction_refit_plan` before fitting
+training subsets. A saved fit for a different mean profile is rejected when
+scoring a heldout request. Saving/reopening retains numerical warnings; a short
+workflow check is not evidence of convergence or model-selection performance.

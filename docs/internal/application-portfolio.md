@@ -1,5 +1,43 @@
 # MGMFRMの応用候補と基盤への要件
 
+**2026-10-13 scheduling review:** the current
+[portfolio priorities and exits](../../ROADMAP.md#portfolio-priorities-and-decision-rules-2026-10-13)
+now put the existing integrated workflow and defensible model-choice/design
+operations ahead of further open-ended feature work. The application gates
+below are unchanged: Chopin remains the first dependency-ready empirical
+candidate, followed by the required Uchihara composition and an appropriate
+EVA scale/event scope. This update authorizes no empirical fit, new numerical
+study or external reviewer contact. Historical "next" language below does not
+supersede the current roadmap.
+
+
+**2026-10-13 clarification:** empirical status below remains unchanged. The
+[synthetic 25-category prior/API audit](chopin-stage1-analysis.md#5-ordinal-prior-and-api-boundary-audit-2026-10-13)
+now distinguishes the scalar reference-rater model, the multidimensional-only
+exchangeable-rater selector and the existing D1 normalized fixed-slope model.
+It verifies likelihood and prior implications without new fitting. This closes
+an application-relevant specification gap; it does not select a competition
+prior or complete an empirical example. Follow the current
+[dependency-based application order](../../ROADMAP.md#reusable-applied-study-workflows).
+
+The subsequent [small prior-predictive comparison](chopin-stage1-analysis.md#6-synthetic-high-category-prior-predictions-2026-10-13)
+is complete: matching step-contrast variance does not match rating profiles,
+and the illustrative full priors put 56.60–66.34% on categories 1/25 despite
+mean scores near 13. Step-only contrasts and distinct full-model priors remain
+separate. Reuse the earlier A0 step-shape analysis for the next specification
+decision; no empirical prior, default, fit or broader simulation is selected.
+
+The [location and step-profile specification](chopin-stage1-analysis.md#7-location-mean-profile-and-order-specification-decision-2026-10-13)
+now separates reference probabilities, centered prior means, residual width and
+hard ordering. Finite density/gradient and API-boundary checks are complete.
+The opt-in mean-profile requirement now has an
+[isolated API/workflow candidate](chopin-stage1-analysis.md#8-mean-profile-api-candidate-and-workflow-check-2026-10-13).
+It includes native Stan finite checks and one short Julia training fit with
+saved-result reuse; its sampler warning remains. This is reusable ordinal
+functionality, not a Chopin-specific correction or scientific acceptance of a
+competition prior. Empirical status and the relevant API/MS6 boundaries remain
+unchanged; no new prior/performance grid follows automatically.
+
 **現在の状態（2026-10-09）：ショパンは第1段階の氏名付き分析入力と既存一次元モデルへの接続まで、Uchiharaは実データの構造点検と合成A0の推定・予測接続まで。両者の実データ分析は未完成。** 第6節に現在の基盤との対応を、[ショパン分析仕様](chopin-stage1-analysis.md)に入力の受入と推定前の事前分布の検討事項を記録する。
 
 **同日のユーザー訂正：実データ推定はモデルAPI確定後の応用とする。** 入力監査は保存済みの準備成果であり、実データ推定へ進む条件を満たした意味ではない。当面は合成データによる数学・統計・効率の検証と共通APIの確定を優先する。API確定は、選択したモデル範囲の式・制約・事前、データと予測の意味、推定・診断・保存／復元の契約と対応する検証がそろうこととする。関数名の固定だけでは足りず、全将来モデルやOS・配布対応の完成を待つ意味でもない。以下の応用固有の事前選択、実推定、分析レポートはこの条件を満たした後の作業である。

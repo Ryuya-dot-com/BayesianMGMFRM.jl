@@ -16,16 +16,19 @@ end
 
 function _prediction_kfold_model(request)
     spec, prior = request.source_spec, request.prior
+    correlated = request.model isa Union{CorrelatedMFRMSpec,_CorrelatedMGMFRMSpec}
     # Canonical fields, not abbreviated show(::FacetSpec), bind model/prior contents.
-    return (; family=spec.family, dimensions=spec.dimensions,
+    contract = (; family=spec.family, dimensions=spec.dimensions,
         dimension_labels=copy(spec.dimension_labels), q_matrix=deepcopy(spec.q_matrix),
         item_levels=copy(spec.data.item_levels), thresholds=spec.thresholds,
         category_contract=_model_family_category_contract(spec),
         prior=(; type=string(typeof(prior)), values=NamedTuple{fieldnames(typeof(prior))}(
             Tuple(getfield(prior, name) for name in fieldnames(typeof(prior))))),
-        covariance=request.model isa FacetSpec ? :independent : :correlated,
-        lkj_eta=request.model isa FacetSpec ? nothing : request.model.lkj_eta,
+        covariance=correlated ? :correlated : :independent,
+        lkj_eta=correlated ? request.model.lkj_eta : nothing,
         source_target=_prediction_refit_target(_prediction_training_model(request.model, spec), prior))
+    return request.model isa _SlopeRestrictedSpec ? merge(contract,
+        (; item_slopes=request.model.item_slopes, rater_consistency=:fixed_one)) : contract
 end
 
 function _prediction_checked_fold(score, request)
@@ -80,6 +83,8 @@ group predictive density. Any missing/failed fold leaves the full ELPD missing.
 Diagnostic warnings retain all scores and mark the result as a warning. No folds
 are discarded. Data-sampling SE and repeated-data uncertainty are not computed.
 This descriptive result neither qualifies convergence nor selects a model.
+For a slope-restricted model, `model_contract.item_slopes` and
+`model_contract.rater_consistency` retain the explicit coefficient policies.
 
 Set `mcse=:delta` to add `folds[i].mcmc_error` and total `mcmc_error` for the
 finite-MCMC error conditional on these data and this split. For each fold,
@@ -180,6 +185,9 @@ end
 
 Compare named `prediction_kfold` results on the identical source and K-fold split.
 Declare `:model` (same D/Q), `:dimensions` (D/Q may differ), or `:q_matrix` (same D).
+Use `:model` for matched fixed/free item slopes. Inspect `model_contract` for
+coefficient policies, threshold ownership and priors; the axis alone does not
+ensure that only one assumption changed.
 Input order is retained; differences are model minus baseline (first by default).
 IDs align the individual rating scores. If any model is incomplete, all contrasts
 remain missing. Diagnostic warnings remain visible and never remove a fold/model.

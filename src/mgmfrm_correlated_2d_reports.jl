@@ -220,8 +220,11 @@ function fit_report(fit::_RecordedMGMFRMFit; view::Symbol = :public,
         [(; code = :mcmc_warning, severity = :warning, message = _plot_diagnostic_note(context.diagnostics.summary),
             action = :inspect_parameter_and_sampler_diagnostics)]
     fixed_rows = [(; row.parameter, row.block, value = first(row.values), fixed = true) for row in coordinates if row.fixed]
+    restricted = context.target isa _MGMFRMSlopeLogDensity
+    fixed_loadings = restricted && context.target.item_slopes === :fixed_one
     q_rows = [(; item = spec.data.item_levels[i], dimension = d, dimension_label = labels[d],
-        active = spec.q_matrix[i, d], loading = spec.q_matrix[i, d] ? :estimated_positive : :fixed_zero)
+        active = spec.q_matrix[i, d], loading = !spec.q_matrix[i, d] ? :fixed_zero :
+            fixed_loadings ? :fixed_one : :estimated_positive)
         for i in axes(spec.q_matrix, 1) for d in 1:spec.dimensions]
     unsupported = (; (name => _fit_report_unsupported("$label is not connected for this MGMFRM result.")
         for (name, label) in ((:category_functioning, "Category-functioning analysis"),
@@ -244,9 +247,14 @@ function fit_report(fit::_RecordedMGMFRMFit; view::Symbol = :public,
         warmup = (; status = :computed, rows = context.checked.warmup_diagnostics,
             n_rows = length(context.checked.warmup_diagnostics), interpretation = _FIT_REPORT_WARMUP_INTERPRETATION),
         fixed_coordinates = (; status = :computed, rows = fixed_rows, n_rows = length(fixed_rows),
-            interpretation = "Baseline steps and any single-rater constraints are fixed. Active loadings are estimated; inactive Q entries are zero."),
+            interpretation = restricted ?
+                "Rater consistencies are fixed at one. " * (fixed_loadings ? "Active item loadings are fixed at one. " : "Active item loadings are estimated. ") *
+                "Baseline steps and inactive Q entries are fixed at zero." :
+                "Baseline steps and any single-rater constraints are fixed. Active loadings are estimated; inactive Q entries are zero."),
         q_matrix = (; status = :computed, rows = q_rows, n_rows = length(q_rows), q_matrix = copy(spec.q_matrix),
-            dimension_labels = copy(labels), interpretation = normalized ? "Fixed Q specifies the loading pattern. Active loadings are positive and estimated; latent correlation is identity. Representability does not establish identification or recovery for every Q geometry." : "Between-item Q fixes the loading pattern. Each active loading is positive and estimated; rho is the estimated population correlation between dimensions."),
+            dimension_labels = copy(labels), interpretation = fixed_loadings ?
+                "Fixed Q specifies the loading pattern. Active loadings are fixed at one; inactive Q entries are zero; latent correlation is identity. Representability does not establish identification or recovery for every Q geometry." :
+                normalized ? "Fixed Q specifies the loading pattern. Active loadings are positive and estimated; latent correlation is identity. Representability does not establish identification or recovery for every Q geometry." : "Between-item Q fixes the loading pattern. Each active loading is positive and estimated; rho is the estimated population correlation between dimensions."),
         prior_policy = normalized ? _normalized_mgmfrm_report_prior_policy(context.target) : _mgmfrm_correlated_2d_report_prior_policy(record),
         pooling_policy = normalized ? (; status=:computed, rows=NamedTuple[], n_rows=0,
             interpretation="Ability dimensions have independent priors with fixed scales. Centered prior blocks induce the saved dependence across raters and steps. No variance components or latent correlations are estimated.") : (; status = :computed, rows = [(; parameter = :rho, estimated = true,

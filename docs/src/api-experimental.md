@@ -27,6 +27,7 @@ BayesianMGMFRM.Experimental.correlated
 BayesianMGMFRM.Experimental.slope_restriction
 BayesianMGMFRM.Experimental.GeneralizedPrior
 BayesianMGMFRM.Experimental.NormalizedMGMFRMPrior
+BayesianMGMFRM.Experimental.MeanProfilePrior
 BayesianMGMFRM.Experimental.NormalizedMGMFRMFit
 BayesianMGMFRM.Experimental.surface_contract
 BayesianMGMFRM.Experimental.free_latent_correlation_2d_contract

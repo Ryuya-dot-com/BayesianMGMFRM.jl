@@ -26,7 +26,7 @@ function _prediction_refit_target(model::FacetSpec, prior::GeneralizedPrior)
         throw(ArgumentError("GeneralizedPrior requires GMFRM or MGMFRM"))
     return (; kind=model.family, identity=_prediction_legacy_target(target.design, raw_prior))
 end
-function _prediction_refit_target(model::Union{FacetSpec,_SlopeRestrictedSpec}, prior::_NormalizedMGMFRMPrior)
+function _prediction_refit_target(model::Union{FacetSpec,_SlopeRestrictedSpec}, prior::_SlopePrior)
     target = _normalized_mgmfrm_target(model, prior)
     return (; kind=:normalized_mgmfrm, identity=_mgmfrm_normalized_prior_identity(target))
 end
@@ -79,8 +79,10 @@ end
 """
     prediction_refit_plan(model, plan; prior, dataset_id, observation_ids)
 
-Prepare all K-fold training requests without sampling. `model` is a `FacetSpec`
-or a supported `Experimental.correlated(spec)` model; `prior` is explicit.
+Prepare all K-fold training requests without sampling. `model` is a `FacetSpec`,
+supported `Experimental.correlated(spec)` model or `Experimental.slope_restriction`
+model; `prior` is explicit. The slope restriction retains its fixed/estimated
+coefficient policies and requires its admitted normalized prior.
 The existing K-fold partition and known-level checks run before any request is
 returned. Model, Q, dimension names, prior and supported covariance are retained.
 Persistent unique rating IDs are supplied in the source specification's row order.

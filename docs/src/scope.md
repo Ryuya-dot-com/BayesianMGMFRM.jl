@@ -19,19 +19,26 @@ path, diagnostics, and user-facing examples are covered together.
 | Fixed-coefficient multidimensional MFRM with an exchangeable rater prior | Experimental | Explicit `Experimental.ExchangeablePrior` with independent abilities or the admitted 2D correlated specification. Julia/CmdStan return `Experimental.ExchangeableMFRMFit`. The rater kernel SD is supplied, not estimated; this prior is not accepted by scalar MFRM, GMFRM or MGMFRM. |
 | Scalar GMFRM: item discrimination × rater consistency | Experimental | Enter through `BayesianMGMFRM.Experimental`; the documented structural restrictions remain mandatory. |
 | Fixed-Q confirmatory MGMFRM with the raw prior | Experimental | `Experimental.fit` with explicit `GeneralizedPrior`; one or more dimensions with an explicit fixed Q mask, estimated positive active loadings and rater consistency, and independent ability priors. |
-| Fixed-Q MGMFRM with a normalized prior | Experimental | `Experimental.fit` with explicit `NormalizedMGMFRMPrior`, `prior_model=:exchangeable` or `:source`, all six scales and a source-rater ID when required. Independent abilities; Julia/CmdStan, manual caches and reports. This selects a different prior target, not a relabeling of a raw fit. Correlated fitting and automatic request caching are not connected for this prior. |
+| Fixed-Q MGMFRM with a normalized prior | Experimental | Unwrapped `Experimental.fit` with explicit `NormalizedMGMFRMPrior`, `prior_model=:exchangeable` or `:source`, all six scales and a source-rater ID when required. Independent abilities; Julia/AdvancedHMC admits binary categories, CmdStan requires at least three. Manual caches and reports are available. This selects a different prior target, not a relabeling of a raw fit. Correlated fitting and automatic request caching are unavailable. |
+| D1 MGMFRM with matched fixed/free item slopes | Experimental | `Experimental.slope_restriction`, item-owned PCM, rater consistency fixed at one and explicit exchangeable `NormalizedMGMFRMPrior`. Julia/AdvancedHMC with raw coordinates only; manual caches and known-level refit planning. CmdStan and source priors are unavailable for this wrapper. See [the slope contract](experimental.md#Matched-fixed-and-estimated-item-slopes). |
+| D1 fixed-slope MGMFRM with explicit location/step means | Experimental | `Experimental.MeanProfilePrior` additionally requires fixed-one item slopes and exact item/category IDs. Julia/AdvancedHMC with raw coordinates only; manual caches and known-level refit planning. Requires the successor source; absent from the earlier 13 October preview. See [the mean-profile contract](experimental.md#Fixed-location-and-step-mean-profiles). |
 | Two-dimensional correlated MGMFRM | Experimental | Between-item Q, estimated positive loadings/consistency, `Experimental.correlated(spec)` and explicit `GeneralizedPrior`. Julia/CmdStan, prior/conditional posterior prediction, summaries, MCSE, diagnostics, manual caches and report/figure bundles are available. Scientific prior/domain acceptance remains open. |
 | Broader generalized discrimination structures | Not supported | No stable fitting claim is made. |
 | Exploratory loading patterns or higher-dimensional correlation estimation | Not supported for fitting | MGMFRM retains a fixed Q pattern and independent abilities unless explicitly wrapped for the admitted 2D correlation model. Both correlated models above require exactly two dimensions. |
 | Group and differential facet functioning effects | Not supported for fitting | Design validation may describe these terms, but estimation is not yet exposed. |
 | Testlet, response-cluster, and rater-halo effects | Not supported for fitting | Explicit identifiers, structural checks, and residual/predictive summaries are available. These report-only summaries provide no calibrated decision or mechanism classification. |
+| Arbitrary five-or-more-facet compositions | Not supported through the public fitter | Additional metadata columns do not add estimated effects. Task, criterion, occasion and response roles require explicit likelihood, constraints, threshold ownership and prediction contracts. Finite structural checks and research prototypes are not a public fitting route. See [facets versus levels and dimensions](learning-guide.md#facets-levels-dimensions). |
 
 Experimental features may change in a minor release and should be
 used with sensitivity checks. They must not be described as stable equivalents
 of external software or as evidence for broader MGMFRM support.
 The namespace is an explicit experimental stability boundary, not a maturity claim.
 `BayesianMGMFRM.Experimental.surface_contract()` records its exact current
-configurations and constraints. The historical `experimental = true` keyword is a
+family configurations and constraints. For slope restrictions, inspect
+`surface_contract(model; prior)` instead of inheriting a family-level backend
+list. Unwrapped normalized, slope-restricted and mean-profile models all return
+`NormalizedMGMFRMFit`; distinguish their priors and coefficient policies using
+`fit_metadata`, not the result type alone. The historical `experimental = true` keyword is a
 compatibility route and does not define the forward-looking API.
 
 For their exact parameter meanings and runnable entry points, see
@@ -64,6 +71,13 @@ for the same research question. Unsupported combinations remain unsupported.
 | Report conditional ability precision and classification risk | `BayesianMGMFRM.posterior_classification` and opt-in common `fit_report` section | Explicit people in one dimension, cutoff and probability rule; joint posterior risk and numerical MCSE. No automatic standard, multidimensional composite, ranking or known-truth error-rate guarantee. |
 | Report rank uncertainty within a selected cohort | `BayesianMGMFRM.posterior_ranking` and optional common report section | One fitted ability dimension, explicit direction, joint-draw midranks and optional top-k tie bounds. No automatic selection, multidimensional aggregate, simultaneous ordering or population rank guarantee. |
 | Export figures and facet diagnostics | Model-specific documented plotting and diagnostic routes | Common reporting does not extend every scalar diagnostic or plot. Wright/Pathway plots and assignment-adjusted DFF screening retain their documented scalar-MFRM scope; fitted DFF is not supplied. |
+
+The [3D response-surface API](fitting.md#3D-item-response-surfaces-for-MGMFRM)
+specifically accepts independent `MGMFRMFit` results with `GeneralizedPrior`
+and at least two dimensions. It does not accept normalized, slope-restricted,
+mean-profile or correlated fits, even where their numerical prediction and
+posterior interval summaries are available. Plot support is separate from fit
+and common-report support.
 
 Start with the [saved comparison and recovery workflow](common_prediction_comparison.md)
 and [integrated reporting example](api-saved-reporting.md).

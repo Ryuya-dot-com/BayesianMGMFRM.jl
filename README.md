@@ -16,6 +16,10 @@ it is not evidence for broader GMFRM or MGMFRM support.
 New to many-facet measurement? Start with the [beginner's guide](docs/src/learning-guide.md),
 then explore the [worked theory](docs/src/rating-model-theory.md) and
 [result interpretation and model comparison](docs/src/interpreting-results.md).
+Use [Find an answer by task](docs/src/index.md) to locate explanations,
+examples and help without knowing an API name. The [computation guide](docs/src/fitting.md)
+separates model, prior and sampler; the [facet guide](docs/src/learning-guide.md)
+separates extra facet levels, extra modeled effects and extra ability dimensions.
 
 ## Installation
 
@@ -26,16 +30,17 @@ using Pkg
 Pkg.add("BayesianMGMFRM")
 ```
 
-The [13 October development guide](https://ryuya-dot-com.github.io/BayesianMGMFRM.jl/preview/20261013/)
-corresponds to the `development/20261013-guide` source branch, including the
-saved-result, sensitivity, alpha and ICC candidates. Install it into a separate
+The [13 October successor guide](https://ryuya-dot-com.github.io/BayesianMGMFRM.jl/preview/20261013-successor/)
+corresponds to the `development/20261013-successor` source branch. It includes
+the saved-result, sensitivity, alpha and ICC candidates, the opt-in mean-profile
+prior, and the restricted-slope comparison/report corrections. Install it into a separate
 project with Julia 1.10.8 or newer:
 
 ```julia
 using Pkg
 Pkg.activate("rating-preview")
 Pkg.add(url = "https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl",
-    rev = "development/20261013-guide")
+    rev = "development/20261013-successor")
 Pkg.pin("BayesianMGMFRM")
 ```
 
@@ -317,6 +322,9 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 Documentation builds, CI test groups, distribution checks, optional research
 checks, and environment policy are described in the existing
 [development notes](docs/src/development-readme-ledger.md#development-checks).
+For version pinning, saved-result migration, rollback and the distinction
+between a preview and a registered update, see the
+[version update handoff](docs/src/registration.md).
 
 ## Citation
 

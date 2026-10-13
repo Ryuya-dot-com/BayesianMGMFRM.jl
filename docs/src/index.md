@@ -11,6 +11,30 @@ examples require the matching development source; updating this website does not
 install those interfaces or make them part of a released package. Consult
 [Scope and Releases](scope.md) before choosing an analysis.
 
+This successor includes the opt-in `Experimental.MeanProfilePrior`, corrected
+restricted-slope K-fold aggregation and accurate fixed/estimated loading labels.
+Use the matching successor source below. The earlier
+[13 October preview](https://ryuya-dot-com.github.io/BayesianMGMFRM.jl/preview/20261013/)
+remains available at its original revision and does not contain these additions.
+
+## [Find an answer by task](@id find-by-task)
+
+Start with the question you need to answer; you do not need to know a function
+name first. The explanation links lead to concepts, then to executable examples
+and the exact function help.
+
+| Your question | Start here | What you should be able to decide |
+| --- | --- | --- |
+| What do persons, raters, facets and dimensions mean? | [Getting Started](learning-guide.md), including [five or more facets](learning-guide.md#facets-levels-dimensions) | Which influence each data column represents; whether the model actually estimates it |
+| Which MFRM/GMFRM/MGMFRM route fits my question? | [Model choices](learning-guide.md#Choose-assumptions-before-choosing-a-model-name), [current support](scope.md#Current-Support) | Dimension, slope and threshold choices; which routes remain experimental |
+| How are rating probabilities calculated? | [Worked explanation](rating-model-theory.md), then [model equations](model-equations.md) | How a parameter change affects a category probability; who owns the thresholds |
+| How does estimation work in Julia or Stan? | [From model to posterior draws](fitting.md#calculation-route), then [sampler controls](fitting.md#Backends-and-Sampler-Controls) | Model versus sampler; warmup, chains, uncertainty and numerical warnings |
+| How do I choose and check priors? | [Prior implications](bayesian-workflow.md#3.-Check-Prior-Implications), [sensitivity](prior-sensitivity.md) | Whether generated ratings are plausible on the declared scale |
+| How do I obtain intervals, diagnostics and useful reports? | [Reading Results](interpreting-results.md), [reporting API](api-saved-reporting.md) | Posterior uncertainty versus MCMC error; supported report scope |
+| How can I compare models or plan a study? | [Comparison workflow](common_prediction_comparison.md), [operation limits](scope.md#common-operation-support) | Aligned prediction targets; recovery tools versus a still-unavailable general design runner |
+| Where are help and runnable examples? | [Julia help](learning-guide.md#Use-Julia-help-and-examples), [examples](examples.md), [API by task](api.md) | Inspect data without fitting first; then run a model-specific example |
+| How can I reopen and share results? | [Reports and reproducibility](fitting.md#Reports-and-Reproducibility) | A same-environment fit cache versus a portable computed JSON report |
+
 ## Install this development preview
 
 Use Julia 1.10.8 or newer and a separate analysis project:
@@ -19,16 +43,16 @@ Use Julia 1.10.8 or newer and a separate analysis project:
 using Pkg
 Pkg.activate("rating-preview")
 Pkg.add(url="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl",
-    rev="development/20261013-guide")
+    rev="development/20261013-successor")
 Pkg.pin("BayesianMGMFRM")
 ```
 
 Keep the project's `Project.toml` and `Manifest.toml`. For the exact published
 snapshot, replace `rev` with the commit shown on the
 [preview landing page](https://ryuya-dot-com.github.io/BayesianMGMFRM.jl/).
-This development branch contains the candidate APIs described here; `main` and
-the registered release may differ. Installation is not scientific acceptance
-or a stable release.
+This successor branch contains the APIs described in this manual. The earlier
+preview, `main` and the registered release may differ. Installation is
+not scientific acceptance or a stable release.
 
 Examples ship with the package and can be located independently of your working
 directory:
@@ -106,7 +130,9 @@ or GMFRM/MGMFRM, follow the [model-specific fitting and prior routes](bayesian-w
 3. Create an [`mfrm_spec`](@ref) and review its constraints.
    [`getdesign`](@ref) provides optional parameter inspection.
 4. Use [`prior_predictive_check`](@ref) before fitting.
-5. Call `fit(spec)` for the supported stable model.
+5. Call `fit(spec; backend = :advancedhmc, ...)` with explicit sampling settings
+   for the supported stable model. Bare `fit(spec)` selects random-walk
+   Metropolis and one chain; see [how estimation works](fitting.md#calculation-route).
 6. Review [`sampler_diagnostics`](@ref), [`mcmc_diagnostics`](@ref),
    [`parameter_block_diagnostics`](@ref), and [`diagnostics`](@ref).
 7. Inspect estimand-specific [`posterior_mcse`](@ref), posterior, predictive,

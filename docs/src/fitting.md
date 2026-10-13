@@ -12,6 +12,41 @@ before sampling; inspect the compiled design when reviewing identification or
 model structure. The [minimal example](examples.md#Minimal-MFRM-Workflow) runs
 the ordinary fit, diagnostics, figures and save/reload sequence.
 
+## [From a rating model to posterior draws](@id calculation-route)
+
+The **model** defines how person ability, item difficulty, rater effects and
+category steps determine rating probabilities. The **prior** describes joint
+parameter uncertainty before these ratings. Together they define the posterior:
+likelihood times prior, normalized over the admitted parameter space. The
+[worked probability calculation](rating-model-theory.md) explains this in a
+small example; [Model Equations](model-equations.md) gives the exact family,
+threshold-owner, sign, scale and identification conventions.
+
+The **sampler** approximates that posterior using draws. These are different
+choices: switching a backend does not intentionally change the model or prior,
+and a backend being implemented does not establish reliable estimation for
+every model/design combination.
+
+| Step | What happens | What you should inspect |
+| --- | --- | --- |
+| Build the target | The package maps free coordinates to identified model parameters and evaluates log likelihood and log prior. Required transformation Jacobians belong to the target. | Model specification, constraints, Q order, threshold owner and explicit prior |
+| Warm up | HMC/NUTS adapts its numerical settings; these iterations are excluded from retained posterior summaries. Random-walk Metropolis uses a different proposal mechanism. | Warmup events and the chosen sampler settings |
+| Retain draws | Chains explore the posterior; NUTS uses gradients to propose moves, while random-walk Metropolis proposes local random moves. Draws within a chain can be dependent. | Divergences/tree-depth warnings where applicable, chain agreement, effective sample size and focal MCSE |
+| Summarize | Functions transform joint draws into parameters, category probabilities, intervals or decisions. | The requested estimand and conditioning; posterior uncertainty is different from MCMC approximation error |
+
+For stable MFRM, bare `fit(spec)` currently means `backend = :julia`
+(random-walk Metropolis) with one chain. To request Julia NUTS, specify
+`backend = :advancedhmc` explicitly. `:cmdstan` uses an external CmdStan
+installation. Experimental models use `BayesianMGMFRM.Experimental.fit` and
+their own [model/prior/backend restrictions](experimental.md); this overview
+does not promise every combination. See [Backends and Sampler Controls](#Backends-and-Sampler-Controls)
+for the actual settings and diagnostic fields.
+
+The example below demonstrates syntax. Its dataset and draw counts are not a
+precision guarantee or a recommended sample size. First inspect the design and
+prior predictions; after fitting, inspect warnings and MCSE for the quantities
+you will report. Saving draws lets you improve reporting without fitting again.
+
 ## Supported MFRM/RSM/PCM Fit
 
 ```julia
@@ -108,9 +143,14 @@ from saved GMFRM/MGMFRM fits, with either Julia or CmdStan estimation.
 
 ## 3D item response surfaces for MGMFRM
 
-For a saved independent fixed-Q MGMFRM fit, show the probability of each
-rating category as a function of two numbered abilities, for a selected item
-and rater:
+For a saved independent fixed-Q `MGMFRMFit` obtained with `GeneralizedPrior`
+and at least two dimensions, show the probability of each rating category as
+a function of two numbered abilities, for a selected item and rater.
+This API does not accept `NormalizedMGMFRMFit`, slope/mean-profile models,
+correlated models or fixed-coefficient multidimensional MFRM. Their support
+for fitting or posterior interval plots does not imply this surface method
+is available. Use the [support table](scope.md#Current-Support) to identify
+the saved route before calling it:
 
 ```julia
 using BayesianMGMFRM, CairoMakie
