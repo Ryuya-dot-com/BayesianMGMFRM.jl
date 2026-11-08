@@ -53,6 +53,154 @@ contiguous integer range from the observed minimum through maximum.
 - empty, sparse, and potentially confounded DFF cells for requested `bias`
   terms.
 
+## Responses without a rater facet
+
+For test responses with person, item and score columns, explicitly use
+`rater=nothing`. A missing or misspelled rater column is still an error when a
+column name is supplied. With intended scores `0:1`, the ordinary scalar
+`mfrm_spec` model is binary Rasch/1PL: item discrimination is one and the logit
+is person ability minus item difficulty. For consecutive ordered scores, the
+same entry supports scalar partial-credit and rating-scale models.
+
+```julia
+data = FacetData(responses; person=:person, item=:item, score=:score,
+    rater=nothing, category_levels=0:1)
+validation = validate_design(data)
+validation.passed || error(validation)
+spec = mfrm_spec(data; validation_report=validation)
+```
+
+There are no estimated rater parameters. The existing representation retains
+one fixed-zero level named `no_rater`; it is not a real judge. Encoded tables
+and parameter-reference tables can show this level. The specification display
+and `data.columns.rater === nothing` distinguish it from an observed rater.
+Keep `rater=nothing` when reconstructing these responses from an exported table.
+Saved native objects and report metadata retain the absent-column declaration.
+Rater anchors and rater bias terms are rejected. Generalized and multidimensional
+models are outside this entry's scope.
+
+Use the [worked IRT example](examples.md#Ordinary-binary-IRT-without-raters)
+for a complete input, explicit priors, estimation and saved review. Missing
+answers remain absent rows; do not replace them with zeros. Preserve the full
+intended category scale and inspect validation warnings before fitting.
+
+## [Read your own CSV ratings](@id import-csv)
+
+Start with a CSV file containing one **observed rating** per row. A speaking
+assessment might use `person` for the participant, `item` for the rubric
+criterion, `rater` for the judge and `score` for the ordered category. Keep the
+original file and its coding instructions. Unobserved combinations should remain
+absent: neither a zero nor an invented rating represents a missing observation.
+
+The following is a format excerpt, not a complete analysis dataset:
+
+```text
+person,item,rater,score
+001,I1,R1,3
+001,I2,R1,2
+1,I1,R1,4
+1,I2,R1,3
+```
+
+Here `001` and `1` are different participant IDs. Read identifier columns as
+text so numeric inference cannot merge them. If a spreadsheet has already
+removed the zeros before export, the import cannot recover them. Check the
+source IDs and their meanings before combining files.
+
+Install CSV.jl in the [separate analysis project](index.md#Install-this-development-preview).
+The recipe was checked with CSV.jl 0.10.16; to use the same parser version, run
+`import Pkg; Pkg.add(name="CSV", version="0.10.16")` once in that project.
+CSV.jl is an optional import tool, not a dependency added to the model package.
+Keep the analysis project's `Project.toml` and `Manifest.toml` with your source.
+
+For a comma-separated file with the four column names above and intended
+categories 1 through 4, run:
+
+```julia
+# CSV import: inspect observed ratings without fitting.
+using BayesianMGMFRM, CSV
+
+ratings_path = "ratings.csv"  # replace with your file's path
+ratings = CSV.File(ratings_path; delim=',',
+    types=Dict(:person => String, :item => String, :rater => String, :score => Int),
+    strict=true)
+data = FacetData(ratings; person=:person, item=:item, rater=:rater,
+    score=:score, category_levels=1:4)
+display(data)
+display((; persons=data.person_levels, items=data.item_levels,
+    raters=data.rater_levels, categories=data.category_levels))
+validation = validate_design(data)
+display(validation)
+for issue in validation.issues
+    println(issue.severity, " [", issue.code, "]: ", issue.message)
+end
+validation.passed || error("Resolve the reported design errors before specifying a model.")
+```
+
+Replace the column names in **both** `types` and `FacetData` if yours differ;
+change `delim` for a different separator. Set `category_levels` to the rating
+form's full consecutive integer scale, including unused categories. If the form
+uses verbal labels, first define and preserve their substantive order and an
+explicit integer mapping; alphabetic order is not a rating scale.
+
+`strict=true` makes invalid typed values, such as `poor` or `2.5` in the integer
+score column, an import error. Empty required cells become missing and are
+rejected by `FacetData`, which reports the column and row positions. Scores
+outside `category_levels` are also rejected. Correct a coding error at its
+source; for genuinely missing scores, retain a record of exclusions and the
+reason before passing observed ratings. The recipe does not drop rows or impute
+scores. Text missing-value codes such as `NA` require an explicit decision in
+your import specification. See the [CSV.jl parsing options](https://csv.juliadata.org/stable/reading/).
+
+Inspect warnings even when `validation.passed` is true: it means no checked
+error was found, not that your sample size, dimensional structure or precision
+is adequate. Adding a year, group or task column to a CSV does not automatically
+estimate that effect. Use an explicitly supported model and role mapping;
+shared performances need [response and criterion identities](joint-ratings.md).
+
+### Continue with your own two-dimensional specification
+
+Keep the `data` and `validation` objects above. The bundled example's
+`example_inputs()` always reads its bundled ratings; it is not an importer for
+your file. For a study where I1 and I2 measure fluency and I3–I5 measure accuracy,
+the next step is:
+
+```julia
+# MGMFRM specification: use the imported data, not the bundled example.
+q_by_item = Dict("I1" => (true, false), "I2" => (true, false),
+    "I3" => (false, true), "I4" => (false, true), "I5" => (false, true))
+Set(keys(q_by_item)) == Set(data.item_levels) ||
+    error("Match the Q mapping to all observed item labels before continuing.")
+q = Bool[q_by_item[item][d] for item in data.item_levels, d in 1:2]
+spec = mfrm_spec(data; family=:mgmfrm, thresholds=:partial_credit,
+    dimensions=2, q_matrix=q, dimension_labels=["Fluency", "Accuracy"],
+    validation_report=validation)
+q_check = q_matrix_validation(spec)
+println("Q check passed: ", q_check.passed,
+    "; warnings: ", q_check.summary.n_warning_rows)
+display([(; check=row.check, severity=row.severity, status=row.status)
+    for row in q_check.rows if row.severity != :info])
+q_check.passed || error("Resolve the reported Q errors before fitting.")
+display([(; person=row.person_label, unobserved=row.unobserved_dimension_labels,
+    rank=row.structural_rank)
+    for row in q_check.identification.likelihood_support.person_rows
+    if !row.full_column_rank])
+```
+
+Replace the item mapping and dimension names with those justified by your rubric.
+Q is assembled in the package's item order, so changing CSV row order cannot
+reassign an item to another dimension. The final display lists people who lack
+structural support for all ability directions. An empty list does not establish
+adequate precision; [the dimension-support example](#person-dimension-support)
+explains missing-dimension and rank warnings.
+
+These steps stop at input checks and model specification. For fitting, choose
+all six scales of the [normalized prior](experimental.md#MGMFRM-prior-choice-and-comparable-scales)
+explicitly for your study and review the [current scientific scope](scope.md#current-scientific-evidence).
+The bundled teaching prior and iteration count are not automatic defaults for
+your data. Follow the [normalized MGMFRM workflow](examples.md#Explicit-normalized-prior-MGMFRM-workflow)
+for the fit, diagnostics, interpretation and saved-result operations.
+
 ## Ordinal Response-Pattern Stress
 
 Use [`ordinal_response_pattern_audit`](@ref) before fitting when category use
@@ -98,6 +246,76 @@ unobserved categories. The likelihood, predictions, refit subsets, model and
 fit metadata, and serialized fit cache retain the declared scale. The package
 does not silently collapse it; deciding whether a category is structurally
 possible or should be collapsed remains an analysis decision.
+
+## [Check which dimensions each person was rated on](@id person-dimension-support)
+
+In a two-dimensional speaking assessment, one participant may have fluency
+ratings but no ratings on items that measure accuracy. The overall rating graph
+can still be connected, and ordinary data validation can pass. That does not
+mean both abilities have been measured for that participant. Run the Q check
+after constructing the model and inspect the person-level results, not just
+its overall `passed` flag.
+
+Q rows follow `data.item_levels`, which need not be the order of rows in your
+input table. Build Q from item names so that reordering a spreadsheet does not
+change which construct an item measures. Keep the substantive item-to-dimension
+mapping explicit; software cannot check whether that mapping fits your theory.
+
+This complete example reads the existing artificial teaching ratings and omits
+P1's ratings on the second dimension to illustrate an incomplete assignment.
+It does not generate scores or fit a model. For your analysis, use your observed
+rows and your own item mapping; do not remove ratings to reproduce this example.
+
+```julia
+# MGMFRM person-dimension inspection; no sampling.
+using BayesianMGMFRM
+
+ratings = include(joinpath(pkgdir(BayesianMGMFRM), "examples",
+    "normalized_mgmfrm_ratings.jl"))
+keep = [!(p == "P1" && i in ("I3", "I4", "I5"))
+    for (p, i) in zip(ratings.person, ratings.item)]
+observed = map(column -> column[keep], ratings)
+data = FacetData(observed; person=:person, item=:item, rater=:rater,
+    score=:score, category_levels=1:4)
+validation = validate_design(data)
+validation.passed || error(validation)
+
+q_by_item = Dict("I1" => (true, false), "I2" => (true, false),
+    "I3" => (false, true), "I4" => (false, true), "I5" => (false, true))
+Set(keys(q_by_item)) == Set(data.item_levels) ||
+    error("Match the Q mapping to all observed item labels before continuing.")
+q = Bool[q_by_item[item][d] for item in data.item_levels, d in 1:2]
+spec = mfrm_spec(data; family=:mgmfrm, thresholds=:partial_credit,
+    dimensions=2, q_matrix=q, dimension_labels=["dim=1", "dim=2"],
+    validation_report=validation)
+q_check = q_matrix_validation(spec)
+affected = [(; person=row.person_label,
+    unobserved=row.unobserved_dimension_labels, rank=row.structural_rank)
+    for row in q_check.identification.likelihood_support.person_rows
+    if !row.full_column_rank]
+display(affected)  # P1: unobserved dim=2, structural rank 1 rather than 2.
+```
+
+Here ordinary validation and `q_check.passed` both pass; the latter rejects
+errors but retains warnings. The person-level result identifies the missing
+dimension. Repeating ratings on P1's first-dimension items cannot supply ratings
+for the second dimension. Do not fill absent rows with zero scores or treat a
+converged posterior as evidence that those ratings exist.
+
+For this independent-dimension model with independent person priors, an ability
+coordinate absent from every observed item for that person has no likelihood
+contribution: its posterior remains its prior. This statement assumes the stated
+fixed prior and no extra terms coupling that coordinate to measured ones.
+A correlated-ability model may borrow information under its correlation
+assumptions; it still does not create direct ratings on the missing dimension.
+
+When several dimensions load on the same items, a person may touch every
+dimension yet still lack enough distinct items to separate all ability
+directions. Then `unobserved` can be empty while `full_column_rank` is false.
+Review the Q pattern and the person's observed items together. Even full
+structural rank is only a support check: it does not establish precise estimates,
+good recovery, or adequate overlap within each dimension. Inspect all Q warnings
+and use [the pre-fit API help](api-data-design.md) for the full results.
 
 ## Clustered Responses and Testlet Identity
 
@@ -220,6 +438,8 @@ constraints, transforms, prior-block declarations, DFF validation-only rows,
 and multidimensional Q-mask gauge declarations.
 
 The stable MFRM slice also accepts exact individual rater/item hard anchors.
+For a worked declaration and the distinction from a default reference or a
+starting value, see [references and anchors](learning-guide.md#references-and-anchors).
 Each declaration needs a supported block, explicit observed level, finite
 non-Boolean logit value, and `type = :hard`. The anchor replaces that block's
 default first-level-zero gauge and is omitted from the sampled/prior vector.
@@ -249,6 +469,7 @@ to keep three claims separate:
   population prior for at least one ability direction; and
 - `prior_anchor` records the design-reference standard-normal ability prior
   and fixed identity correlation, rather than likelihood-only identification.
+  It is not an external fixed calibration and does not enable `anchors` for MGMFRM.
   An actual experimental fit can use a different `person_sd`; its diagnostics
   and artifacts record that resolved prior. See [prior and coordinate
   conventions](experimental.md#Workflow).
@@ -403,3 +624,82 @@ with reference information are another distinct quantity.
 `threshold_map_data` returns rating-scale or partial-credit threshold-step
 metadata, including derived sum-to-zero steps when a parameter vector is
 supplied.
+## [Inspect a three-outcome input](@id three-outcome-input)
+
+For the experimental no-state model of accentedness, comprehension difficulty
+and transcription error, inspect the labelled input before attempting an
+analysis. This operation checks the declared data contract; it does not fit the
+model or establish identification, adequate linking or suitable priors.
+
+```julia
+using BayesianMGMFRM
+T = BayesianMGMFRM.Experimental.ThreeIndicator
+path = joinpath(pkgdir(BayesianMGMFRM), "examples", "data",
+                "three_indicator_165.json")
+answer = T.inspect_input(path;
+    expected_sha256 = "af7aa24174eb601443c017543adb59b01d9109668db5c799568cc032db31e1ba")
+
+answer.counts               # 165 events, 5 listeners, 11 speaker-style levels
+answer.category_counts      # all 9/9/2 categories, including zero counts
+answer.fixed_design         # rank 17 of 17 columns for this example
+answer.block_start_events
+answer.labels
+answer.metadata
+answer.warnings
+```
+
+This bundled input is an existing synthetic example with three words,
+33 recordings and two listener cohorts. It contains no empirical participant
+results and is not a recommended sample size. The checksum above identifies
+its exact file bytes. For another JSON input, supply its separately retained
+receipt; do not replace a failed receipt with a newly computed one merely to
+bypass a mismatch. `inspect_input(input)` also accepts an already loaded
+JSON3 object or a NamedTuple with the same fields.
+
+One event is one listener's trial on one recording, with all three outcomes
+observed. The first interface requires the following fields:
+
+| Fields | Required meaning |
+| --- | --- |
+| `N, R, S, W, G, J, P` | Numbers of events, listeners, speaker-style levels, words, listener cohorts, recordings and fixed predictors. `J=S*W`, `P=15`. |
+| `K`, `use_state`, `y` | `K=[9,9,2]`, `use_state=0`, and an `N × 3` integer matrix. Category 1 of the binary outcome is correct; category 2 is incorrect. The other two outcomes use 1–9, with higher categories adverse. Missing triples are rejected without dropping rows. |
+| `rater, speaker, word, token, l1` | Length-`N` one-based indices. L1 row order is ENG, JPN, CHN. All declared listeners, speaker-style levels, words and recordings must occur. |
+| `rater_group, speaker_cell, token_lookup` | Length-`R` cohort assignment; length-`S` condition assignment; `S × W` recording lookup containing each of `1:J` exactly once. There must be at least two listeners per cohort and two speaker-style levels per condition cell. |
+| `trial, previous_trial` | Rows are grouped by listener index, with contiguous trials starting at 1. `previous_trial` is 0 at the listener's first event and the preceding **global row index** thereafter, including across blocks. |
+| `X, predictor_names, within_time, l1_contrast` | `N × 15` finite predictor matrix, its exact names/order below, length-`N` position identical to `X[:,8]`, and the fixed `3 × 2` orthonormal, zero-sum L1 basis. |
+| `labels` | Unique, nonempty ID arrays named `event, rater, speaker, word, token, cohort`, in index order. Speaker-style levels are distinct; an additional physical-speaker hierarchy is not supplied. |
+| `metadata` | `outcomes=["accentedness","comprehension_difficulty","transcription_error"]`, `direction="higher_is_adverse"`, `binary_coding="1=correct;2=incorrect"`, and nonempty `scoring_version`, `predictor_units`, `source`. |
+
+JSON matrices are arrays of rows. Condition cells 1–5 are ENG-natural,
+JPN-natural, JPN-accented, CHN-natural and CHN-accented. The predictor order is:
+
+1. Columns 1–4: `current_JPN_natural`, `current_JPN_accented`,
+   `current_CHN_natural`, `current_CHN_accented`. These zero/one indicators
+   must agree with the current speaker-style level's condition.
+2. Columns 5–7: `block_2`, `block_3`, `block_4`. All zero means block 1;
+   at most one is one, and blocks cannot run backwards within a listener.
+3. Column 8: `within_time`, using the declared numeric units.
+4. Columns 9–13: `previous_JPN_natural`, `previous_JPN_accented`,
+   `previous_CHN_natural`, `previous_CHN_accented`, `previous_START`.
+   At each listener or block boundary, START is one and the others are zero.
+   Otherwise these columns describe the preceding trial's condition;
+   all zero means preceding ENG-natural.
+5. Columns 14–15: `word_lag_log`, `talker_lag_log`, with transformations and
+   units retained in metadata.
+
+The inspector checks recording ownership, scoring, labels, trial/condition
+consistency and the rank of the fixed design including the intercept and cohort
+indicators. Full fixed rank does not establish identification of the hierarchical
+model or justify fitting. Recording coverage does not establish adequate links
+between all listeners. Numeric position and lag transformations cannot be
+reconstructed from this input alone: compare them with your preprocessing and
+retain their units. Changing units also changes the meaning of coefficient
+priors.
+
+If a check fails, correct the source mapping or preprocessing before exporting
+a new input. Do not relabel binary outcomes, pad missing categories, reorder
+trials or change condition columns merely to obtain a pass. The inspector
+does not modify the input. The example `examples/three_indicator_input.jl`
+provides `three_indicator_input(path; expected_sha256)` using only the installed
+package. Three-outcome fitting remains unavailable through this interface.
+For already computed analyses, see [saved three-outcome results](api-saved-reporting.md#three-outcome-saved-reports).

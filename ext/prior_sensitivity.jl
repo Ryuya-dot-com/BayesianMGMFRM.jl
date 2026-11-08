@@ -17,6 +17,11 @@ function _render_prior_sensitivity(result,data;kind=:interval,annotation_io=stdo
         positions=collect(n:-1:1)
         xlabel=desc.support===:positive ? "Positive model coordinate" :
             desc.operation===:paired_difference ? "Difference in model coordinates" : "Model coordinate"
+        if desc.parameter_space === :dimensionless
+            xlabel=desc.operation===:paired_difference ? "Difference (dimensionless)" : "Dimensionless coefficient"
+        elseif result.scope === :normalized_d1_fixed_mean_profile && desc.parameter_space === :model_coordinate
+            xlabel *= " (multiply by 1.7 for unit logits)"
+        end
         heading=desc.label*(desc.dimension_label===nothing ? "" : " — $(desc.dimension_label)")
         ax=Axis(fig[i+offset,1];title=heading,xlabel,yticks=(positions,labels),
             xgridvisible=false,ygridvisible=false,topspinevisible=false,rightspinevisible=false)
@@ -53,6 +58,24 @@ function _render_prior_sensitivity(result,data;kind=:interval,annotation_io=stdo
             "The display spans pooled transformed draws plus four bandwidths on either side. Density overlap is not a test."
     end
     caption*=" Dataset: $(result.dataset_id). Saved-result engineering comparison; scientific acceptance is not established."
+    caption*="\n\nNumerical precision in the plotted units. MCSE is simulation error, not the posterior interval width. "*
+        (result.max_mcse===nothing ? "No maximum MCSE was declared." :
+        "Declared maximum MCSE: $(result.max_mcse), applied to the mean and lower/median/upper quantiles.")
+    for entry in result.ledger
+        if entry.evaluation===nothing
+            caption*="\n$(entry.prior_id): $(entry.status)."
+            continue
+        end
+        for row in entry.evaluation.rows
+            errors=join(string.(getproperty.(row.mcse.quantiles,:mcse))," / ")
+            screen=row.precision_qualified===nothing ? "not requested" :
+                row.precision_qualified ? "met" : "unmet"
+            caption*="\n$(entry.prior_id) | $(row.label): mean MCSE $(row.mcse.mean_mcse); "*
+                "lower / median / upper MCSE $errors; precision screen $screen; "*
+                "MCSE status $(row.mcse.mcse_status); sampling warning $(entry.evaluation.sampling_warning); "*
+                "cutoff $(row.cutoff); interval decision $(row.decision); numerical screen $(row.numerical_decision)."
+        end
+    end
     return _figure_text!(fig,"Prior sensitivity: $(kind===:ridge ? "posterior densities" : "posterior intervals")",caption;
         annotation_io,bottom_row=panels+2)
 end

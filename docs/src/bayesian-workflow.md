@@ -9,6 +9,125 @@ A many-facet analysis is more than a sampling call. The rating design,
 identification constraints, priors, sampler behavior, predictive performance,
 and reporting scope all affect what can be interpreted.
 
+## [Follow one analysis through the APIs](@id connected-analysis)
+
+Keep one question in view: **is R2 more severe than R1 after accounting for the
+people and tasks they rated?** The [first analysis](examples.md#First-MFRM-analysis)
+already implements this workflow. The steps below expose its connections; they
+are an alternative way to run the same example, not another fit to perform after
+`FirstMFRMAnalysis.main()`.
+
+| Step | Pass this object to… | Keep this result | Decision before continuing |
+| --- | --- | --- | --- |
+| Read ratings | Your table → [`FacetData`](@ref) → [`design_summary`](@ref) and [`validate_design`](@ref) | `data` and its validation report | Are identifiers, ordered categories and the allocation correct? Resolve errors; retain warnings. |
+| Specify the model | `data` → [`mfrm_spec`](@ref); inspect [`contract`](@ref), [`model_equation`](@ref) and [`constraint_table`](@ref) | `spec` and an explicit matching `prior` | Does this supported model estimate the requested contrast on the intended scale? |
+| Estimate and preserve | `spec`, `prior` and controls → [`fit`](@ref) → [`save_fit`](@ref) (or [`save_fit_cache`](@ref)) | `fitted` and a native cache | Did the fit return and save? A progress bar reaching 100% does not answer this. |
+| Read uncertainty | `fitted` → [`qualify`](@ref), [`diagnostics`](@ref), [`posterior_summary`](@ref), [`contrast`](@ref) and [`posterior_mcse`](@ref) | Global diagnostics, intervals and numerical errors for named quantities | Do both the whole fit and the focal summaries meet the declared numerical criteria? |
+| Assess assumptions | The same `fitted` → [`predictive_check`](@ref) and [`criteria`](@ref); separate fits → [`prior_sensitivity`](@ref) | Fit discrepancies, sensitivity and their warnings | Are the proposed conclusions defensible under these assumptions? Numerical precision alone cannot decide this. |
+| Reopen or share | Native cache → [`load_fit`](@ref) (or [`load_fit_cache`](@ref)); computed bundle → [`load_report`](@ref) (or [`load_fit_report_bundle`](@ref)) | A fitted object, or already computed report values, respectively | Is the original environment available, and do you need new summaries or only the saved answer? |
+
+The table uses the stable one-dimensional MFRM route. The unified lifecycle
+verbs (`design_summary`, `contract`, `qualify`, `posterior_summary`,
+`facet_summary`, `category_summary`, `contrast`, `predictive_check`, `criteria`,
+`prior_sensitivity`, `save_fit` / `load_fit`, and `save_report` / `load_report`)
+also dispatch across experimental families while preserving each model's
+specific result type and `contract(x)` boundary; use the
+[model entry points below](#2.-Inspect-the-Model-Before-Fitting) and
+[operation support table](scope.md#common-operation-support) before changing
+the route. A common function name does not make all model/prior combinations
+interchangeable.
+
+### Prepare and inspect without estimating
+
+```julia
+using BayesianMGMFRM
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_analysis.jl"))
+prepared = FirstMFRMAnalysis.inputs()
+prepared.spec
+model_equation(prepared.spec)
+constraint_table(prepared.spec)
+```
+
+`prepared` contains `data`, `spec`, `prior` and `controls`. The shipped example's
+`inputs()` helper reads 72 fixed artificial ratings and calls `FacetData`,
+`validate_design` and `mfrm_spec`; it does not fit or generate ratings.
+R1 is the zero-severity reference, so `rater[R2]` represents R2−R1 in this example.
+For your own data, replace this preparation with the [CSV/data workflow](data-validation.md#import-csv),
+choose the model and [check its prior implications](#3.-Check-Prior-Implications).
+The teaching settings are not a sample-size or prior recommendation.
+
+### Fit once and preserve the result
+
+**This block runs four chains.** If you already have the matching saved fit,
+skip it and use the reopening block below.
+
+```julia
+out = mktempdir(mkpath("results/connected-analysis"); cleanup=false)
+fitted = fit(prepared.spec; prior=prepared.prior, prepared.controls...)
+cache_path = joinpath(out, "fit.jls")
+save_fit_cache(cache_path, fitted)
+```
+
+The new directory keeps earlier attempts intact. Save before optional reports
+or figures so a later reporting failure can be handled from completed draws.
+This cache does not resume an interrupted sampler. Keep the input, analysis
+script, exact package source, Julia version and dependency environment with it.
+See [sampling progress](fitting.md#Sampling-progress) to monitor a new fit;
+monitoring does not establish convergence or change the selected model.
+
+### Turn the same fit into an answer
+
+```julia
+answer = FirstMFRMAnalysis.result(fitted, prepared)
+answer.numerically_qualified
+answer.interpretation
+```
+
+This existing teaching helper uses `diagnostics`, `posterior_summary` and
+`posterior_mcse` on that same fitted object. It checks the data/model/prior
+identity, combines global diagnostics with the R2−R1 mean and interval-endpoint
+MCSE limits, and withholds interpretation when those conditions fail. The
+helper's 90% interval and computational limits belong to this example; define
+your own estimand and reporting precision before a new analysis.
+Use the [walkthrough](examples.md#Read-the-answer) to read the stored estimates,
+MCSE and sampler warnings. An interval containing zero does not establish
+equivalence, and a precise contrast does not establish model fit.
+
+### Reopen without another fit
+
+```julia
+restored = load_fit_cache(cache_path)
+reopened_answer = FirstMFRMAnalysis.result(restored, prepared)
+```
+
+In a later session, load the same example definitions and preparation in the
+original environment, and set `cache_path` to the saved file. If you only need
+an already exported answer, read its text/JSON or a portable report bundle;
+those files do not reconstruct draws for a new contrast. The example's
+[`main(["--saved-fit", path])` mode](examples.md#Save-and-reopen-without-refitting)
+writes the answer into a new folder without refitting.
+
+### [Know which operations do more work](@id workflow-operation-costs)
+
+| Operation on an existing analysis | New posterior fit? | What happens |
+| --- | --- | --- |
+| Summaries, diagnostics, MCSE, interval/chain figures | No | Reuse retained draws; calculations can still be expensive. They do not remove existing warnings. |
+| Conditional posterior predictive checks or `plot_predictive` | No | Generate replicated outcomes unless explicitly consuming saved predictions. Record the seed, draw count and prediction target; consider the size of requested arrays. |
+| Different priors, anchors, slopes, dimensions or an estimated effect | Yes, for a new posterior analysis | A changed model/specification cannot be attached to the old fitted object. A label or plot change is not a sensitivity analysis. |
+| Portable saved-report reader | No | Read computed values and warnings; it cannot recompute intervals, generate predictions or migrate a native cache. |
+
+When numerical checks fail, keep the fit and identify the affected quantity or
+stage. When predictive fit is poor, limit the substantive claim or justify a
+model change. When reporting alone fails, repair that stage and reopen the
+saved fit. These are different decisions; none calls for silently repeating
+the same fit until a preferred result appears. The remaining sections explain
+each decision and link to the corresponding function help.
+
+For rater decisions, use the [evidence-to-conclusion guide](interpreting-results.md#rater-decision-evidence)
+to distinguish a fitted group/item contrast, residual screen, predictive
+discrepancy, prior sensitivity and fairness claim. It also separates the
+available drift workflow from research-only halo classification.
+
 ## 1. Validate the Rating Design
 
 Create [`FacetData`](@ref) from long-format ratings and run
@@ -81,9 +200,14 @@ check and fitting call:
 | Two-dimensional correlated MGMFRM | An explicitly supplied `BayesianMGMFRM.Experimental.GeneralizedPrior`; the specification also declares the LKJ correlation prior | `BayesianMGMFRM.Experimental.prior_predictive_check` |
 
 Look for implausible score distributions, category use, or facet ranges before
-inspecting the observed-data posterior. Generalized prior SDs apply to raw
-unconstrained coordinates, including log-loadings and log-consistencies, not
-directly to the positive transformed parameters. `person_sd` fixes the marginal
+inspecting the observed-data posterior. `GeneralizedPrior` SDs describe its
+independent free-coordinate normals, including log-loadings and
+log-consistencies, not the positive transformed parameters. In contrast,
+`NormalizedMGMFRMPrior` uses **kernel SDs** for centered rater/step blocks;
+these are not their free-coordinate or full-vector marginal SDs.
+`MeanProfilePrior(units=:unit_logit)` converts means, not base-prior SDs.
+See [free and constrained prior densities](model-equations.md#Density-on-free-and-constrained-coordinates)
+before transferring numeric widths between these routes. `person_sd` fixes the marginal
 ability prior scale; it is not an estimated hyperparameter. The experimental
 prior check exposes raw/direct draws, replicated scores, and implication
 warnings. See [prior conventions](experimental.md#Workflow) before choosing
@@ -171,6 +295,38 @@ assessment and are not automatically included in the ordinary report. The
 [saved-fit walkthrough](examples.md#Review-a-saved-MGMFRM-fit-without-fitting)
 shows these checks, intervals and MCSE together without sampling again.
 
+### Qualification and focal precision
+
+Use the same convergence controls across supported `qualify` methods:
+
+```julia
+gate = qualify(fit_result; max_rhat=1.01, min_ess=400.0, min_bfmi=0.3)
+```
+
+Interpret the returned flag within its stated scope:
+
+| Result | Meaning of a passing gate | Precision still to assess |
+| --- | --- | --- |
+| Common fit or supported Experimental NamedTuple | `qualified`: whole-fit parameter diagnostics and complete sampler telemetry, under requested thresholds. `focal_precision_qualification=:not_assessed`. | MCSE of the means, interval endpoints, contrasts, decisions and probabilities used in the analysis. |
+| Star | `result.numerically_qualified`: raw/transformed diagnostics, complete sampler telemetry and the named `result.focal_parameters` pass. The focal quantities are finite-entity root/branch correlations, with mean and 95% interval-endpoint MCSE limits. | Other population correlations, residual-association parameters, contrasts, ranks, event probabilities and any different interval endpoints. |
+
+For Star, `rhat_max`, `ess_min`, and `ebfmi_min` remain aliases of the common
+controls; supplying both spellings for one control is an error. Its
+`check_transformed=false` option returns a partial diagnostic report:
+`transformed_assessed=false`, `transformed_passed=missing`, and both whole-fit
+and overall qualification are false. Missing, duplicate or misordered retained
+sampler records cannot pass the telemetry gate. This avoids interpreting an
+unperformed check as successful. Previously stored warnings remain attached even
+if a user chooses looser thresholds for a new diagnostic report.
+
+The thresholds are numerical criteria, not a scientific adequacy test or a
+universal precision recommendation. Assess MCSE in the estimand's own units and
+at the endpoints you report. The [posterior quantile-MCSE documentation](https://mc-stan.org/posterior/reference/mcse_quantile.html)
+explains why quantile uncertainty is a separate calculation and can be unavailable
+for constant or nonfinite chains. A constant estimated event indicator does not
+establish a zero probability. Preserve unavailable precision and model-fit or
+prior-sensitivity warnings.
+
 ## 5. Examine Predictions and Residuals
 
 Use [`posterior_predictive_check`](@ref),
@@ -254,10 +410,90 @@ Wright map. See [figures and export](fitting.md#Posterior-interval-figures).
 
 ## 6. Compare Models Carefully
 
-WAIC, LOO, PSIS-LOO, and K-fold summaries require compatible observations and
-an explicit prediction target. Inspect pointwise influence, Pareto-k, and
-held-out diagnostics. Relative weights are not posterior model probabilities,
-and a ranking is not by itself a superiority claim.
+Use `compare_models` for the supported comparison routes.
+For a CriterionCollapse fit, `compare_models(result)` compares the all-ordinary
+and at-least-one-collapse submodels under their induced priors. This is model
+evidence rather than WAIC/LOO; pair it with the [joint count check](criterion-collapse.md#Joint-prediction-and-model-comparison) to assess the selected category pattern. State the prediction
+unit and baseline before reading a difference. Paired ELPD differences require
+the same observed outcomes; see the [loo comparison documentation](https://mc-stan.org/loo/reference/loo_compare.html).
+A matching row count alone does not establish compatibility.
+
+For the eight common MFRM/GMFRM/MGMFRM result types, use named pairs and an
+explicit comparison axis:
+
+```julia
+comparison = compare_models("reference" => reference_fit, "alternative" => alternative_fit;
+    comparison_axis=:model, dataset_id="ratings-v1", observation_ids=rating_ids,
+    criterion=:waic, baseline="reference", se_unit=:none)
+comparison.rows                # input order; each difference is model minus reference
+comparison.criterion_target    # one rating omitted, fixed specification
+comparison.uncertainty         # uncomputed MCSE/SE remain explicit
+```
+
+`rating_ids` supplies one unique string per original rating. If fit row orders
+differ, use a dictionary from the same model names to each fit's ID vector.
+Use `comparison_axis=:dimensions` when D/Q may differ, or `:q_matrix` for Q
+changes at fixed D. These operations reuse `compare_predictions`; its data,
+category, conditioning and draw-layout checks remain. They use all retained
+draws. Model identity, prior/scale information and warnings remain in each row;
+a comparison axis does not isolate a causal effect of that choice.
+
+For Star fits, the model already retains event IDs:
+
+```julia
+comparison = compare_models("association" => association_fit,
+                            "no_residual_association" => no_residual_fit)
+comparison.primary_name
+comparison.baseline_name
+comparison.waic_diff.elpd_diff
+comparison.psis_loo_diff.interpretation_scope
+```
+
+This route accepts exactly two Star results and returns primary minus baseline,
+without choosing a winner. It aligns events by ID and checks actual entity/rater
+labels, scores, criterion IDs, category supports and scoring directions. Priors,
+root choice and dependence terms can differ. In the `include_phi=false` alternative,
+only residual association is removed; entity/rater correlations remain estimated.
+Do not reuse event IDs for different
+measurements. Current in-memory Star `criteria(fit)` results can also be compared
+with `compare_models(primary_criteria, baseline_criteria; names=("a", "b"))`.
+Older reports lacking observed-event bindings remain readable but cannot establish
+this comparison contract. Portable JSON remains a computed report, not an
+in-memory criteria object. Preserve it and its original producing environment;
+this is not a native-cache migration facility or a request to refit.
+
+| Route | Prediction unit / calculation | Difference and uncertainty |
+| --- | --- | --- |
+| Common fits, explicit `comparison_axis` | One original rating; `:waic`, `:raw_loo`, `:psis_loo` (Zhang–Stephens GPD smoothing with chain relative efficiency), or the separate historical `:hill_smoothed_loo`. | Model minus declared baseline, original order. Default difference SE is unavailable; `:observation` or `:person` adds the documented approximate SE. Neither is MCMC MCSE or general crossed-cluster adjustment. |
+| Two Star fits or current Star criteria records | One complete multi-criterion event, conditional on existing entity/rater effects; joint-event WAIC and the Star GPD-smoothed PSIS implementation. | Primary minus baseline, both criteria reported. Existing entity + rater - observation variance approximation, floored at observation variance; repeated entity/rater pairs lack an intersection-cluster adjustment. Inspect sampling, Pareto-k and clipping warnings. This is not a guarantee of calibrated uncertainty. |
+| Legacy common-fit call without `comparison_axis` | Existing MFRM/GMFRM/MGMFRM ranking interface; `:psis_loo` now selects standard PSIS and requires all retained draws. Historical stored Hill scores are unchanged. | Sorted relative to the best model, with normalized Akaike-style weights. These are not posterior model probabilities. Kept for compatibility; use the explicit-axis route above for observation-bound comparison. |
+
+`criteria` availability does not imply that every model combination has a public
+comparison route. Correlated3D criteria, JointRatings and OrdinalAssociation
+reports do not make a rating row interchangeable with a joint event. Refitted
+K-fold also has a distinct prediction target. Keep those contracts separate.
+
+The common `event_probabilities` entry likewise preserves model-specific meaning:
+
+| Model | Meaning and returned object |
+| --- | --- |
+| Common fits | Category probabilities conditional on fitted effects, as a draws × rating rows × categories array. No intervals, MCSE or diagnostic envelope are added by this call. |
+| Correlated 3D | Category probabilities for `observation` or `rows` of the fitted design, with intervals, MCSE and diagnostics. |
+| Star / OrdinalAssociation | Joint probabilities for an existing `rating_event_id`, with intervals, MCSE and source warnings/diagnostics. Star includes marginal and conditional summaries; a full Cartesian table is opt-in. |
+| JointRatings | Future criterion-row marginal probabilities with intervals, MCSE and integration-error information. `response_effect=:existing` retains the response, while `:new` integrates a new shared response effect for known person/task/rater levels. Marginal products do not provide the shared-response joint probability. |
+
+Without draw-selection controls, common-fit probability arrays preserve the
+original joint draw order. `ndraws` resamples with replacement; `draw_indices`
+preserves the requested order and duplicates. A resampled or reordered array
+must not be passed to chain-based MCSE calculations as if it retained the original
+chains. Use all original draws, maintain chain/iteration alignment, and calculate
+MCSE for each named probability being interpreted. Returned probability intervals
+measure posterior uncertainty in probabilities, not intervals for future scores.
+
+These probability summaries are not replicated outcomes. `predictive_check`
+generates outcomes where supported, so it is a distinct operation. Inspect
+pointwise influence, Pareto-k and numerical warnings before interpreting any
+comparison; a ranking alone is not a superiority claim.
 
 Sensitivity work should cover defensible prior choices and any threshold,
 anchor, dimensionality, or Q-matrix decisions that could change the
@@ -312,3 +548,7 @@ A report should state:
 
 Experimental fixed-Q MGMFRM results must not be generalized to exploratory
 multidimensional models or freely estimated correlation structures.
+
+For an ordinary scalar MFRM, the [expected-score and information guide](score-information.md)
+connects an explicit item/rater assessment design to conditional curves and
+saved report tables. Its information is distinct from posterior precision.

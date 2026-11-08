@@ -126,19 +126,46 @@ function _check_source_fixture_raw_vector(t::_MGMFRMSlopeLogDensity, raw::Abstra
     return nothing
 end
 LogDensityProblems.dimension(t::_MGMFRMSlopeLogDensity) = length(t.active)
-LogDensityProblems.capabilities(::Type{_MGMFRMSlopeLogDensity}) = LogDensityProblems.LogDensityOrder{0}()
+LogDensityProblems.capabilities(::Type{_MGMFRMSlopeLogDensity}) = LogDensityProblems.LogDensityOrder{1}()
 initial_params(t::_MGMFRMSlopeLogDensity) = copy(t.mean_shift)
 function logprior(t::_MGMFRMSlopeLogDensity, raw::AbstractVector)
-    # Remove the density factors of fixed, independent blocks. Zero SDs are not priors.
-    R = length(t.base.design.spec.data.rater_levels)
-    s = t.base.prior
-    constant = (R-1)*(-log(s.log_consistency_sd)-log(2pi)/2)+log(R)/2
-    if t.item_slopes === :fixed_one
-        constant += length(t.base.blueprint.blocks[:log_item_dimension_discrimination]) *
-            (-log(s.log_discrimination_sd)-log(2pi)/2)
+    _check_source_fixture_raw_vector(t, raw)
+    means = t.profile === nothing ? nothing : t.mean_shift
+    return _slope_block_logprior(raw, means, t.blueprint.blocks, t.base.prior,
+        length(t.base.design.spec.data.category_levels)-2)
+end
+
+function _slope_block_logprior(raw, means, blocks::Dict{Symbol,UnitRange{Int}}, prior, nsteps)
+    # Fixed independent factors cancel; evaluate only the retained Gaussian law.
+    lp = _param_zero(raw)
+    for (block, sd) in ((:person, prior.person_sd), (:item, prior.item_sd),
+            (:log_item_dimension_discrimination, prior.log_discrimination_sd))
+        lp += _slope_normal_block_logprior(raw, means, blocks[block], sd, false)
     end
-    residual = t.profile === nothing ? raw : raw .- t.mean_shift
-    return logprior(t.full, _slope_full_raw(t, residual))-constant
+    lp += _slope_normal_block_logprior(raw, means, blocks[:rater_free], prior.rater_sd, true)
+    if nsteps > 0
+        indices = blocks[:item_steps]
+        for start in first(indices):nsteps:last(indices)
+            lp += _slope_normal_block_logprior(raw, means,
+                start:(start+nsteps-1), prior.step_sd, true)
+        end
+    end
+    return lp
+end
+
+function _slope_normal_block_logprior(raw, means, indices, sd, centered::Bool)
+    lp, residual_sum = _param_zero(raw), _param_zero(raw)
+    for j in indices
+        residual = means === nothing ? raw[j] : raw[j]-means[j]
+        isfinite(residual) || throw(ArgumentError(
+            "slope-restricted prior residuals must be finite"))
+        lp += _normal_logpdf(residual, sd)
+        centered && (residual_sum += residual)
+    end
+    if centered
+        lp += log(length(indices)+1)/2 - (residual_sum/sd)^2/2
+    end
+    return lp
 end
 LogDensityProblems.logdensity(t::_MGMFRMSlopeLogDensity, raw) =
     _source_fixture_loglikelihood(t.base, _slope_full_raw(t, raw))+logprior(t, raw)
@@ -195,26 +222,39 @@ function _mgmfrm_normalized_prior_metadata(t::_MGMFRMSlopeLogDensity)
         prior_label=label, blocks))
 end
 
-function _generalized_candidate_direct_draw_values(t::_MGMFRMSlopeLogDensity, draws::AbstractMatrix{<:Real})
+function _generalized_candidate_direct_draw_values(t::_MGMFRMSlopeLogDensity,
+        draws::AbstractMatrix{<:Real}; store_pointwise::Bool = true)
     full = zeros(size(draws,1), LogDensityProblems.dimension(t.full))
     full[:,t.active] = draws
-    _generalized_candidate_direct_draw_values(t.base, full)
+    _mgmfrm_guarded_local_fit_direct_draw_values(t.base, full; store_pointwise)
 end
 _generalized_candidate_direct_draw_constraint_rows(t::_MGMFRMSlopeLogDensity, direct::AbstractMatrix{<:Real}) =
     _generalized_candidate_direct_draw_constraint_rows(t.base, direct)
 _normalized_mgmfrm_tables(t::_MGMFRMSlopeLogDensity, run) =
-    _generalized_candidate_diagnostic_tables(t, run, t.blueprint)
+    _generalized_candidate_diagnostic_tables(t, run, t.blueprint;
+        # Fit/restore diagnostics need totals and finite counts, not the full matrix.
+        direct_values = _generalized_candidate_direct_draw_values(t, run.draws;
+            store_pointwise = false))
+
+function _slope_gradient_backend(requested::Symbol)
+    requested === :auto && return :analytic
+    requested in (:analytic, :ForwardDiff, :ReverseDiff) || throw(ArgumentError(
+        "D1 slope-restriction ad_backend must be :auto, :analytic, :ForwardDiff, or :ReverseDiff"))
+    return requested
+end
 
 function _normalized_mgmfrm_fit(spec::_SlopeRestrictedSpec, prior::_SlopePrior;
         backend::Symbol=:advancedhmc, init=nothing, sampling_coordinates::Symbol=:raw,
-        record_warmup::Bool=true, kwargs...)
+        record_warmup::Bool=true, ad_backend::Symbol=:auto, kwargs...)
     backend === :advancedhmc && sampling_coordinates === :raw || throw(ArgumentError(
         "slope_restriction currently supports Julia :advancedhmc with :raw coordinates only"))
     target = _normalized_mgmfrm_target(spec, prior)
     init === nothing || init isa AbstractVector{<:Real} ||
         throw(ArgumentError("init must contain only free raw coordinates, in fit-layout order"))
     initial = init === nothing ? initial_params(target) : Float64.(collect(init))
-    run = _run_generalized_candidate_advancedhmc(target, initial; record_warmup, kwargs...)
+    selected = _slope_gradient_backend(ad_backend)
+    run = _run_generalized_candidate_advancedhmc(target, initial;
+        ad_backend=selected, record_warmup, kwargs...)
     record = (; schema=record_warmup ? "bayesianmgmfrm.normalized_fixed_q_samples.v2" :
         "bayesianmgmfrm.normalized_fixed_q_samples.v1", spec=deepcopy(target.base.design.spec),
         prior=_mgmfrm_normalized_prior_record(target),
@@ -243,7 +283,7 @@ end
 
 function Base.show(io::IO, spec::_SlopeRestrictedSpec)
     print(io,"Slope-restricted MGMFRM (item slopes ",spec.item_slopes,
-        "; rater consistency fixed at one; experimental)")
+        "; rater consistency fixed at one; default gradient analytic; experimental)")
 end
 
 function model_family_contract(spec::_SlopeRestrictedSpec)

@@ -12,6 +12,7 @@ mcmc_diagnostics
 parameter_block_diagnostics
 posterior_mcse
 posterior_summary
+BayesianMGMFRM.posterior_contrast
 BayesianMGMFRM.pointwise_loglikelihood
 pointwise_loglikelihood_matrix
 waic
@@ -61,10 +62,72 @@ residual_summary
 fit_stats
 facets_report
 facets_compatibility_stats
+qualify
+facet_summary
+category_summary
+contrast
+event_probabilities
+reliability
+ranking
+classification
+criteria
+predictive_check
 ```
 
 The [Saved-fit Reporting API](api-saved-reporting.md) groups the common
 reliability, agreement and category reports.
+
+## [Compare observed and expected ratings](@id observed-expected-calibration)
+
+Use `calibration_table` to ask whether groups of observed rating rows have
+averages close to their model expectations. Its fitted-result methods accept
+`MFRMFit`, `GMFRMFit` and `MGMFRMFit`; the experimental normalized and correlated
+result types have separate reporting contracts. A model family name alone does
+not establish that this function accepts its result type.
+
+For an existing supported fit, use all its retained draws without refitting or
+generating replicated outcomes:
+
+```julia
+rows = calibration_table(fit; target=:expected_score, bins=10, interval=0.9)
+points = calibration_plot_data(rows)
+[(; bin=p.bin, ratings=p.n_observations, observed=p.observed_mean,
+    expected=p.predicted_mean, lower=p.predicted_lower,
+    upper=p.predicted_upper, probability=p.interval_probability) for p in points]
+```
+
+Group rows by `target` and `category` before drawing multiple series. Put
+`predicted_mean` on the horizontal axis and `observed_mean` on the vertical axis,
+with the equality line as a reference. Display `n_observations` in the table or
+point labels; it counts rating rows, not unique people. `n_draws` is the number
+of selected parameter draws and is not an effective sample size.
+
+Each bin is formed from posterior mean predictions, separately for each target.
+The observed and expected means use the same rows with equal rating weight,
+retaining their item and rater conditions. These are not ability-conditioned
+response curves, a standardized reference panel, or independent held-out
+predictions. Tied predictions can be split across bins to balance row counts;
+the reported prediction ranges may therefore touch or overlap.
+
+The horizontal interval is an equal-tail posterior interval for the bin's
+**mean expected value**. Its probabilities travel with the plot data. It is
+different from the range of row predictions (`predicted_bin_lower/upper`), a
+prediction interval for replicated ratings, and Monte Carlo uncertainty.
+`:outside_interval` describes a discrepancy; it is not a calibrated significance
+test or a reason to remove a person, rater or category. Sampling diagnostics and
+the precision needed for the analysis must be assessed separately.
+
+For a category-use proportion, request `target=:category_probability` and an
+explicit score label with `category=...`. An ordinal high-score category is not
+automatically a correct answer. For variation in replicated ratings use
+`posterior_predictive_check`; that operation generates new outcomes. For
+conditional category curves across more fitted-result types, use the
+owner-aware `category_report` described below.
+
+The plot-data conversion accepts older reduced rows, preserving available
+values and returning `missing` for absent counts, median or interval
+probabilities. Keep the complete calibration table and its fit/report provenance;
+the plot rows alone do not archive the model, source environment or diagnostics.
 
 For owner-aware category summaries across the eight common saved-fit types,
 use [`BayesianMGMFRM.category_report`](@ref). Its expected-use posterior intervals

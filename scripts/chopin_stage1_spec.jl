@@ -20,8 +20,9 @@ function prepare(directory::AbstractString)
         item=String[r.item for r in rows],score=Int[r.score for r in rows],
         observation_id=String[r.observation_id for r in rows])
     length(unique(table.observation_id)) == length(rows) || throw(ArgumentError("duplicate observation IDs"))
+    # Judges share a stage-specific performance, not a performance-by-judge rating.
     data = B.FacetData(table;person=:person,rater=:rater,item=:item,score=:score,
-        response_id=:observation_id,category_levels=1:25)
+        response_id=:person,category_levels=1:25)
     data.rater_levels == ["J"*lpad(r,2,'0') for r in 1:17] ||
         throw(ArgumentError("unexpected judge order"))
     data.person_levels == ["2025-S1-C"*lpad(p,3,'0') for p in 1:84] ||

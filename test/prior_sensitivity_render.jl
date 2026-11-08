@@ -21,7 +21,25 @@ function checks(result)
         @test occursin("[fixed]",labels[1])
         @test occursin("[missing]",labels[2])
         @test occursin("[failed]",labels[3])
-        @test occursin("2 unavailable",String(take!(io)))
+        note=String(take!(io))
+        @test occursin("2 unavailable",note)
+        @test occursin("mean MCSE $(r.mcse.mean_mcse)",note)
+        @test occursin("lower / median / upper MCSE",note)
+        @test occursin("sampling warning $(original.evaluation.sampling_warning)",note)
+        @test occursin("Missing: missing",note)
+        @test occursin("Failed: failed",note)
+        @test occursin(result.max_mcse===nothing ? "No maximum MCSE was declared" :
+            "Declared maximum MCSE: $(result.max_mcse)",note)
+        for (ax,row) in zip(axes,rows)
+            if row.parameter_space===:dimensionless
+                @test occursin("imensionless",ax.xlabel[])
+                @test !occursin("1.7",ax.xlabel[])
+            elseif result.scope===:normalized_d1_fixed_mean_profile
+                @test occursin("multiply by 1.7 for unit logits",ax.xlabel[])
+            end
+        end
+        @test occursin("precision screen "*(r.precision_qualified===nothing ? "not requested" :
+            r.precision_qualified ? "met" : "unmet"),note)
         @test !any(x->x isa Label,fig.content)
         embedded=B.plot_prior_sensitivity(demo;annotation_io=nothing)
         @test count(x->x isa Label,embedded.content)==2

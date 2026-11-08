@@ -463,8 +463,10 @@ converted to `nothing`: the in-memory exception, concrete type, message, phase,
 and elapsed time are retained in the result row. Interrupt, out-of-memory, and
 stack-overflow exceptions are rethrown.
 
-This function does not run MCMC, apply computational/scientific thresholds, or
-resolve the Stage-A attempt-complete evaluation-runner blocker.
+This function checks generated datasets and preserves failed attempts. It does
+not fit models or assess parameter recovery, convergence, or calibrated
+decision thresholds. Use the result to inspect design feasibility, not as
+evidence that an analysis performs reliably.
 """
 function mgmfrm_response_stress_preflight(
         plan = mgmfrm_response_stress_plan();

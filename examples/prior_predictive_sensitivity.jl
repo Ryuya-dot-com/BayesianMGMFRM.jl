@@ -1,6 +1,7 @@
 # Prior-predictive illustration linked to a previously saved posterior comparison.
 module PriorPredictiveSensitivityExample
-using BayesianMGMFRM, JSON3
+using BayesianMGMFRM
+using BayesianMGMFRM: JSON3
 const B=BayesianMGMFRM
 
 function compare_saved_priors(spec, posterior_path, output; seeds, ndraws=500)

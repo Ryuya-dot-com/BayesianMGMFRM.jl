@@ -417,7 +417,7 @@ const _LD1_GRID_ROW_FIELDS = (
         n_testlets = 4, items_per_testlet = 3,
         n_raters = 4, n_categories = 4)
 
-Return the matched LD1a known-truth planning rows for local-dependence
+Return the matched known-truth planning rows for local-dependence
 simulation. The rows cover exact null and zero-boundary controls, near-zero
 through large person-by-testlet variation, connected sparsity, pair-support
 boundaries, pre-fit rejection controls, rater-response halo, rater-by-task
@@ -713,7 +713,7 @@ end
         max_probability_cells = 5_000_000,
         max_truth_cells = 5_000_000)
 
-Generate one LD1a ordinal known-truth bundle from a row returned by
+Generate one ordinal known-truth bundle from a row returned by
 [`local_dependence_simulation_grid`](@ref), or from its `scenario_id`. Response
 probabilities use a separately coded adjacent-category partial-credit kernel;
 sampling does not depend on a fitted model's probability or likelihood

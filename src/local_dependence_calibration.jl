@@ -40,7 +40,7 @@ end
         candidate_family_alpha = 0.05,
         candidate_global_alpha = 0.05)
 
-Return the LD1b0 protocol-validation contract for repeated calibration of the
+Return the protocol-validation contract for repeated calibration of the
 existing report-only local-dependence diagnostic. The four alphas define
 candidate decisions computed from finite-sample-corrected unadjusted pair
 tails, within-family BH-adjusted tails, family maximum-statistic tails, and the
@@ -442,7 +442,7 @@ end
         status = :completed, simulation = nothing, diagnostic = nothing,
         failure_code = missing, max_pair_rows = 200_000)
 
-Create one LD1b0 result row for a canonical LD1 planning row. Completed rows
+Create one result row for a canonical local-dependence planning row. Completed rows
 require matching known-truth simulation and report-only diagnostic bundles.
 Pre-fit rejection and failure statuses retain their planned denominator rather
 than being silently dropped. Candidate decisions are derived without modifying
@@ -970,7 +970,7 @@ end
         max_plan_rows = 1_000_000, max_result_rows = 1_000_000,
         max_pair_rows = 5_000_000, max_group_rows = 100_000)
 
-Summarize LD1b0 result rows against the complete set of planned rows. Missing
+Summarize calibration result rows against the complete set of planned rows. Missing
 and failed replications remain explicit. Wilson intervals are used only for
 replication-level binary candidate rates; pooled pair rates are descriptive.
 The result remains protocol-validation evidence and does not enable public

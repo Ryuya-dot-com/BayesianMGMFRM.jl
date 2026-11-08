@@ -94,6 +94,10 @@ end
         @test all(row.block !== :item_dimension_discrimination for row in surface)
         @test_throws ArgumentError design_row_table(design)
         @test_throws ArgumentError getdesign(spec)
+        @test_throws r"multidimensional MFRM; inspect the design with getdesign\(spec; preview = true\)" B.Experimental.preview(spec)
+        for operation in (B.Experimental.cached_fit, B.Experimental.fit_cache_key)
+            @test_throws r"automatic request caching is unavailable; use Experimental.fit, then save_fit_cache/load_fit_cache" operation(spec; seed=1)
+        end
         for backend in (:julia,:advancedhmc,:cmdstan)
             @test_throws ArgumentError fit(spec; backend)
             @test_throws ArgumentError fit(design; backend)
@@ -123,8 +127,18 @@ end
     for backend in (:advancedhmc, :cmdstan)
         @test_throws ArgumentError B.Experimental.fit(spec; backend, init=fill(NaN, length(getdesign(spec; preview=true).parameter_names)))
     end
-    @test_throws ArgumentError B.Experimental.cached_fit(spec; seed=1)
-    @test_throws ArgumentError B.Experimental.fit_cache_key(spec; seed=1)
+    for operation in (() -> B.Experimental.free_latent_correlation_2d_candidate(spec),
+            () -> B.Experimental.free_latent_correlation_2d_diagnostics(spec, Float64[]))
+        @test_throws r"multidimensional MFRM; inspect model_equation\(spec\) for available operations" operation()
+    end
+    stable_spec = mfrm_spec(spec.data)
+    for operation in (B.Experimental.preview, B.Experimental.cached_fit, B.Experimental.fit_cache_key)
+        @test_throws r"use BayesianMGMFRM.fit for the stable MFRM surface" operation(stable_spec)
+    end
+    for generalized_spec in (mfrm_spec(spec.data; family=:gmfrm, discrimination=:rater_item),
+            mfrm_spec(spec.data; family=:mgmfrm, dimensions=2, q_matrix=spec.q_matrix))
+        @test B.Experimental.preview(generalized_spec).spec === generalized_spec
+    end
     for kwargs in ((; thresholds=:rating_scale), (; discrimination=:rater),
             (; bias=[(:item,:rater)]), (; anchors=[(; block=:rater,level=1,value=0.0)]))
         @test_throws ArgumentError mfrm_spec(spec.data; dimensions=2,q_matrix=spec.q_matrix,kwargs...)

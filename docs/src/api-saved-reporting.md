@@ -1,18 +1,165 @@
-# Saved-fit Reporting Candidate API
+# Save, reopen and report an analysis
 
-These qualified candidate functions summarize the eight common saved-fit types.
-Posterior summaries consume original retained draws and preserve numerical warnings
-and source identity. The separate observed-score alpha and ICC operations consume ratings
-and also accept `FacetData` without a fit. No fitting is performed. Their uncertainty definitions differ: a
-finite-cohort reliability functional, matched-response score agreement, category use/steps/conditional curves, binary classification risk, and finite-cohort ranks answer distinct questions.
+Use the same `save_fit` / `load_fit` and `save_report` / `load_report` names
+for the supported model workflows. Native fits retain draws for further analysis;
+portable reports retain computed values and warnings. Reopening either does not
+fit the model again. Keep the exact source, Julia and dependency environment for
+native files; the portable report is the sharing format.
 
-Read the [interpretation guide](interpreting-results.md) and the
-[saved-fit examples](examples.md) before reporting their values. The standalone functions can also be requested together through
-`fit_report(...; reporting=(...))`; see the integrated example below. The ordinary
-MFRM diagnostics, including the historical replicated-category summary, remain
-in the [Workflow and Diagnostics API](api-workflow-diagnostics.md).
+## One saving and reopening workflow
 
-## Reopen an analysis or share its results
+```julia
+using BayesianMGMFRM
+
+save_fit("analysis.jls", result)
+restored = load_fit("analysis.jls")
+receipt = save_report("summary.json", restored; return_receipt=true)
+report = load_report(receipt.path; expected_sha256=receipt.sha256)
+```
+
+`result` is an already fitted common model, Star model, or supported experimental
+sample record. Save the receipt separately when exporting: reading a changed file
+and calculating its current digest does not verify the original export.
+`return_receipt=true` gives the same `path` and `sha256` fields for every report
+writer. Without it, the existing writer's return value is preserved.
+
+| Result | Native reopening | Computed report |
+| --- | --- | --- |
+| Eight common MFRM/GMFRM/MGMFRM result types | `load_fit(path)`; existing cache validation and controls | `save_report(path, result)` uses `fit_report`; `view=:public` is available |
+| Star, JointRatings, OrdinalAssociation, correlated 3D and criterion-collapse results | `load_fit(path)`; model-specific target/hash/source checks | `save_report(path, result)` uses `posterior_summary`; retains the model's report structure |
+| Rater-group result | `load_fit(path)` | `save_report(path, result; reference_group=group, practical_threshold=epsilon)` |
+| Rater-by-item result | `load_fit(path)` | `save_report(path, result; practical_threshold=epsilon)`; choose the substantive tolerance explicitly |
+| RaterDrift / ThreeIndicator native directory | `load_fit(directory)` selects the reader from `plan.jls` | Compute the saved report with the model's `summarize`, then use `save_report` / `load_report` |
+| RaterDrift / ThreeIndicator saved report | Contains computed values, not native draws | `posterior_summary(saved)` exposes the existing report, with its warnings |
+
+The common names do not make report shapes or statistical quantities identical.
+Keep the relevant [interpretation guide](interpreting-results.md),
+[JointRatings guide](joint-ratings.md), [Star guide](star-association.md), or
+model guide alongside the result. In particular, `reference_group` and `practical_threshold` are
+scientific choices, not automatic defaults. A portable report cannot be used to
+change an interval, prior, reference, or conditioning set that requires draws.
+
+You may also pass a previously computed report to `save_report`. This retains
+its calculation without recomputing a summary. For sample records, summary
+keywords follow `posterior_summary`; unsupported writer/reader/summary controls
+raise errors rather than being ignored. Common report readers still support
+`require_complete`, `verify_hash`, and `return_record`. The external file receipt
+check is independent of an embedded content hash.
+
+Criterion-collapse, RaterDrift and ThreeIndicator reports require
+`expected_sha256`; other supported reports accept it optionally. Their existing
+content and producer checks remain in force. Unknown report schemas are refused.
+A hash detects changed bytes; it does not establish statistical validity.
+For partial RaterDrift/ThreeIndicator directories, `require_complete=false`
+inspects completed chains without resuming or summarizing an incomplete fit.
+
+The detailed recipes below summarize the eight common saved-fit types unless
+another model is named. The separate observed-score alpha and ICC operations
+consume ratings and also accept `FacetData` without a fit. Finite-cohort
+reliability, matched-response score agreement, category use, classification
+risk and ranks answer different questions. The standalone functions can also
+be requested through `fit_report(...; reporting=(...))`. Experimental sample
+records remain distinct from `load_fit_cache` / `fit_report`; use the unified
+entry points above to select their appropriate implementations.
+
+## [Read a saved three-outcome analysis](@id three-outcome-saved-reports)
+
+Use `Experimental.ThreeIndicator` when you already have a supported computed
+report for accentedness, comprehension difficulty and transcription error.
+This interface reads results from the no-state observation model. Fitting,
+new posterior contrasts and changing the prior, panel or interval level are
+not available through this interface. It is separate from `load_fit_cache` and
+`fit_report`; the report contains computed summaries, not posterior draws.
+
+```julia
+using BayesianMGMFRM
+saved = load_report("three-outcome-report.json";
+    expected_sha256 = report_sha256,
+    comparison_path = "engine-comparison.json",
+    comparison_sha256 = comparison_sha256)
+answer = posterior_summary(saved)
+answer.rows                  # means, intervals, MCSE and numerical flags
+answer.focal_definitions     # exact panel, weights, pairs, L1 and position
+answer.listener_support      # recorded position ranges, or :not_recorded
+answer.prior                 # name and numerical prior settings
+answer.prior_provenance      # :recorded or :producer_reference
+answer.metadata              # outcome order, directions, scoring and units
+answer.warnings              # whole-report, warmup and comparison warnings
+answer.comparison.flags
+
+receipt = save_report("shared-analysis.json", saved; return_receipt=true)
+reopened = load_report(receipt.path; expected_sha256 = receipt.sha256)
+```
+
+Set `report_sha256` and `comparison_sha256` from the separately retained export
+receipts. A checksum detects changes after export; computing a new checksum of
+an unexpectedly changed file does not verify it against the original. The reader
+checks the supported producer/format, context, row meanings and consistency of
+saved numerical flags. It does not authenticate a producer or recompute an
+analysis. A checksum failure calls for the original file and receipt, not a refit.
+
+Original Julia/Stan exports and the Julia producer with mandatory input
+validation are supported. Model and producer versions are checked together;
+an unknown combination is refused. Preserve an unsupported export and its
+receipt instead of editing its provenance to force loading. This compatibility
+does not provide fitting or native-chain import.
+
+The two comparison keywords are optional but must be supplied together. Without
+them, `answer.comparison.status` is `:not_supplied` and a warning remains.
+A supplied comparison must match the selected report's identity and values.
+Its descriptive flags remain visible even when the individual fit passes its
+numerical criteria. No new engine comparison or equivalence decision is made.
+The saved copy retains both original files verbatim and refuses an existing
+output path. Keep the returned checksum separately for the recipient.
+
+When the producer records listener position support,
+`answer.prior` identifies `:reference`, `:steps` or `:combined` and its numerical
+settings. New reports record these explicitly. Older recognized producers
+implemented only the original reference prior; their reports return
+`prior_provenance=:producer_reference` with a warning. This does not alter the
+source bytes or turn historical results into fits under another prior.
+See [the fitting guide](@ref three-outcome-fitting) for the assumptions.
+
+`answer.listener_support.rows` gives both sides of every listener contrast:
+the requested position, listener/L1 observation count, observed bounds and
+`:within_observed_range`, `:outside_observed_range` or `:unobserved_context`.
+Extrapolated contrasts and absent contexts retain explicit warnings. These
+are marginal position checks; they do not establish joint covariate overlap,
+model identification or causal comparability, and do not alter numerical
+qualification. An interval outside observed support remains conditional on
+the assumed linear trend there.
+
+Historical summaries without this information return
+`answer.listener_support.status == :not_recorded` and a warning. The stored
+pair definition alone cannot recover observed input ranges. Sharing and
+reloading a report preserves recorded context and leaves unavailable context
+unavailable; it does not recalculate the original estimates.
+
+Read the table using the following definitions:
+
+| Rows | Meaning and interpretation |
+| --- | --- |
+| `panel_probability[d,k]` | The weighted conditional probability for category `k` of outcome `d` on the stored existing-event panel. These are not new-listener predictions. |
+| `panel_expected_rating[d]`, d=1,2 | Expected category on the declared 1–9 coding. Higher values are adverse. The two scales do not measure one common construct merely because both use 1–9. |
+| `panel_correct_probability` | Probability of binary category 1, **correct**. Binary category 2 means incorrect. |
+| `speaker/...`, `listener/...` | Left-minus-right adverse-location differences. Different-cell/cohort effects are included where specified. Listener contrasts depend on the stored stimulus L1 and transformed position; these are not context-free severity differences, score differences or common log odds ratios. |
+| `correlation/...` | Marginal correlations in the named hierarchy before centering. These are not observed-score or partial correlations. |
+
+Intervals are the stored pointwise 95% equal-tailed intervals. `mean_mcse`,
+`lower_mcse` and `upper_mcse` retain the numerical uncertainty of those summaries.
+Read whole-report warnings alongside a selected row. An interval including zero
+is not an equivalence result, and precise computation does not guarantee a
+narrow interval, identification, calibration or substantive validity. Changing
+weights or taking differences between interval endpoints cannot supply a new
+posterior contrast. Keep the full original report in `answer.source` when
+sharing diagnostics and provenance.
+
+The shipped `examples/saved_three_indicator_report.jl` provides the same steps
+as `saved_three_indicator_report(path; expected_sha256, comparison_path,
+comparison_sha256, output_path)`. Including it performs no analysis; it uses
+only the installed package. See the [API reference](api-experimental.md#Three-outcome-saved-results).
+
+## [Reopen an analysis or share its results](@id saved-result-reproduction)
 
 Choose the saved format for the task:
 
@@ -34,6 +181,160 @@ cache's exact diagnostic checks. Preserve and restore the complete original
 `Project.toml` and `Manifest.toml`; do not bypass integrity checks or refit merely
 to read saved results. Export a portable report in the original environment when
 the recipient only needs the computed results.
+
+### What the development version has actually verified
+
+This manual describes an unpublished local source that follows development
+commit `88bd6b422bb8afeb43a4a936376efad9ea2070c8`. Both that public preview and
+later local sources use version `0.1.2`; the version string alone does not
+identify the code. Keep the exact source archive or revision, as explained in
+[Versions and Saved Results](registration.md).
+
+The table separates checks on earlier source snapshots from saved-result checks
+on the source used by this manual. Actual fitting, installation and restoration
+were checked in separate stages, with their original failures retained and
+resolved separately. These results do not constitute a single successful run
+of every model on the current source. The declared Julia minimum is 1.10.8;
+neither that declaration nor an allowed dependency range verifies every
+model/backend/environment combination.
+
+| Environment or transfer | Verified scope | Limit that remains |
+| --- | --- | --- |
+| Julia 1.10.8, macOS on Apple Silicon: first MFRM analysis | An earlier local source completed the supplied 72-rating scalar PCM example: AdvancedHMC fitting, reporting and fresh-process native/JSON restoration with compiled modules enabled. | One model, explicit prior and retained dependency selection. It does not verify every MFRM threshold/backend choice, another platform or general calibration. |
+| Julia 1.10.8, macOS on Apple Silicon: normalized D2 MGMFRM | Earlier local sources completed the supplied 1,000-rating example with an explicit normalized prior, four-chain AdvancedHMC fitting, reporting and fresh-process restoration. Compiled-mode fitting was checked separately after the original uncompiled run. The present reporting source also reopens, summarizes and re-saves this retained fit. | These are distinct execution stages. The same-seed compiled run is not an independent statistical replication. This does not verify other priors, model combinations or all current-source fitting routes. |
+| Julia 1.12.5, macOS on Apple Silicon: eight common saved-fit types | The present reporting source loads the original fits, recomputes summaries, re-saves native caches and reopens native/JSON summaries in separate processes. Earlier published-source checks separately cover saved comparison and reporting. | The eight-type check was completed in stages under recorded launch options. Historical fits have only 16 retained draws each and retain numerical warnings; successful restoration does not make them adequate for inference. |
+| Julia 1.10.8, macOS on Apple Silicon: installation and startup | Earlier local sources separately completed fresh dependency resolution/source loading/input inspection with precompilation disabled, then normal startup using the same dependency selection and an initially empty compilation cache. Later MFRM and D2 fitting used those retained dependencies. | The startup stage reused verified dependency sources. These are not one cold-install-to-fit run, a new installation of every later source or installation checks for optional plotting. |
+| JointRatings, Julia 1.12.5/macOS, original dependencies | Separate saved-result operations use JointRatings' own result, report and restoration interfaces. | Its minimum-version fitting and broader-platform compatibility remain unverified. It is not a ninth common `load_fit_cache` result type. |
+| Earlier Julia 1.10.8 postprocessing checks | Bounded classification/ranking, slope/profile arithmetic and synthetic-cache reconstruction were checked on earlier sources. | Artificial fixtures and saved postprocessing do not establish actual fitting for those model/prior routes. |
+| JSON reports produced on 1.12.5, read on 1.10.8 | Eight earlier actual-fit bundles and separately checked slope/profile reports preserve their computed values and warnings. | No fitted object, posterior chain, new interval or new analysis is reconstructed. Older text remains older text. |
+| Native cache from 1.12.5, read on 1.10.8 | The attempted downgrade was refused by native deserialization. | This reconstruction route is unsupported. Use the original Julia environment or an exported report. |
+| Same Julia version, different dependencies or launch options | One native-cache refusal was resolved by restoring the original dependencies. In a separate check with unchanged source and input, `-O0` changed the last bits of R-hat, while `-O2` reproduced the saved values. | Preserve the original launch options as well as the manifest. This finding does not make `-O2` a universal repair; retain unresolved mismatches and integrity checks. |
+| Windows, Linux or another machine | No complete current-source fitting/persistence acceptance is established here. | Unverified, not demonstrated broken. A CI configuration or a local Mac check is not execution evidence for another platform. |
+
+These are engineering boundaries. The separate [scientific scope](scope.md)
+still excludes general calibration, a recommended normalized-prior default and
+unvalidated model-selection claims.
+
+### Preserve enough information to reopen the fit
+
+The report reader preserves integer tokens, including 64-bit input signatures,
+without conversion through a floating-point value. Earlier readers could round
+an integer outside the signed 64-bit range, or inside a mixed numeric array.
+Read the unchanged original JSON with the corrected reader; a value already
+rounded and re-exported cannot be recovered from that copy.
+
+Newly saved fit reports use export envelope v2. Its JSON-payload checksum
+preserves exact integer values, including large input signatures; changing an
+integer by one is detected. A report bundle declares this version in its report
+file entry. Both full and public reports use the new export envelope, while
+their inner content hashes and native-cache formats remain unchanged.
+
+The reader still accepts original v1 exports with their original checksum rules.
+Those checksums normalize numbers through floating point and cannot distinguish
+every large-integer change. The separate table and dossier formats also retain
+their existing checksum rules. Re-saving an unchanged original report creates a
+v2 export; it does not prove that an older file was unaltered. Retain the original
+file and receipt. Readers that support only v1 reject new v2 exports: the recipient
+needs a reader supporting v2, or the preserved original v1 file.
+
+These content checksums are not hashes of the original file bytes and do not
+authenticate the sender. Keep a separate SHA-256 receipt for each original file
+when exact transfer identity is required. Do not bypass a failed integrity check
+to make a report load.
+
+1. Keep the native cache, original input data, analysis script, rating IDs and
+   explicit model/prior/interval/reporting choices. A report is not a substitute
+   for the data or analysis specification.
+2. In the original session, record `VERSION`, `Sys.MACHINE`,
+   `Base.active_project()` and `Pkg.status(; mode=Pkg.PKGMODE_MANIFEST)` after
+   `using Pkg`. Keep the Julia launch command, including any optimization,
+   bounds-checking or math-mode options. Copy that project's `Project.toml` and its `Manifest*.toml`
+   files, including a version-specific manifest if present. Keep the exact
+   BayesianMGMFRM commit. A manifest that points to a local checkout does not
+   copy that checkout: archive its source and preserve or deliberately restore
+   those path references. Do the same for locally developed dependencies.
+3. Reopen with the original Julia executable and archived project. For example,
+   `julia --startup-file=no --project="/path/to/archived-analysis" reopen.jl`.
+   Confirm `VERSION`, `Base.active_project()` and `pkgdir(BayesianMGMFRM)` before
+   loading the cache. Activating a project does not restore missing packages;
+   if dependencies are unavailable, restore them from the recorded manifest
+   without updating its resolved versions. A changed source or environment
+   needs its own affected compatibility check.
+
+The following can be saved as `reopen.jl` beside `analysis-fit.jls`. Run it in
+that matching environment. It recomputes a report from retained draws without
+fitting or generating replicated responses, and writes a **new** bundle:
+
+```julia
+using BayesianMGMFRM
+
+fit_result = load_fit_cache(joinpath(@__DIR__, "analysis-fit.jls"))
+# Omit legacy MFRM sections; category functioning simulates new ratings.
+legacy_options = fit_result isa MFRMFit ?
+    (; include_category_functioning=false, include_rater_homogeneity=false) : (;)
+report = fit_report(fit_result; legacy_options..., view=:public,
+    include_prior_predictive=false, include_posterior_predictive=false,
+    include_artifact=false, include_waic=false, include_loo=false,
+    posterior_lower=0.005, posterior_upper=0.995,
+    on_section_error=:throw)
+fit_report_health(report)
+destination = joinpath(@__DIR__, "reopened-report")
+save_fit_report_bundle(destination, report; require_complete=true)
+restored = load_fit_report_bundle(destination; require_complete=true)
+```
+
+The posterior bounds request a central 99% interval. This minimal export does
+not recreate the original report's optional sections or choices; add the
+original `reporting` request when needed. Omitted predictive sections stay
+unrequested. In ordinary MFRM, disabling only `include_posterior_predictive`
+does **not** disable the separate legacy category-functioning section, which
+simulates responses. The minimal example also omits legacy rater homogeneity;
+that section need not simulate responses when using all retained draws. The newer optional `reporting.category` consumes retained draws without that
+legacy replication. `require_complete=true` checks section completeness,
+not convergence or precision. Inspect `diagnostics(fit_result).summary` for
+`flag` and `passed`; a complete report can still have `sampler_warning` and
+`passed=false`. Diagnostic rows and original sampler warnings remain in the export.
+
+If a report already exists, reading it requires no recomputation:
+
+```julia
+report = load_fit_report("assessment-report/fit_report.json")  # One JSON export
+report = load_fit_report_bundle("assessment-report")           # Whole bundle directory
+```
+
+### If reopening fails
+
+| Observation | What to do |
+| --- | --- |
+| `Cannot read stream serialized with a newer version of Julia` | Start the original Julia version and archived project. Export JSON there if the recipient cannot use that environment. |
+| Diagnostic/artifact mismatch after moving to a new environment | Restore the original source, full manifest and Julia launch options, then retry the read. Such a mismatch is not proof of file damage; recomputed values can depend on the execution environment. Preserve the original cache and full error if the matched environment still fails. |
+| Hash mismatch in a JSON report or bundle | Compare with the original export and transfer all bundle files unchanged. Editing a table or renaming a cache does not migrate it. Do not disable integrity checks to claim a successful reproduction. |
+| Destination already exists | Choose a new output directory; keep the original report. A regenerated report may reflect corrected descriptions, whereas reading old JSON preserves them. |
+| Report export failed after the native fit was saved | Keep `fit.jls` and the error. Fix the export setting or destination and rebuild the report from that cache in the original environment; do not repeat fitting just to recreate a report. |
+| An export directory has JSON/tables but no valid bundle manifest | Preserve the partial directory for diagnosis and export to a new destination. A partial export is not a completed bundle. Do not bypass hash checks or construct a manifest by hand. |
+| A report loads but says `sampler_warning` or `insufficient_draws` | Reading succeeded; statistical adequacy did not improve. Preserve that warning when sharing the result. |
+
+If the failed export left a valid individual `fit_report.json`, restore the
+already computed report without reopening the fit or recalculating statistics:
+
+```julia
+report = load_fit_report("partial-report/fit_report.json")  # verifies this JSON export
+save_fit_report_bundle("recovered-report", report; require_complete=true)
+restored = load_fit_report_bundle("recovered-report"; require_complete=true)
+```
+
+Use a new destination and keep integrity checks enabled. If the JSON itself is
+incomplete or fails validation, return to the saved fit in its original
+environment. This route restores computed output, not posterior draws, new
+intervals or figures requiring a fitted object.
+
+When asking a maintainer for help, provide the exact source commit, Julia/OS
+and manifest identity, the operation and file format, the complete error and
+whether the original environment can read the file. A portable report is useful
+when the task is to inspect already computed results; it cannot recover missing
+draws or an unavailable original environment.
+See [reporting a problem](contributing.md#report-a-problem) for the support
+channel and a short version-information command.
 
 ## One report with explicit analysis choices
 
@@ -61,8 +362,10 @@ reporting = (;
     agreement=(;response_ids=performance_ids, interval=0.99, se_unit=:person),
     reliability=[(;id="Ability A", parameters=person_names_A, target=:centered)])
 
-report = fit_report(fit_result; reporting, view=:public,
-    include_posterior_predictive=false, include_artifact=false,
+legacy_options = fit_result isa MFRMFit ?
+    (; include_category_functioning=false, include_rater_homogeneity=false) : (;)
+report = fit_report(fit_result; reporting, legacy_options..., view=:public,
+    include_prior_predictive=false, include_posterior_predictive=false, include_artifact=false,
     include_waic=false, include_loo=false)
 report.category_report.usage_rows
 report.posterior_reliability.rows
@@ -222,4 +525,15 @@ unstable; inspect the ANOVA table rather than interpreting a cutoff mechanically
 
 ```@docs
 BayesianMGMFRM.intraclass_correlation
+```
+
+## Scalar expected scores and information
+
+The [score and information guide](score-information.md) connects a declared
+item/rater design, conditional curves, joint uncertainty and saved report tables.
+The opt-in `reporting.score_information` section uses all retained draws of an
+ordinary scalar MFRM. Other fitted-result types are outside its initial scope.
+
+```@docs
+BayesianMGMFRM.score_information_report
 ```

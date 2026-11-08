@@ -3,6 +3,85 @@ module BayesianMGMFRMCairoMakieExt
 using BayesianMGMFRM, CairoMakie
 const B = BayesianMGMFRM
 
+function plot_rater_drift(saved; rater, size=(1000,550), annotation_io=stdout)
+    d=B.Experimental.RaterDrift.trajectory(saved;rater)
+    offset=_annotation_offset(annotation_io)
+    fig=Figure(;size,fontsize=14)
+    ax=Axis(fig[1+offset,1];xlabel="Time ($(d.time_unit))",
+        ylabel="Severity change from $(d.reference) (model units)",
+        xticks=([r.tick for r in d.rows],[r.time for r in d.rows]))
+    hlines!(ax,[0.];color=:gray60,linestyle=:dash)
+    lines!(ax,[r.tick for r in d.rows],[r.median for r in d.rows];color=:gray60)
+    for row in d.rows
+        color=row.design_status in ("linked","reference","static_constraint") ? :steelblue4 : :darkorange3
+        if !row.structurally_fixed
+            rangebars!(ax,[row.tick],[row.lower],[row.upper];color,linewidth=2,whiskerwidth=12)
+        end
+        scatter!(ax,[row.tick],[row.median];color,markersize=12,
+            marker=row.structurally_fixed ? :diamond : :circle)
+    end
+    title="Severity change: $(rater===:panel ? "fixed panel" : rater)"
+    note="Medians and $(100d.interval_mass)% pointwise equal-tailed credible intervals; not a simultaneous band. " *
+        "Positive change means harsher rating. Model units enter the adjacent-category logit with multiplier 1.7. " *
+        (d.process===:static ? "All diamonds are changes fixed at zero by the static model; severity levels remain uncertain. " :
+            "The reference diamond is zero by definition. Orange marks process-only or confounded changes. ") *
+        "Lines connect stored bins and are not a continuous-time fit. " *
+        "Original numerical qualification: $(d.original_numerical_qualified); integrated: $(d.numerical_qualified). " *
+        (d.process===:static ? "No innovation SD is fitted. " : "Log innovation SD prior mean: $(d.innovation_log_sd_mean), SD: 1. ") *
+        "Retrospective estimates; no forecasting, change-point or intervention-effect claim. " *
+        "Whole-report warnings: " * (isempty(d.warnings) ? "none recorded." : join(d.warnings," "))
+    _figure_text!(fig,title,note;annotation_io,bottom_row=2+offset)
+end
+
+function plot_design_precision(results; parameter, size=nothing, annotation_io=stdout)
+    data = B.design_precision_plot_data(results; parameter)
+    offset = _annotation_offset(annotation_io)
+    rows = data.rows
+    labels = map(rows) do row
+        status = row.confidence_interval.status
+        note = status === :available ? "" : "\nCI: " * replace(String(status),'_'=>' ')
+        "$(row.scenario_id)\nwidth <= $(row.max_interval_width); qualified $(row.n_qualified)/$(row.n_planned)" * note
+    end
+    fig = Figure(;size=something(size,(1300,160+100length(rows)+180offset)),fontsize=14)
+    level = data.confidence_level === nothing ? "requested" : "$(round(100data.confidence_level;digits=2))%"
+    left = Axis(fig[1+offset,1];title="Numerically qualified datasets",
+        xlabel="Target frequency and $level confidence interval",
+        yticks=(1:length(rows),labels),yreversed=true,ygridvisible=false)
+    right = Axis(fig[1+offset,2];title="All planned datasets",
+        xlabel="Unresolved-outcome bounds (not a confidence interval)",
+        yticks=(1:length(rows),fill("",length(rows))),yreversed=true,ygridvisible=false)
+    for (i,row) in enumerate(rows)
+        ci = row.confidence_interval
+        if ci.status === :available
+            rangebars!(left,[i],[ci.lower],[ci.upper];direction=:x,color=:steelblue4,
+                linewidth=2,whiskerwidth=10)
+        end
+        if ismissing(row.conditional_frequency)
+            text!(left,0.05,i;text="No qualified result",align=(:left,:center),fontsize=12)
+        else
+            scatter!(left,[row.conditional_frequency],[i];color=:black,markersize=10)
+        end
+        lower,upper = row.all_planned_frequency_bounds
+        rangebars!(right,[i],[lower],[upper];direction=:x,color=:darkorange3,
+            linewidth=2,whiskerwidth=10)
+        lower == upper && scatter!(right,[lower],[i];marker=:diamond,color=:darkorange3,markersize=10)
+    end
+    for ax in (left,right)
+        xlims!(ax,-0.03,1.03); ylims!(ax,length(rows)+0.6,0.4)
+        ax.xticks = 0:0.25:1
+    end
+    target = data.interval_probability === nothing ? "Declared central interval" :
+        "$(round(100data.interval_probability;digits=2))% central interval"
+    title = "Design precision: $(data.parameter)"
+    caption = "$target widths use each row's target in its native units. Black points are observed frequencies. " *
+        "Left intervals are per-scenario Clopper-Pearson confidence intervals conditional on numerical qualification, " *
+        "requiring independent identically distributed dataset replications; unavailable intervals are labelled. " *
+        "Right bounds assign every unresolved outcome failure or success; they have no confidence level. " *
+        "Failures and numerical exclusions remain in planned counts. MCMC width-classification error is not corrected. " *
+        "No simultaneous inference, design ranking, calibration or assurance is established."
+    return _figure_text!(fig,title,caption;annotation_io,bottom_row=2+offset,columns=2)
+end
+
 function _annotation_offset(annotation_io)
     annotation_io === nothing && return 1
     annotation_io isa IO && iswritable(annotation_io) ||
@@ -30,9 +109,18 @@ _response_category_colors(n) = n <= 7 ? Makie.wong_colors()[1:n] :
 _ability_axis(d) = "θ" * join(Char(0x2080 + Int(c - '0')) for c in string(d))
 
 function plot_response_surface(fit; size = nothing, azimuth = 1.275pi,
-        elevation = pi/7, annotation_io = stdout, kwargs...)
-    offset = _annotation_offset(annotation_io)
+        elevation = pi/7, annotation_io = stdout, layout = :overlay, kwargs...)
+    layout isa Symbol && layout in (:overlay, :panels, :heatmaps) ||
+        throw(ArgumentError("layout must be :overlay, :panels or :heatmaps"))
     data = B.item_response_surface(fit; kwargs...)
+    return _render_response_surface(data; size, azimuth, elevation, annotation_io, layout)
+end
+
+function _render_response_surface(data; size = nothing, azimuth = 1.275pi,
+        elevation = pi/7, annotation_io = stdout, layout = :overlay)
+    layout === :overlay || return _render_response_panels(data;
+        size, azimuth, elevation, annotation_io, layout)
+    offset = _annotation_offset(annotation_io)
     all_categories = data.category === :all
     probabilities = data.category !== nothing
     category_indices = all_categories ? collect(eachindex(data.category_levels)) :
@@ -74,15 +162,59 @@ function plot_response_surface(fit; size = nothing, azimuth = 1.275pi,
     Colorbar(uncertainty[cld(panels,2)+1, 1:min(panels,2)]; colormap = :magma,
         limits = (0.0, iszero(upper) ? 1.0 : upper), vertical = false,
         label = "$(round(100data.interval; digits=2))% pointwise interval width")
+    _figure_text!(fig, title, _response_caption(data); annotation_io, bottom_row = plot_row + 1,
+        columns = 2, title_bold = false)
+end
+
+function _response_caption(data)
     fixed = isempty(data.fixed_abilities) ? "No additional ability dimensions." :
         "Fixed abilities: " * join(["$(_ability_axis(r.dimension))=$(r.value)" for r in data.fixed_abilities], ", ") * "."
     inactive = [_ability_axis(data.dimensions[i]) for i in 1:2 if !data.active_dimensions[i]]
     qnote = isempty(inactive) ? "" : " Q excludes " * join(inactive, ", ") * "; the surface is flat along that axis."
-    caption = "$(data.quantity_label); $(data.n_draws) of $(data.total_draws) retained joint draws. $fixed$qnote\n" *
+    return "$(data.quantity_label); $(data.n_draws) of $(data.total_draws) retained joint draws. $fixed$qnote\n" *
         "Pointwise intervals describe uncertainty in the conditional mean/probability, not future individual ratings.\n" *
+        "Interval widths are posterior uncertainty, not MCSE or simultaneous bands.\n" *
         "Ability ranges are display choices; they do not establish data support.\n" * data.diagnostic * " (whole fit)."
-    _figure_text!(fig, title, caption; annotation_io, bottom_row = plot_row + 1,
-        columns = 2, title_bold = false)
+end
+
+function _render_response_panels(data; size, azimuth, elevation, annotation_io, layout)
+    offset = _annotation_offset(annotation_io)
+    all_categories = data.category === :all
+    levels = all_categories ? data.category_levels : [data.category]
+    columns = min(3,length(levels))
+    rows = cld(length(levels),columns)
+    fig = Figure(; size=something(size,(460columns,510rows+90+180offset)),fontsize=14)
+    xlabel,ylabel = _ability_axis.(data.dimensions)
+    inactive = [_ability_axis(data.dimensions[i]) for i in 1:2 if !data.active_dimensions[i]]
+    qnote = isempty(inactive) ? "" : "\nQ excludes " * join(inactive,", ")
+    bounds = data.category === nothing ? extrema(data.category_levels) : (0.,1.)
+    widths = (0., max(maximum(data.interval_width),eps(Float64)))
+    for (k,level) in enumerate(levels)
+        row,col = 2cld(k,columns)-1+offset,mod1(k,columns)
+        heading = (level === nothing ? "Expected rating" : "Rating $level") * " · mean" * qnote
+        means = all_categories ? data.mean[:,:,k] : data.mean
+        uncertainty = all_categories ? data.interval_width[:,:,k] : data.interval_width
+        if layout === :panels
+            ax = Axis3(fig[row,col];xlabel,ylabel,zlabel=data.quantity_label,title=heading,
+                azimuth,elevation,protrusions=(65,25,40,25))
+            surface!(ax,data.x,data.y,means;colormap=:viridis,colorrange=bounds)
+            zlims!(ax,bounds...)
+        else
+            ax = Axis(fig[row,col];xlabel,ylabel,title=heading)
+            heatmap!(ax,data.x,data.y,means;colormap=:viridis,colorrange=bounds)
+        end
+        width = Axis(fig[row+1,col];xlabel,ylabel,title="Rating $(something(level,"mean")) · interval width")
+        heatmap!(width,data.x,data.y,uncertainty;colormap=:magma,colorrange=widths)
+    end
+    scales = GridLayout(fig[2rows+1+offset,1:columns])
+    Colorbar(scales[1,1];colormap=:viridis,limits=bounds,vertical=false,label="Mean: $(data.quantity_label)")
+    Colorbar(scales[columns==1 ? 2 : 1,columns==1 ? 1 : 2];colormap=:magma,limits=widths,vertical=false,
+        label="$(round(100data.interval;digits=2))% pointwise interval width")
+    colgap!(fig.layout,40)
+    colgap!(scales,60)
+    return _figure_text!(fig,"Experimental MGMFRM · Item $(data.item) · Rater $(data.rater)",
+        _response_caption(data) * "\nCommon mean and width scales across all category panels.";
+        annotation_io,bottom_row=2rows+2+offset,columns,title_bold=false)
 end
 
 function plot_posterior(fit; size = nothing, annotation_io = stdout, kwargs...)
@@ -247,6 +379,7 @@ function plot_wright(fit; size = nothing, annotation_io = stdout, kwargs...)
 end
 
 function _render_wright(fit, data; size = nothing, annotation_io = stdout)
+    hasproperty(data,:ridge) && return _render_wright_ridges(data;size,annotation_io)
     offset = _annotation_offset(annotation_io)
     groups = [[row for row in data.rows if row.facet === facet] for facet in data.groups]
     fig = Figure(; size = size === nothing ? (max(1000, 65 * data.n_individual_positions + 200), 560 + 200offset) : size, fontsize = 14)
@@ -301,6 +434,48 @@ function _render_wright(fit, data; size = nothing, annotation_io = stdout)
     ylims!(first(axes), lo - pad, hi + pad)
     caption = _wright_caption(data)
     return _figure_text!(fig, title, caption; annotation_io, bottom_row = 3, columns = length(groups))
+end
+
+function _render_wright_ridges(data; size, annotation_io)
+    offset = _annotation_offset(annotation_io)
+    r = data.ridge
+    maximum_rows = maximum(count(row->row.facet===facet,data.rows) for facet in data.groups)
+    fig = Figure(;size=something(size,(380length(data.groups),150+48maximum_rows+220offset)),fontsize=14)
+    headings = Dict(:person=>"+ Person ability",:rater=>"− Rater severity",
+        :item=>"− Item difficulty",:threshold=>"Item + step (rater = 0)")
+    peak = maximum((maximum(d) for d in r.densities if d !== nothing);init=1e-12)
+    axes = Axis[]
+    for (col,facet) in enumerate(data.groups)
+        indices = findall(row->row.facet===facet,data.rows)
+        labels = [row.component === :threshold ? "$(row.item): $(row.from_category) → $(row.to_category)" :
+            string(row.level) for row in data.rows[indices]]
+        ax = Axis(fig[1+offset,col];title=headings[facet],xlabel="Logit position",
+            yticks=(maximum_rows-length(indices)+1:maximum_rows,reverse(labels)),ygridvisible=false)
+        push!(axes,ax)
+        vlines!(ax,[0.];color=:gray60,linestyle=:dash)
+        for (level,i) in enumerate(indices)
+            y = maximum_rows-level+1
+            row,d,status = data.rows[i],r.densities[i],r.statuses[i]
+            if d !== nothing
+                top = y .+ .72 .* d ./ peak
+                band!(ax,r.grid,fill(Float64(y),length(r.grid)),top;color=(:steelblue,.35))
+                lines!(ax,r.grid,top;color=:steelblue4,linewidth=1.1)
+            end
+            row.is_fixed || rangebars!(ax,[y],[row.position_lower],[row.position_upper];
+                direction=:x,color=:black,linewidth=2,whiskerwidth=6)
+            scatter!(ax,[row.position_median],[y];color=status===:constant ? :darkorange3 : :black,
+                marker=status===:fixed ? :diamond : status===:constant ? :xcross : :circle,markersize=8)
+        end
+        xlims!(ax,first(r.grid),last(r.grid)); ylims!(ax,.6,maximum_rows+.9)
+    end
+    linkxaxes!(axes...)
+    note = "Each ridge is one level's marginal posterior density, not a population distribution or pooled draws. " *
+        "Gaussian bandwidth: $(r.bandwidth) logits; common grid and height multiplier; no recentering. " *
+        "Smoothing is descriptive, not an MCSE estimate. Intervals use unsmoothed draws.\n" *
+        (isempty(r.constant_labels) ? "" : "Crosses: constant estimated draws, not fixed anchors: $(join(r.constant_labels,", ")).\n") *
+        _wright_caption(data)
+    return _figure_text!(fig,"MFRM ridge Wright map · shared logit scale",note;
+        annotation_io,bottom_row=2+offset,columns=length(data.groups))
 end
 
 function plot_pathway(fit; size = nothing, annotation_io = stdout, kwargs...)
@@ -403,7 +578,83 @@ function _wright_caption(data)
         data.diagnostic * " (whole fit). The map does not establish convergence or model fit."
 end
 
+include("criterion_collapse.jl")
 include("prior_sensitivity.jl")
 include("prior_predictive_sensitivity.jl")
+
+function plot_star_result(res; kind::Symbol = :posterior, interval::Real = 0.95,
+        max_parameters::Int = 30, size = nothing, annotation_io = stdout, seed::Int = 20261030)
+    kind in (:posterior, :diagnostics, :predictive) || throw(ArgumentError(
+        "StarResult supports plot kind = :posterior, :diagnostics, or :predictive"))
+    max_parameters >= 1 || throw(ArgumentError("max_parameters must be positive"))
+    SA = B.Experimental.StarAssociation
+    qual = SA.qualify(res)
+    diag_note = qual.result.numerically_qualified ? "All MCMC qualification thresholds met" :
+        "MCMC diagnostic warnings present; inspect qualify(fit)"
+    if kind === :posterior
+        rep = SA.posterior_summary(res; interval = Float64(interval)).result
+        rows = rep.posterior[1:min(length(rep.posterior), max_parameters)]
+        offset = _annotation_offset(annotation_io)
+        fig = Figure(; size = something(size, (950, 120 + 36 * length(rows) + 140 * offset)), fontsize = 14)
+        ax = Axis(fig[1 + offset, 1];
+            title = "Model parameter summaries",
+            yticks = (1:length(rows), [r.parameter for r in rows]),
+            yreversed = true,
+            xlabel = "Posterior estimate",
+            ygridvisible = false)
+        vlines!(ax, [0.0]; color = :gray65, linestyle = :dash)
+        for (i, r) in enumerate(rows)
+            rangebars!(ax, [i], [r.lower], [r.upper]; direction = :x, color = :steelblue4, linewidth = 2, whiskerwidth = 8)
+            scatter!(ax, [r.median], [i]; color = :steelblue4, markersize = 8)
+        end
+        ylims!(ax, length(rows) + 0.6, 0.4)
+        return _figure_text!(fig, "Experimental StarAssociation posterior summary",
+            "Medians and $(round(100 * interval; digits = 2))% equal-tailed intervals. $diag_note.";
+            annotation_io, bottom_row = 2 + offset)
+    elseif kind === :diagnostics
+        pnames = SA.parameter_names(res.model; space = :raw)
+        nsel = min(length(pnames), min(max_parameters, 8))
+        nch = res.config.chains
+        per_ch = res.config.ndraws
+        offset = _annotation_offset(annotation_io)
+        fig = Figure(; size = something(size, (1050, 240 * nsel + 120 + 140 * offset)), fontsize = 14)
+        colors = Makie.wong_colors()
+        for idx in 1:nsel
+            ax = Axis(fig[idx + offset, 1]; title = pnames[idx], xlabel = "Retained iteration", ylabel = "Value")
+            for c in 1:nch
+                rng_idx = ((c - 1) * per_ch + 1):(c * per_ch)
+                lines!(ax, 1:per_ch, view(res.draws, rng_idx, idx);
+                    color = colors[mod1(c, length(colors))], linewidth = 1.3)
+            end
+        end
+        return _figure_text!(fig, "Experimental StarAssociation chain traces",
+            "$nch chains, $per_ch retained draws per chain. $diag_note.";
+            annotation_io, bottom_row = nsel + 1 + offset)
+    elseif kind === :predictive
+        ppc_rep = SA.predictive_check(res; checks = (:marginal,), seed).result
+        rows = ppc_rep.marginal_categories
+        offset = _annotation_offset(annotation_io)
+        ids = unique(r.criterion for r in rows)
+        fig = Figure(; size = something(size, (900, 250 * length(ids) + 100 + 140 * offset)), fontsize = 14)
+        for (i, id) in enumerate(ids)
+            selected = filter(r -> r.criterion == id, rows)
+            ax = Axis(fig[i + offset, 1]; title = id,
+                xticks = (1:length(selected), string.([r.display_score for r in selected])),
+                xlabel = "Score category", ylabel = "Proportion of rating events")
+            for (j, r) in enumerate(selected)
+                rangebars!(ax, [j + 0.10], [r.pred_rate_q025], [r.pred_rate_q975];
+                    color = :steelblue4, linewidth = 2, whiskerwidth = 8)
+                scatter!(ax, [j + 0.10], [r.expected_rate_mean]; color = :steelblue4, markersize = 8)
+                scatter!(ax, [j - 0.10], [r.observed_rate]; color = :black, marker = :diamond, markersize = 10)
+            end
+            xlims!(ax, 0.5, length(selected) + 0.5)
+            ylims!(ax, 0, 1)
+        end
+        return _figure_text!(fig, "Experimental StarAssociation posterior predictive check",
+            "Black diamonds: observed category proportions; blue points: posterior mean expected proportions; blue bars: 95% replicated intervals. Conditional on fitted entities and raters; all retained draws. $diag_note.";
+            annotation_io, bottom_row = length(ids) + 1 + offset)
+    end
+    throw(ArgumentError("StarResult supports plot kind = :posterior, :diagnostics, or :predictive"))
+end
 
 end

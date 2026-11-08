@@ -109,12 +109,12 @@ end
         end
         for d in 1:4
             row = draws[d, :]; r = rho[d]
-            lp = B.Turing.logpdf(B.Turing.Beta(eta, eta), (r + 1) / 2) - log(2) + log1p(-r * r)
+            lp = B.Distributions.logpdf(B.Distributions.Beta(eta, eta), (r + 1) / 2) - log(2) + log1p(-r * r)
             for j in 1:2:6
-                lp += B.Turing.logpdf(B.Turing.MvNormal(zeros(2), p.person_sd^2 .* [1 r; r 1]), row[j:j+1])
+                lp += B.Distributions.logpdf(B.Distributions.MvNormal(zeros(2), p.person_sd^2 .* [1 r; r 1]), row[j:j+1])
             end
             for j in 7:(length(row) - 1)
-                lp += B.Turing.logpdf(B.Turing.Normal(0, B._source_fixture_prior_sd(t.base, j)), row[j])
+                lp += B.Distributions.logpdf(B.Distributions.Normal(0, B._source_fixture_prior_sd(t.base, j)), row[j])
             end
             likelihood = B._mgmfrm_free_latent_correlation_2d_loglikelihood(t, row)
             @test B.LogDensityProblems.logdensity(t, row) ≈ likelihood + lp atol = 1e-9

@@ -26,4 +26,4 @@ println("Model: ", spec.family, "; dimensions: ", spec.dimensions,
 println("Category log weights (k indexes categories starting at 1):")
 println(model_equation(spec).kernel)
 println("No model was fitted and no files were written. Review priors before fitting.")
-println("For the next step, read ?fit or the manual's Minimal MFRM Workflow.")
+println("For the next step, follow the manual's First MFRM analysis: examples/first_analysis.jl.")

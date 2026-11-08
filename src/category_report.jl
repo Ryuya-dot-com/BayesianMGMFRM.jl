@@ -21,6 +21,74 @@ function _category_report_summary(values, chains, interval; fixed=false, space=:
         draws_hash=_cache_hash(values))
 end
 
+function _category_usage_workspace(data, S, K)
+    return big(S)*K*(min(length(data.item_levels),length(data.rater_levels))+2)+K
+end
+
+function _category_accumulate!(totals,current,inner_sums,eta,design,direct,observations,inner_index,loadings)
+    fill!(current,0)
+    # Specialize on the concrete row-index vector outside the abstract group loop.
+    for s in axes(direct,1)
+        params=view(direct,s,:)
+        for n in observations
+            z=PredictionObservationAdapter._prediction_logit_normalizer!(eta,design,params,n,s,loadings)
+            j=inner_index[n]
+            for k in eachindex(eta)
+                p=exp(eta[k]-z)
+                current[s,k]+=p
+                inner_sums[s,k,j]+=p
+                totals[s,k]+=p
+            end
+        end
+    end
+    return nothing
+end
+
+function _category_usage_rows(context, step_contract, controls, interval)
+    design=context.design;data=design.spec.data;direct=context.direct
+    S=size(direct,1);K=length(data.category_levels)
+    groups=_category_functioning_groups(data)
+    chains=length(unique(context.chain_ids))
+    rows_by_group=Vector{Vector{NamedTuple}}(undef,length(groups))
+    # Keep the smaller facet's sums; finish one larger-facet level at a time.
+    outer=length(data.rater_levels)>=length(data.item_levels) ? :rater : :item
+    inner=outer===:rater ? :item : :rater
+    inner_levels=getproperty(data,Symbol(inner,:_levels))
+    inner_index=getproperty(data,inner)
+    totals=zeros(S,K);current=zeros(S,K);inner_sums=zeros(S,K,length(inner_levels))
+    eta=zeros(K)
+    loadings=design.spec.family===:mgmfrm ? _mgmfrm_source_loading_index_matrix(design) : nothing
+    function summarize(group, sums)
+        observations=group.observations;n=length(observations)
+        owner_indices=step_contract.owner===:global ? [1] :
+            sort(unique((step_contract.owner===:rater ? data.rater : data.item)[observations]))
+        owner_levels=step_contract.owner===:global ? (nothing,) :
+            Tuple((step_contract.owner===:rater ? data.rater_levels : data.item_levels)[owner_indices])
+        rows=NamedTuple[]
+        for (k,category) in pairs(data.category_levels)
+            observed=count(j->data.category[j]==k,observations)
+            expected=_category_report_summary(sums[:,k]./n,chains,interval;space=:probability)
+            push!(rows,(;facet=group.facet,level=group.level,level_index=group.level_index,
+                category,n_observations=n,observed_count=observed,observed_proportion=observed/n,
+                observed_flag=_category_observed_flag(observed,observed/n,controls),
+                threshold_owner=step_contract.owner,threshold_levels=owner_levels,
+                expected,observed_minus_expected=ismissing(expected.mean) ? missing : observed/n-expected.mean))
+        end
+        return rows
+    end
+    for (g,group) in pairs(groups)
+        group.facet===outer || continue
+        _category_accumulate!(totals,current,inner_sums,eta,design,direct,group.observations,inner_index,loadings)
+        rows_by_group[g]=summarize(group,current)
+    end
+    rows_by_group[1]=summarize(first(groups),totals)
+    for (g,group) in pairs(groups)
+        group.facet===inner || continue
+        rows_by_group[g]=summarize(group,view(inner_sums,:,:,group.level_index))
+    end
+    return reduce(vcat,rows_by_group)
+end
+
 function _category_report_steps(context)
     spec=context.spec; data=spec.data; contract=_model_family_step_contract(spec)
     lookup=Dict(row.parameter=>row for row in context.coordinates)
@@ -94,7 +162,8 @@ function _category_profile_terms(context, steps, profile)
     lookup=Dict(row.parameter=>row for row in context.coordinates)
     item=lookup["item[$(profile.item)]"];rater=lookup["rater[$(profile.rater)]"]
     offset=item.values+rater.values; fixed=item.fixed && rater.fixed; scale_fixed=true
-    if spec.dimensions==1
+    # D1 MGMFRM retains its loading-on-ability and literal 1.7 rater scale.
+    if spec.dimensions==1 && spec.family!==:mgmfrm
         axis=ones(S)
         if spec.family===:gmfrm
             a=lookup["item_discrimination[item=$(profile.item)]"]
@@ -180,6 +249,8 @@ probable. These probabilities need not each be 0.5. Steps, crossings and expecte
 score half-points differ. Inactive dimensions retain flat curves and no unique
 crossing. The scalar GMFRM's item coefficient multiplies the whole contrast,
 whereas MGMFRM loadings multiply abilities; native scale conventions are retained.
+This MGMFRM rule, including its literal 1.7 rater scale, also applies with one
+dimension and with fixed-one coefficients.
 
 All intervals are pointwise, conditional on this fitted model and its calibration
 policy; they are not simultaneous bands, new-rater guarantees or calibration
@@ -187,7 +258,14 @@ evidence. Fixed anchors omit external calibration uncertainty. A profile grid is
 a display choice, not evidence of empirical support. Structural constants and
 unavailable numerical summaries stay explicit. Sampling warnings, source identity,
 model/step contracts, complete chain layout and a content seal are retained.
-Resources exceeding the explicit budgets fail instead of subsampling. This
+Usage probabilities are accumulated one facet level at a time, without a
+draws × observations × categories tensor or pointwise-likelihood matrix.
+`max_prediction_cells` bounds the Float64 accumulation/logit workspace:
+`S*K*(min(n_items,n_raters)+2)+K`, where `S` is retained draws and `K` is categories.
+It does not bound saved-fit reconstruction, summaries/MCSE or total computation.
+All observations are still evaluated once per draw. Floating-point summation
+order may differ from dense prediction, so report hashes can change. Profiles
+retain their separate `max_curve_cells` budget. Budgets fail instead of subsampling. This
 qualified candidate API is also available through the optional
 `fit_report(...; reporting=(; category=(...), ...))` request.
 """
@@ -201,33 +279,19 @@ function category_report(fit::PredictionObservationAdapter.SupportedFit;
     data=PredictionObservationAdapter._fit_data(fit)
     ids=PredictionObservationAdapter._ids(observation_ids,data.n,"observation_ids")
     S=_agreement_draw_count(fit);K=length(data.category_levels)
-    big(S)*data.n*K<=max_prediction_cells || throw(ArgumentError("category probabilities exceed max_prediction_cells; raise the explicit budget or use a separately justified analysis"))
+    _category_usage_workspace(data,S,K)<=max_prediction_cells || throw(ArgumentError("category aggregation workspace exceeds max_prediction_cells; raise the explicit budget or use a separately justified analysis"))
     context=_recovery_context(fit);spec=context.spec
+    S>=2 || throw(ArgumentError("category reports require at least two retained draws"))
     checked_profiles=_category_profiles(profiles,spec,S,max_curve_cells)
     step_contract,steps=_category_report_steps(context)
-    prediction=prediction_observations(fit;dataset_id,observation_ids=ids)
-    PredictionObservationAdapter._criterion_draws(prediction)
+    prediction=PredictionObservationAdapter._context(fit,nothing,nothing,Random.default_rng())
+    prediction.indices==collect(1:S) && size(prediction.direct,1)==S ||
+        error("category prediction requires every original retained draw")
     prediction.chain_ids==context.chain_ids && prediction.iterations==context.iterations &&
         prediction.source_sample_hash==context.source_sample_hash || error("category native/predictive draw provenance mismatch")
     chains=length(unique(context.chain_ids))
-    usage_rows=NamedTuple[]
-    for group in _category_functioning_groups(data)
-        rows=group.observations;n=length(rows)
-        owner_indices=step_contract.owner===:global ? [1] :
-            sort(unique((step_contract.owner===:rater ? data.rater : data.item)[rows]))
-        owner_levels=step_contract.owner===:global ? (nothing,) :
-            Tuple((step_contract.owner===:rater ? data.rater_levels : data.item_levels)[owner_indices])
-        for (k,category) in pairs(data.category_levels)
-            observed=count(j->data.category[j]==k,rows)
-            values=vec(mean(prediction.probabilities[:,rows,k];dims=2))
-            expected=_category_report_summary(values,chains,interval;space=:probability)
-            push!(usage_rows,(;facet=group.facet,level=group.level,level_index=group.level_index,
-                category,n_observations=n,observed_count=observed,observed_proportion=observed/n,
-                observed_flag=_category_observed_flag(observed,observed/n,controls),
-                threshold_owner=step_contract.owner,threshold_levels=owner_levels,
-                expected,observed_minus_expected=ismissing(expected.mean) ? missing : observed/n-expected.mean))
-        end
-    end
+    usage_rows=_category_usage_rows(prediction,step_contract,controls,interval)
+    _,binding=PredictionObservationAdapter._observation_binding(data,ids,dataset_id)
     threshold_rows=NamedTuple[]
     for step in steps
         summary=_category_report_summary(step.values,chains,interval;fixed=step.fixed)
@@ -275,7 +339,7 @@ function category_report(fit::PredictionObservationAdapter.SupportedFit;
     review_recommended=any(r->r.observed_flag!==:ok,usage_rows) ||
         any(r->r.ordering_flag in (:likely_disordered,:order_uncertain),threshold_rows)
     return _prediction_seal((;schema="bayesianmgmfrm.category_report.v1",dataset_id=String(dataset_id),
-        observation_ids=ids,prediction.observation_binding,prediction.training_binding,
+        observation_ids=ids,observation_binding=binding,training_binding=binding,
         category_levels=copy(data.category_levels),model_contract=_recovery_model_contract(fit,context),
         step_contract,usage_rows,threshold_rows,profiles=checked_profiles,curve_rows,crossing_rows,controls,
         n_retained_draws=S,chain_ids=copy(context.chain_ids),iterations=copy(context.iterations),

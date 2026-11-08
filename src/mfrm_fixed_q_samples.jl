@@ -780,10 +780,12 @@ function _mfrm_fixed_q_predictive_draws(target::_MFRMFixedQReferenceLogDensity,
 end
 
 function _mfrm_fixed_q_predictive_check(result::NamedTuple;
-        ndraws::Union{Nothing,Int} = nothing, draw_indices = nothing, seed::Integer = 1)
+        ndraws::Union{Nothing,Int} = nothing, draw_indices = nothing,
+        seed::Union{Nothing,Integer} = 1, rng::Union{Nothing,AbstractRNG} = nothing)
+    rng !== nothing && seed !== nothing && throw(ArgumentError("supply either rng or seed"))
+    rng, rng_control = _fit_rng(rng === nothing ? Random.default_rng() : rng, seed)
     checked = _fixed_q_report_samples(result)
     record, run = checked.record, checked.record.run
-    rng, rng_control = _fit_rng(Random.default_rng(), seed)
     indices = _posterior_draw_indices(run, ndraws, draw_indices, rng)
     spec = _fixed_q_result_spec(checked)
     saved_target = _fixed_q_result_target(checked)

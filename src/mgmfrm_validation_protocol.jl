@@ -147,15 +147,15 @@ end
 """
     mgmfrm_validation_protocol()
 
-Return the machine-readable Stage-A draft for scientific validation of the
-narrow fixed-Q confirmatory MGMFRM branch.
+Return a draft study specification for validating the supported fixed-Q
+confirmatory MGMFRM model. This function does not simulate data or fit models.
 
-The protocol separates decisions already fixed by the implemented likelihood
-from execution and decision components that remain blocked. It does not run a
-simulation, fit a model, authorize a stable claim, or treat earlier pilots as
-evaluation evidence. `status == :stage_a_draft_execution_blocked` remains in
-force until every item in `readiness.blockers` has an executable contract and
-independent review.
+The result describes the model assumptions, proposed comparisons and missing
+study components. `status == :stage_a_draft_execution_blocked` is the retained
+compatibility value indicating that the specification is incomplete;
+`readiness.blockers` lists the missing components. Neither this status object
+nor a completed operational check establishes recovery, calibration or reliable
+model selection. Those conclusions require appropriately designed evaluation.
 """
 function mgmfrm_validation_protocol()
     blockers = (

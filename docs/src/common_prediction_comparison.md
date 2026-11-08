@@ -40,6 +40,9 @@ not align ability components across models with different dimensions.
 <a id="保存から比較まで-1"></a>
 ```
 
+For a study that starts before scores exist, see [Plan a rating study](design-planning.md).
+It connects a bounded scalar PCM allocation to these saved recovery operations.
+
 ## Compare saved fits
 
 Start with results saved by `save_fit_cache(path, fit)`. Replace the example IDs
@@ -96,6 +99,7 @@ Subsampled, reordered or resampled draw collections are rejected.
 | `:q_matrix` | Allow Q to differ at the same dimension count. |
 | `criterion=:waic` | Compute the existing WAIC from original pointwise log likelihoods. |
 | `:raw_loo` | Unsmoothed importance-sampling LOO; inspect weight instability. |
+| `:psis_loo` | Standard PSIS with chain-based relative efficiency and reference-checked tail smoothing. |
 | `:hill_smoothed_loo` | The existing Hill smoother; not independently reference-validated PSIS. |
 | `se_unit=:none` | Default: difference SE is `missing`; no inferential unit is silently selected. |
 | `:observation` | Approximate SE treating ratings as exchangeable units. |
@@ -133,12 +137,37 @@ Match the prediction and omission units to the question; see the
 
 ## Diagnostics and compatibility
 
+Standard PSIS is selected explicitly with `criterion=:psis_loo` in
+`compare_models(...; comparison_axis=..., dataset_id=..., observation_ids=...)`.
+Positive `elpd_difference` still means model minus the declared baseline. Use
+`criteria(fit; criteria=(:psis_loo, :hill_smoothed_loo))` to inspect both estimators;
+the latter preserves the historical arithmetic. Stored historical results are
+never converted by relabelling their method. Existing `include_loo=true` fit
+reports retain raw IS-LOO; they do not silently switch algorithms.
+
+For low-level `psis_loo(loglik)`, supply `chain_ids` or an explicit `r_eff`.
+Without either, matrix inputs assume independent draws and return a warning.
+Fitted routes always use all original chains and refuse subsets. Standard PSIS
+rejects nondefault Hill tail controls. Constant/tied tails keep infinite
+Pareto-k and a warning; failed efficiency estimates are recorded, with a value
+of one used only to make the diagnostic score computable.
+
+The tail kernel is checked against R `loo 2.10.1`. The automatic efficiency
+estimate uses the Julia basic split-chain ESS. On a deliberately exact
+period-two trace, R `posterior 1.7.0` and Julia handle the empty positive sequence
+differently (.5 versus `log10(S)` relative efficiency); both give an unusable
+Pareto tail. The reference checks retain this boundary rather than claiming
+universal equality of ESS implementations. Neither such a deterministic trace
+nor a small fixture establishes posterior accuracy. Inspect tail, efficiency
+and whole-fit warnings together; a computed score does not qualify a comparison.
+
+
 Each row retains sampling warnings, criterion warnings, problem rating IDs,
 retained-draw counts, model information and saved-sample hashes where supported.
 Warned models are not dropped from the comparison roster. Even
 `status=:descriptive` does not establish scientific acceptance. Comparison MCMC
-MCSE, relative-efficiency correction and crossed-cluster adjustment are not
-computed. Predictive fit does not establish construct validity or interval coverage.
+MCSE and crossed-cluster adjustment are not computed. Standard PSIS adjusts
+importance ESS using chain efficiency; raw and Hill approximations do not. Predictive fit does not establish construct validity or interval coverage.
 
 Schemas are `bayesianmgmfrm.prediction_comparison.v1`,
 `bayesianmgmfrm.prediction_observations.v1` and
@@ -217,11 +246,19 @@ rejects that state. `:computed` and `report_status=:complete` describe report
 execution, not successful inference.
 
 `examples/saved_mgmfrm_report.jl` generates these five report types without
-refitting. `examples/normalized_mgmfrm.jl` starts from synthetic data and saves
-rating IDs; its short MCMC is inadequate for inference. Existing numerical and
+refitting. `examples/normalized_mgmfrm.jl --saved-fit path/to/fit.jls` reads a
+normalized MGMFRM analysis without new fitting or random draws and explains its
+dimension-specific estimates; see [the saved-analysis example](examples.md#Read-an-existing-MGMFRM-analysis).
+For a supplied dataset and explicit fitting settings, start with
+[`--inspect-example`](examples.md#Start-with-the-bundled-MGMFRM-data), then use
+`--fit-example` when ready to estimate that model.
+With no arguments it only inspects the fixed teaching inputs. The explicit
+`--demo` mode starts from tiny synthetic data and saves rating IDs; its short
+MCMC is inadequate for inference. Existing numerical and
 figure checks remain evidence for their recorded scope. The common APIs below
 prepare refits and score/aggregate saved folds. Automatic multi-model refitting,
-new-level prediction, reference PSIS and model-selection validation remain open.
+new-level prediction and model-selection validation remain open. Standard PSIS
+is available for existing-rating omission; it does not change these targets.
 
 ```@raw html
 <a id="K-foldの学習データを固定し、保存結果で保留データを採点する"></a>
@@ -700,7 +737,7 @@ values for different sample sizes, allocations, analysis models, priors or truth
 
 ```julia
 using BayesianMGMFRM, Serialization
-include("examples/saved_recovery_replications.jl")
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "saved_recovery_replications.jl"))
 # Each file contains that dataset's serialized recovery_evaluation.
 summary = saved_recovery_replications(["recovery-D1.jls", "recovery-D2.jls"];
     planned_dataset_ids=["D1", "D2", "D3", "D4"],
@@ -749,6 +786,202 @@ truths for evaluated quantities. It cannot verify the full generating process,
 allocation, seed rule or every generating parameter. Check name/scale alignment
 in the study design. Distribution-generated assurance, paired condition contrasts,
 SBC and precision-based design acceptance are outside this operation.
+
+### Require small Monte Carlo error
+
+A completed fit can have no diagnostic warning while its Monte Carlo standard
+error (MCSE) is still too large for your purpose. MCSE describes variation caused
+by using a finite posterior sample. Posterior SD and credible-interval width
+describe uncertainty about the parameter given the data and model. More MCMC
+can reduce MCSE while leaving a wide credible interval essentially unchanged.
+
+Use `mcse_limits` to request a separate computationally qualified summary. For
+example, if your evaluations contain the unit-logit contrast `rater[R2]`, the
+following checks its posterior mean and both central-interval endpoints:
+
+```julia
+precision_summary = saved_recovery_replications(
+    ["recovery-D1.jls", "recovery-D2.jls"];
+    planned_dataset_ids=["D1", "D2", "D3", "D4"],
+    parameters=["rater[R2]"],
+    scenario_id="predeclared-fixed-design-A",
+    dataset_independence=(status=:unresolved,
+        evidence="Generation and seed independence remain unverified"),
+    failures=["D3" => "Estimation interrupted"],
+    mcse_limits=Dict("rater[R2]" => (
+        mean_mcse_max=0.01,
+        endpoint_mcse_max=0.02,
+    )))
+
+quantity = only(precision_summary.summaries)
+quantity.precision_dispositions # One disposition for every planned dataset.
+quantity.precision_qualified    # Includes used/unresolved/planned counts.
+```
+
+The numbers above are illustrative limits in logits, not recommended defaults.
+Choose tolerances before inspecting results, based on the numerical resolution
+your interpretation needs. Supply limits for every requested parameter in its
+own native units; a loading, probability and logit need not share a tolerance.
+The endpoints follow the interval stored in each evaluation, including a 99%
+central interval. They do not change that interval into an HDI.
+
+`precision_qualified` requires available MCSE, a mean MCSE within its limit and
+**both** endpoint MCSEs within their limit. Global sampling warnings or a
+fixed-truth mismatch still exclude a dataset even if its focal MCSE is small.
+`precision_dispositions` distinguishes these warnings from `mcse_exceeded`,
+`mcse_unavailable`, failed/missing datasets, missing quantities and fixed
+coordinates. The original `all_completed` and `without_warnings` views remain
+available. Omitting `mcse_limits` preserves the previous output.
+
+Read the denominator before interpreting a favorable result. If one of four
+planned datasets qualifies, the summary still reports one used and three
+unresolved; it does not describe the whole design as successful. Estimates are
+conditional on the qualifying subset. With only one qualifying dataset,
+replication SE remains unavailable, regardless of the number of chains or draws.
+Coverage bounds retain unresolved outcomes and are not confidence intervals.
+An endpoint close to the truth can also make the computed coverage classification
+sensitive to MCMC error; passing a tolerance does not certify that classification.
+
+This screen addresses computational precision. A decision such as “estimate the
+severity difference with an interval no wider than a practically useful amount”
+requires a separate substantive target and a study with adequate replication.
+It is not supplied by small MCSE, a warning-free fit or a narrow interval in one
+generated dataset. For the full argument and return-value contract, enter
+`?BayesianMGMFRM.recovery_replications` in Julia's help mode.
+
+### Compare interval width with your research target
+
+Suppose the study needs a rater-severity contrast estimated within a useful
+range. Three different questions matter:
+
+| Question | Quantity to inspect | What a favorable value does not establish |
+| --- | --- | --- |
+| Is the posterior calculation sufficiently stable? | Mean and endpoint MCSE, together with global sampling diagnostics. | That collecting these ratings gives sufficiently precise measurement. |
+| Is this dataset's uncertainty small enough for the research question? | Credible-interval width in the contrast's units, at a specified interval probability. | That another dataset from the same design will have similar precision, or that the interval has the claimed repeated-sampling coverage. |
+| Does the design usually achieve the required precision? | Width outcomes across independent generated datasets, with the full planned denominator and replication uncertainty. | Assurance across uncertain generating parameters, or performance under other models and populations. |
+
+Define the quantity, interval probability and scientifically meaningful maximum
+width before running a design study. Also define how often the design should
+achieve that width and how precisely that frequency needs to be estimated.
+These choices depend on the intended use; the package supplies no default.
+A mean width below the target does not imply that a desired proportion of
+datasets meets it. Adequate width also does not replace checks of bias, coverage
+and model assumptions. Recovery at fixed truths, SBC with joint-prior draws and
+assurance over a specified distribution of generating conditions answer
+different questions.
+
+### Count how often the width target is met
+
+Pass `max_interval_widths` to the package's `BayesianMGMFRM.recovery_replications`
+API, or through the existing `saved_recovery_replications` example. Specify a
+width for every requested parameter and explicit MCSE limits. For example:
+
+```julia
+using BayesianMGMFRM, Serialization
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "saved_recovery_replications.jl"))
+
+summary = saved_recovery_replications(
+    ["recovery-D1.jls", "recovery-D2.jls"];
+    planned_dataset_ids=["D1", "D2", "D3", "D4"],
+    parameters=["rater[R2]"],
+    scenario_id="predeclared-fixed-design-A",
+    dataset_independence=(status=:unresolved,
+        evidence="Generation and seed independence remain unverified"),
+    failures=["D3" => "Estimation interrupted"],
+    mcse_limits=Dict("rater[R2]" => (
+        mean_mcse_max=0.01, endpoint_mcse_max=0.02)),
+    max_interval_widths=Dict("rater[R2]" => 1.0), # Illustrative logit width.
+    width_confidence_level=0.95)
+
+precision = only(summary.summaries).precision_qualified
+precision.width_target
+```
+
+`width_target` reports `n_planned`, `n_qualified`, `n_meeting_target`,
+`n_exceeding_target` and `n_unresolved`. Equality meets the specified width.
+`conditional_frequency` uses only numerically qualified datasets. Its replication
+SE requires declared dataset independence, no detected evidence reuse and at
+least two qualified results. All successes or all failures give empirical zero
+variance, flagged as such; they do not establish certainty about the probability.
+
+The optional `width_confidence_level` adds
+`width_target.conditional_confidence_interval`. The example above keeps it
+unavailable because dataset independence is unresolved. With justified independent,
+identically distributed replications within the scenario, it is a per-quantity
+Clopper-Pearson interval conditional on numerical qualification. It is distinct
+from the posterior central interval and the unresolved-outcome bounds below.
+The [design precision display](design-planning.md#Interpret-precision-target-uncertainty)
+shows these quantities in separate panels and explains small-sample limits.
+
+`all_planned_frequency_bounds` keeps unresolved datasets in the denominator.
+For example, two successes and one failure among three qualified results give
+a conditional frequency of 2/3. With two additional failed or missing datasets,
+the five planned outcomes give bounds of 2/5 to 4/5. The bounds represent the
+possible outcomes of unresolved cases, not a confidence interval. Numerical
+exclusions remain unresolved even when their available intervals look narrow.
+
+Counts describe estimated central-interval widths. Endpoint MCSE screening does
+not bound width-classification error, especially near the target. Retain the
+endpoint errors and inspect those cases. This fixed-truth summary does not select
+a design, supply SBC or integrate over uncertain generating parameters to provide
+assurance. Without the new keyword, existing outputs are unchanged; fixed
+coordinates have no precision-qualified width target. With no usable results,
+the conditional frequency is missing and the all-planned bounds are [0, 1].
+
+For a row-by-row review, the same example file provides
+`saved_recovery_width_review`. It calls the
+existing aggregation API for one named quantity, then displays its width,
+margin to your target and numerical status for **every planned dataset**:
+
+```julia
+using BayesianMGMFRM, Serialization
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "saved_recovery_replications.jl"))
+
+review = saved_recovery_width_review(
+    ["recovery-D1.jls", "recovery-D2.jls"];
+    planned_dataset_ids=["D1", "D2", "D3", "D4"],
+    parameter="rater[R2]",
+    scenario_id="predeclared-fixed-design-A",
+    dataset_independence=(status=:unresolved,
+        evidence="Generation and seed independence remain unverified"),
+    failures=["D3" => "Estimation interrupted"],
+    max_interval_width=1.0, # Illustrative logit width; not a recommended target.
+    mcse_limits=Dict("rater[R2]" => (
+        mean_mcse_max=0.01,
+        endpoint_mcse_max=0.02,
+    )))
+
+review.interval_probability  # Inherited from the saved evaluations.
+review.width_review         # Includes D3's failure and D4's missing outcome.
+only(review.recovery.summaries).precision_qualified # Counts and recovery metrics.
+```
+
+This function is an executable example, available after `include`, rather than
+an exported package function. Find its argument descriptions with
+`?saved_recovery_width_review`. The complete aggregation result is retained in
+`review.recovery`; the example does not add a design-acceptance flag or pool
+different allocations. Use separate calls for different designs. Changing from
+a 90% to a 99% target requires evaluations computed at that interval probability;
+the example neither relabels nor rescales a saved interval.
+
+`width_margin` is your maximum width minus the observed width. A positive value
+means the observed interval is narrower than the target; equality counts as
+within the target. `observed_width_within_target` is reported only when the
+dataset passes the global and MCSE criteria. It is `missing` for exclusions,
+failed/missing datasets, absent quantities and structural constants. Existing
+widths remain visible even when numerical warnings exclude a result. Do not
+turn these missing values into failures of measurement precision or silently
+drop them from the planned denominator.
+
+These are classifications of **computed intervals**, not error-controlled
+decisions about exact posterior widths. If the margin is small relative to the
+endpoint MCSEs, the classification may change with further MCMC. The endpoint
+errors come from the same chains and can be correlated: do not add their variances
+as if they were independent, or interpret MCSE as a guaranteed error bound.
+Any frequency calculated only among qualified datasets is conditional on that
+selection. One dataset per design gives no between-dataset replication SE and
+cannot establish an allocation winner. Choosing the target after seeing widths
+is exploratory; it does not satisfy a prespecified design criterion.
 
 ```@raw html
 <a id="比較・診断・保存を一つの手順で確認する"></a>

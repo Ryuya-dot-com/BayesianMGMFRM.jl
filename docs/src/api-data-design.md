@@ -5,6 +5,12 @@
     documentation of an installed release. Model support and scientific
     acceptance remain as stated on each page.
 
+Enter `spec` at the Julia prompt to read a `FacetSpec`'s slopes, category-step
+owner, fitting entry and warning counts. In a script, use
+`show(stdout, MIME"text/plain"(), spec)`. `println(spec)` retains the compact
+one-line representation. See [option meanings](learning-guide.md#Check-what-this-package-can-currently-fit)
+for the compatibility discrimination selectors and validation-only `bias` terms.
+
 Functions that expose both detailed compatibility records and concise
 reader-facing records use a `view` keyword. Existing calls retain
 `view = :full`. For reports or shared structured output, use `view = :public`:
@@ -68,9 +74,36 @@ save_external_bridge_bundle
 validate_external_bridge_bundle
 load_conquest_parameter_export
 load_conquest_semantic_parameters
+BayesianMGMFRM.load_conquest_reference_parameters
 external_bridge_result_receipt
 rating_design_check
 testlet_design_check
+design_summary
+with_options
+prior_draw
+simulate
+```
+
+## Glass-Box Researcher Transparency Surface
+
+These functions expose exact mathematical contracts, parameter charts, facet
+bases, coordinate bijections, triangular change-of-variables Jacobians,
+analytical or forward-mode gradients, CmdStan data dictionaries, and sampler
+settings across package targets.
+
+```@docs
+contract
+parameter_names
+facet_basis
+coordinates
+to_ncp_reference
+from_ncp_reference
+reparameterize_point
+reparameterize_draws
+log_jacobian_to_ncp
+logdensity_and_gradient
+stan_data
+sampler_controls
 ```
 
 ## Compatibility diagnostic names

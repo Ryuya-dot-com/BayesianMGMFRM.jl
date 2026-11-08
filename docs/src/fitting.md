@@ -12,6 +12,107 @@ before sampling; inspect the compiled design when reviewing identification or
 model structure. The [minimal example](examples.md#Minimal-MFRM-Workflow) runs
 the ordinary fit, diagnostics, figures and save/reload sequence.
 
+## Running chains concurrently
+
+Scalar MFRM and the shared independent generalized AdvancedHMC routes accept
+`chain_execution=:threads`. Start Julia with several worker threads, for example
+`julia --threads=4 --project=your-analysis-project`. Then use your chosen model,
+prior and sampling settings:
+
+```julia
+monitor = SamplingProgress()
+fitted = fit(spec; prior, backend=:advancedhmc, chains=4,
+    warmup=1500, ndraws=4000, seed=42,
+    chain_execution=:threads, max_parallel_chains=4, progress=monitor)
+```
+
+The default `chain_execution=:serial` preserves the previous random-number
+stream and sampler settings. Threaded mode derives a distinct MersenneTwister
+seed for each chain in chain order, records the seeds and actual worker count,
+and gives each active chain its own target, derivative workspace and adaptation.
+On the same source/environment, changing `max_parallel_chains` preserves those
+chain streams and output order. Using threaded mode with a cap of one provides
+a serial reference for that mode; its draws differ from legacy serial mode even
+with the same top-level seed. This is not a different posterior target.
+
+Actual concurrency is the minimum of `chains`, `max_parallel_chains` and Julia's
+default-pool thread count. The cap defaults to the requested number of chains.
+A one-thread Julia session therefore runs one chain at a time. Each concurrent
+chain requires working memory, so lower the cap for large data. Sampling can
+speed up when cores and memory are available; initialization, diagnostics and
+saving still take time. More cores do not guarantee proportional speedup.
+If BLAS is independently multithreaded, choose its thread count in your analysis
+environment to avoid competing thread pools; the package does not change it.
+
+The experimental shared routes include independent GMFRM/MGMFRM and normalized
+MGMFRM, including the D1 slope-restriction/mean-profile wrappers. Correlated
+wrappers, fixed-coefficient multidimensional MFRM, separate experimental modules,
+Turing and CmdStan do not expose this concurrency option. Ordinary `fit(spec)`
+still defaults to random-walk sampling; request `backend=:advancedhmc` explicitly.
+
+Warmup, diagnostics and saved draws retain chain/iteration identity. On failure
+or interruption, running workers cooperate to stop at a transition boundary and
+are joined before the call exits; no partial fit is returned. This is not a
+checkpoint/resume mechanism. Automatic cache requests distinguish threaded RNG
+partitioning from legacy serial mode; worker caps do not change the cache key.
+A cache hit retains the actual execution metadata of the fit that produced it.
+
+## Sampling progress
+
+For a compact bar across all chains, pass a [`SamplingProgress`](@ref) object
+to the AdvancedHMC fitter. Use the model, prior and sampling settings chosen
+for your analysis; the progress option does not choose them:
+
+```julia
+monitor = SamplingProgress(path="sampling-progress.json")
+fitted = fit(spec; prior, backend=:advancedhmc, chains=4,
+    warmup=1500, ndraws=4000, seed=42, progress=monitor)
+progress_snapshot(monitor)
+```
+
+An illustrative intermediate display is:
+
+```text
+Sampling [######--------------] 31.4% | chain 2/4 | warmup 1408/1500 | ... | running
+```
+
+The denominator is `chains * (warmup + ndraws)`: 22,000 transitions in this
+example. Warmup adapts the sampler and is separate from retained posterior
+draws. The percentage is **iteration completion**, not a convergence score or
+the percentage of elapsed time. Initialization, diagnostics and saving have
+no invented iteration counts. `sampling_complete` at 100% means sampling has
+finished; the fit can still be processing its output. Review diagnostics and
+precision before interpretation.
+
+For concurrent chains, the percentage sums the completed transitions of every
+chain; `chain_completed` contains the immutable per-chain counts. The displayed
+chain and phase identify the latest event, not the only active chain. Boolean
+`progress=true` in threaded mode selects this aggregate monitor.
+
+The same option reaches the shared AdvancedHMC runner used by
+`BayesianMGMFRM.Experimental.fit`, including normalized mean-profile fits.
+Structured monitoring is currently unavailable for random-walk, Turing and
+CmdStan fits; these reject the monitor. Boolean `progress=true/false` keeps
+the original backend behavior. Separate experimental modules have their own
+interfaces and are not covered by this shared-runner guarantee.
+
+Use `SamplingProgress(io=nothing)` for an in-memory monitor without printing,
+or also supply `path` for another process to read. The optional JSON file is a
+last-event snapshot, replaced atomically; it contains counts, phase, elapsed
+seconds, update timestamp and status, without posterior parameter values.
+Its destination must be new. In another Julia task, call
+[`progress_snapshot`](@ref) while fitting. The monitor itself does not launch
+an asynchronous fit, resume a fit, or attach to an already running process.
+
+Output is throttled to once per second by default (`interval=1.0`), with phase
+boundaries and termination always shown. Terminals update a single line;
+redirected logs use plain lines. A failed output disables that destination and
+records an `output_errors` entry while sampling continues. Sampling exceptions
+retain the completed count and record `failed` or `interrupted`. A killed
+process cannot publish a final status: an old timestamp is not proof of a live
+sampler. Create a new monitor for each fit. Cache hits perform no sampling and
+leave an unused monitor `idle`; monitor settings do not enter fit cache keys.
+
 ## [From a rating model to posterior draws](@id calculation-route)
 
 The **model** defines how person ability, item difficulty, rater effects and
@@ -124,7 +225,9 @@ and does not change that function's defaults. A selection above 60 coordinates
 asks you to narrow it or set `max_parameters` explicitly; no rows are silently
 dropped. Use `size = (900, 600)` to set the figure dimensions.
 
-Figures can be regenerated from an existing fit cache without rerunning MCMC:
+Figures can be regenerated from an existing fit cache without rerunning MCMC.
+First restore its [recorded environment](api-saved-reporting.md#saved-result-reproduction);
+native caches and portable computed reports serve different purposes:
 
 ```julia
 save_fit_cache("analysis-fit.jls", fit_result)
@@ -526,6 +629,9 @@ for an artificial illustration and reading examples.
 
 ## Fixed coordinates and anchors
 
+Start with [references and anchors](learning-guide.md#references-and-anchors)
+to decide whether to fix an external value and inspect it before fitting.
+
 For a stable MFRM fit with exact item or rater hard anchors, inspect the public
 report directly:
 
@@ -596,6 +702,24 @@ not authorization to narrow the scale or collapse the category.
 
 ## Backends and Sampler Controls
 
+Backend choice does not by itself establish statistical accuracy. Compare the
+same likelihood, identified scale and normalized prior, including Jacobians,
+before comparing fitted summaries. The Julia NUTS engine here is
+`:advancedhmc`; `:julia` below names a different, random-walk sampler.
+Use R-hat, bulk/tail ESS, sampler warnings and the MCSE of the actual means,
+contrasts and interval endpoints you intend to interpret. An apparently smooth
+density or surface is not a numerical-precision check. Under the MCMC central
+limit approximation, mean MCSE scales with posterior SD divided by the square
+root of effective sample size; see the
+[Stan reference manual](https://mc-stan.org/docs/reference-manual/analysis.html).
+This does not bound bias from unexplored posterior regions or model misspecification.
+
+Existing repository comparisons support only their recorded targets, versions
+and precision criteria. They do not establish universal engine equivalence or a
+Julia speed advantage. A useful speed comparison measures time to the same
+declared precision, separates compilation/loading from sampling and reporting,
+and retains failures. Equal retained draw counts alone are insufficient.
+
 [`fit`](@ref) supports:
 
 - `backend = :julia` for a simple random-walk Metropolis implementation;
@@ -604,6 +728,25 @@ not authorization to narrow the scale or collapse the category.
 - `backend = :cmdstan` for stable MFRM/RSM/PCM and both guarded generalized
   configurations through an external CmdStan installation. Use
   `BayesianMGMFRM.Experimental.fit` for GMFRM/MGMFRM.
+
+Turing is optional. Add it to your analysis environment, then load it before
+requesting that backend:
+
+```julia
+using Pkg
+Pkg.add("Turing")  # Once in this analysis environment.
+using BayesianMGMFRM
+import Turing
+# fit(spec; backend=:turing, ...)  # Choose the usual model and sampler controls.
+```
+
+Ordinary input, AdvancedHMC fitting and saved-result reading do not require
+Turing. `import Turing` loads the backend without introducing its exported names;
+if you use `using Turing`, call `BayesianMGMFRM.fit` explicitly to avoid the shared
+`fit` name. Loading it does not change the default sampler or fitted model. A missing
+extension produces an explicit error instead of selecting a different backend.
+Keep the original environment for historical native caches; this dependency
+change is not a promise of compatibility with every saved analysis.
 
 Run `cmdstan_backend_check()` to inspect CmdStan, `stanc`, `make`, and C++
 compiler availability without compiling a model. The first fit for a supported
@@ -765,8 +908,8 @@ success, not convergence or calibration. Caught errors preserve a `failed`
 record and rethrow the error. Abrupt process termination may leave only the
 initial `started` record. AdvancedHMC warmup positions, tree states and RNG
 checkpoints are not recorded, so this is not an exact mid-chain restart facility. It cannot
-recover missing history from an old fit. Its additional records must be included
-explicitly in any new study specification; it does not change frozen cohorts.
+recover missing history from an old fit. Enable recording when creating a new fit if the analysis needs these
+adaptation details.
 
 To inspect a completed record without fitting, use the repository review helper:
 
@@ -891,6 +1034,8 @@ The legacy
 Use [`prior_predictive_check`](@ref) before interpreting a fit and
 [`posterior_predictive_check`](@ref) afterward. [`calibration_table`](@ref)
 provides expected-score and category-probability calibration rows.
+The [observed-versus-expected guide](api-workflow-diagnostics.md#observed-expected-calibration)
+explains their conditioning, rating counts and expected-value intervals.
 
 WAIC, LOO, PSIS-LOO, and K-fold summaries require a clearly stated prediction
 target and compatible observations across compared models. Treat Pareto-k and
@@ -1043,3 +1188,132 @@ equivalence with FACETS. Generalized fits are rejected.
 - Do not generalize fixed-Q results to exploratory multidimensional models.
 - Report sampler warnings, prediction targets, prior choices, and unsupported
   model features alongside substantive results.
+
+## [Fit a no-state three-outcome model](@id three-outcome-fitting)
+
+Use `Experimental.ThreeIndicator` for the documented joint accentedness,
+comprehension-difficulty and transcription-error model with 9/9/2 categories.
+It retains the specified history and individual time slopes but has **no latent
+time state**. The input contract requires complete outcome triples and the
+specified recording/condition structure; it is not a general mixed-model formula.
+
+Declare `prior=:reference`, `:steps` or `:combined` in `prepare`.
+These are explicit choices, not generally validated empirical defaults.
+Input consistency and a full-rank fixed design do not establish model
+identification, prior suitability or scientific validity. Custom numerical
+priors, latent states and migration of historical native archives are not provided.
+
+| Setting | Common ordinal step means | Ordinal intercept / fixed-coefficient SD |
+| --- | --- | --- |
+| `:reference` | Eight zeros | 2 / 1 |
+| `:steps` | Eight equally spaced values from −2 to 2 | 2 / 1 |
+| `:combined` | Same as `:steps` | 1 / 0.5 |
+
+Both ordinal step vectors have unit Gaussian SD before zero-sum centering.
+Increasing prior means do **not** impose ordered steps. In the seven
+orthonormal zero-sum coordinates, their mean is the projection of the
+eight stated means, and covariance is the identity. The binary intercept
+SD remains 2 and its fixed-coefficient SD remains 1. Cohort contrasts,
+all covariance blocks, word/listener slopes and listener step-deviation
+priors are unchanged. In particular, `:combined` narrows the ordinal
+fixed time coefficient prior, not the individual listener time-slope prior.
+
+The shifted means and additional shrinkage are application-specific assumptions.
+Reduced endpoint concentration alone does not establish a better prior.
+Predictor units determine the meaning of coefficient scales; evaluate these
+assumptions and sensitivity for the intended contrasts and allocation.
+The original explicit reference tuple documented in `prepare` remains accepted.
+
+The installed example prepares the bundled **artificial** 165-event input and
+names its fixed panel and contrasts. Preparation does not fit. Choose the
+settings before running an analysis; the settings below illustrate the syntax,
+not a promise of adequate precision or computation time.
+
+```julia
+using BayesianMGMFRM
+T = BayesianMGMFRM.Experimental.ThreeIndicator
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "three_indicator_fit.jl"))
+controls = (ndraws=1000, warmup=1000, step_size=0.03, target_accept=0.99,
+    max_depth=10, metric=:diagonal, ad_backend=:ForwardDiff)
+plan = prepare_three_indicator_example(;
+    controls, chain_seeds=[6101, 6102, 6103, 6104])
+context = T.report(plan)             # no sampling
+context.listener_support.rows
+context.prior
+context.warnings
+
+# This explicit call starts inference. Use a new output directory.
+fit = T.fit(plan; directory="three-outcome-fit")
+saved = T.summarize(fit)
+answer = T.report(saved)
+answer.rows
+answer.listener_support
+answer.prior
+answer.prior_provenance
+answer.warnings
+answer.numerical_qualified
+receipt = T.save_report("three-outcome-summary.json", saved)
+
+# Trusted local native files, in the exact producing source/environment.
+restored_fit = T.load_fit("three-outcome-fit")
+# Read an already computed report without recomputing diagnostics and MCSE.
+restored_report = T.load_report(receipt.path; expected_sha256=receipt.sha256)
+```
+
+For your own documented input, call `T.prepare(input; prior, controls,
+chain_seeds, focal)` or the file method with `expected_sha256`. A matrix-valued
+NamedTuple and a row-array JSON input are both accepted. The example shows the
+explicit prior and focal definitions: panel events/weights, speaker pairs and
+listener pairs with L1 and transformed position. The input's units and scoring
+must match the meaning of those definitions. No empirical suitability is
+inferred from matching the schema.
+
+To prepare the same artificial example under a selected alternative, use
+`prepare_three_indicator_example(; controls, chain_seeds=[6101,6102,6103,6104],
+prior=:steps)` (or `:combined`). This changes no data and runs no sampler.
+The example's default remains `:reference`; `T.prepare` itself requires an
+explicit prior. Automatically constructed starts use the selected step-prior
+mean; supplied starts retain their declared coordinates.
+
+New computed reports store the prior name and all numerical prior settings,
+and return `prior_provenance=:recorded`. Native plans bind the prior to the
+chain records. Older recognized computed reports return their original
+reference specification with `prior_provenance=:producer_reference` and a
+warning: that setting is identified from their fixed producer, not from a
+prior field in the original report. Portable saving preserves the original
+source bytes. It cannot relabel or reweight an old fit under a new prior.
+
+Preparation warns when a named listener contrast's position is outside that
+listener's observed range for the specified stimulus L1, or that listener/L1
+context has no observations. `T.report(plan).listener_support.rows` gives both
+sides' labels, counts, observed bounds, requested positions and statuses.
+The bounds include their endpoints; no observations means `nothing` bounds
+and `:unobserved_context`, not evidence that the contrast is supported.
+
+In the artificial example, the R1-minus-R3 CHN contrast at position 0.5 exceeds
+both listeners' observed ranges of -0.4 to 0.4. Its three outcome intervals
+describe extrapolation of the assumed linear trend. The JPN contrast at zero
+lies within both listeners' position ranges. A range check does not establish
+joint covariate overlap, causal comparability or model identification.
+Extrapolation is allowed and the requested contrast is retained; numerical
+qualification is a separate question. New computed reports preserve these
+context rows through `save_report` and `load_report`. Older computed reports
+without those rows explicitly return `listener_support.status=:not_recorded`;
+their source summaries cannot recover the missing input ranges.
+
+Use one Julia thread and one BLAS thread, and retain Project/Manifest and the
+source. The native plan binds those settings. Completed and returned chains,
+starts and failures are retained; a failed attempt is not automatically retried
+or extended. `T.load_fit(directory; require_complete=false)` exposes completed
+chains through `fit.saved`, but an incomplete fit cannot be summarized. These
+records do not resume an interrupted sampler. Serialization is for trusted
+local files only; use a computed JSON report for portable sharing.
+
+The pointwise 95% intervals retain their mean and endpoint MCSE. The numerical
+screen requires R-hat at most 1.01, ESS at least 400 and BFMI at least 0.3,
+with probability MCSE at most 0.005 and other-scale MCSE at most 0.02. Inspect all
+warnings, including divergences and tree-depth hits. Failure is retained; no
+automatic adjustment makes a report qualify. An operationally successful short
+fit can remain numerically unqualified. Numerical qualification itself is not
+coverage, identification or scientific acceptance. `summarize` makes no engine
+comparison; any previously computed comparison belongs to its own report.

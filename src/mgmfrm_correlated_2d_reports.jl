@@ -51,7 +51,7 @@ function _mgmfrm_correlated_2d_report_context(fit::_CorrelatedMGMFRMFit)
     target = _mgmfrm_free_latent_correlation_2d_logdensity(record.spec;
         prior = _SourceFixturePrior(; record.prior.scales...), lkj_eta = record.prior.lkj_eta)
     direct = view(checked.diagnostics.direct_values.direct_draws, :, 1:length(target.base.design.parameter_names))
-    return (; fit, checked, target, direct, diagnostics = diagnostics(fit))
+    return (; fit, checked, target, direct, diagnostics = _recorded_mgmfrm_diagnostics(checked))
 end
 
 function _mgmfrm_correlated_2d_report_coordinates(context; scale = :model)
@@ -112,6 +112,10 @@ details. `on_section_error = :capture` exposes failed optional sections;
 MCMC quality, identification or scientific acceptance. Save portable Markdown,
 JSON and tables with `save_fit_report_bundle`; this report is not a fit cache.
 
+`include_effective_slopes=true` adds joint-draw `1.7*c_r*a_id` summaries and
+MCSE in a separate portable section, including fixed slopes and structural Q zeros.
+It uses all retained draws without predictive RNG and retains whole-fit warnings.
+
 Normalized and correlated MGMFRM reports accept `include_waic=false` and
 `include_loo=false`. To request either, provide `dataset_id` and unique persistent
 `observation_ids` in the fit's original row order. Both use ALL retained draws,
@@ -141,6 +145,7 @@ function fit_report(fit::_RecordedMGMFRMFit; view::Symbol = :public,
         rhat_threshold::Real = fit.record.run.checked.rhat_threshold,
         ess_threshold::Real = fit.record.run.checked.ess_threshold,
         on_section_error::Symbol = :capture, require_complete::Bool = false,
+        include_effective_slopes::Bool = false,
         include_waic::Bool = false, include_loo::Bool = false,
         dataset_id=nothing, observation_ids=nothing,
         loo_threshold::Real=.7, loo_tail_fraction::Real=.2, loo_min_tail_draws::Int=5)
@@ -161,18 +166,20 @@ function fit_report(fit::_RecordedMGMFRMFit; view::Symbol = :public,
     reporting_request = _saved_reporting_request(fit, reporting; prediction_request)
     context = _mgmfrm_correlated_2d_report_context(fit)
     normalized = fit isa _NormalizedMGMFRMFit
-    diagnostics(fit; split_chains, rhat_threshold, ess_threshold)
+    # Reuse checked draws only within this report; later public calls revalidate.
+    _recorded_mgmfrm_diagnostics(context.checked; split_chains, rhat_threshold, ess_threshold)
     record, run = context.checked.record, context.checked.record.run
     spec = record.spec; labels = spec.dimension_labels
     coordinates = _mgmfrm_correlated_2d_report_coordinates(context)
-    metadata = merge(fit_metadata(fit), (; backend_label = run.backend === :advancedhmc ? "Julia (AdvancedHMC)" : "CmdStan",
+    metadata = merge(_recorded_mgmfrm_metadata(fit, context.checked), (; backend_label = run.backend === :advancedhmc ? "Julia (AdvancedHMC)" : "CmdStan",
         scale_convention = normalized ? "Prior-anchored model coordinates; response multiplier 1.7; identity latent correlation" :
             "Prior-anchored model coordinates; response multiplier 1.7; rho on correlation scale",
         source_sample_schema = record.schema, source_sample_content_hash = record.content_hash,
         interpretation = normalized ? _normalized_mgmfrm_label(context.target) * "; latent correlation is fixed to identity. Prior scales and coefficient policies are explicit inputs. Scientific acceptance is not established." :
             "Experimental correlated MGMFRM: positive loadings, product-one rater consistency and population rho are estimated. Q fixes the zero pattern, not active loading values. Supported operations do not establish scientific acceptance."))
     posterior = _fit_report_section(policy) do
-        rows = posterior_summary(fit; lower, upper)
+        rows = _recorded_mgmfrm_posterior_summary(
+            _recorded_mgmfrm_summary_input(context.checked, :raw_unconstrained); lower, upper)
         (; rows, n_rows = length(rows), interpretation = normalized ? "Raw computational coordinates under the saved normalized prior. All retained draws; central $(100interval)% credible intervals. Positive loadings and consistencies are reported in model coordinates." : "Raw computational coordinates; the last coordinate is Fisher z. All retained draws; central $(100interval)% credible intervals. Use the model-coordinate section for positive loadings, consistencies and rho.")
     end
     direct_posterior = _fit_report_section(policy) do
@@ -187,6 +194,8 @@ function fit_report(fit::_RecordedMGMFRMFit; view::Symbol = :public,
             correlation_mcse_rows = filter(row -> row.block === :latent_correlation, mcse_rows),
             interpretation = normalized ? "Named model coordinates with reconstructed zero-sum severities/steps and product-one consistencies. All retained draws; central $(100interval)% credible intervals. MCSE measures simulation precision, not posterior uncertainty. Fixed intervals represent constraints; inactive Q loadings are structural zeros." : "Named model coordinates, including reconstructed last-rater/step constraints and population rho. All retained draws; central $(100interval)% credible intervals. Rho intervals and MCSE use tanh-transformed draws. MCSE measures simulation precision, not posterior uncertainty; no precision acceptance margin is applied. Fixed point intervals are constants, not estimated certainty. Inactive Q loadings are structural zeros listed in the Q table.")
     end
+    direct_posterior = merge(direct_posterior, (;
+        scale_note="Model loadings and rater consistency exclude the fixed multiplier 1.7. Their product times 1.7 is the adjacent-logit ability slope; inspect the optional effective_slopes section."))
     posterior_predictive = include_posterior_predictive ? _fit_report_section(policy) do
         _mgmfrm_correlated_2d_predictive_section(fit; interval = predictive_interval, ndraws, draw_indices, seed)
     end : _fit_report_not_requested()
@@ -261,6 +270,10 @@ function fit_report(fit::_RecordedMGMFRMFit; view::Symbol = :public,
             meaning = "Population correlation; marginal SDs and LKJ shape are fixed inputs")], n_rows = 1,
             interpretation = "Conditionally correlated ability pairs; other free coordinates have independent priors and reconstructed constraints induce dependence. No arbitrary grouping effects or learned variance components are fitted."),
         rating_design, artifact, posterior, direct_posterior, posterior_predictive, prior_predictive), unsupported, criteria_sections)
+    if include_effective_slopes
+        report = merge(report, (; effective_slopes=_generalized_slope_report(fit;
+            lower, upper, on_section_error=policy)))
+    end
     report = _with_saved_reporting(report, fit, reporting_request, policy)
     health = _derive_fit_report_health(report)
     report = merge(report, (; report_status = health.status, report_health = health))

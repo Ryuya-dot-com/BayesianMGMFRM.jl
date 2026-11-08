@@ -1,4 +1,7 @@
 using Test
+import Turing
+include("optional_dependencies.jl")
+OptionalDependencyChecks.availability_checks()
 using ForwardDiff
 using JSON3
 using LinearAlgebra
@@ -11,6 +14,8 @@ using Serialization
 import AdvancedHMC
 import BayesianMGMFRM
 import LogDensityProblemsAD
+
+include("diagnostic_split_metadata.jl")
 
 include("test_groups.jl")
 
@@ -20763,6 +20768,9 @@ end
 @static if test_group_enabled(:core)
 include("test_group_selection.jl")
 include("intended_category_scale.jl")
+include("calibration_plot_data.jl")
+include("score_information.jl")
+ScoreInformationChecks.checks(mktempdir())
 @testset "optional research fixture boundary" begin
     fixture_env = "MFRM_TEST_OPTIONAL_RESEARCH_FIXTURE"
     withenv(fixture_env => nothing) do
@@ -24489,7 +24497,7 @@ end
         loo(gmfrm_experimental_fit).looic
     @test psis_loo(gmfrm_experimental_fit.design,
         gmfrm_experimental_fit.draws;
-        parameter_space = :raw).looic ≈
+        parameter_space = :raw, chain_ids=gmfrm_experimental_fit.chain_ids).looic ≈
         psis_loo(gmfrm_experimental_fit).looic
     gmfrm_comparison = compare_models(
         :gmfrm_a => gmfrm_experimental_fit,
@@ -26961,6 +26969,10 @@ end
 end
 
 @static if test_group_enabled(:fitting_core)
+include("first_analysis.jl")
+FirstAnalysisChecks.checks()
+include("normalized_mgmfrm_example.jl")
+NormalizedExampleChecks.checks()
 include("refit_plan_integrity.jl")
 include("common_prediction_refit.jl")
 mktempdir(CommonPredictionRefitChecks.checks)
@@ -26974,9 +26986,24 @@ include("common_recovery_evaluation.jl")
 mktempdir(CommonRecoveryEvaluationChecks.checks)
 include("common_recovery_replications.jl")
 mktempdir(CommonRecoveryReplicationChecks.checks)
+include("recovery_planning.jl")
+mktempdir(RecoveryPlanningChecks.checks)
+mktempdir(RecoveryPlanningChecks.relocation_checks)
+mktempdir(RecoveryPlanningChecks.sbc_checks)
+mktempdir(RecoveryPlanningChecks.sbc_rank_checks)
+include("recovery_study_summary.jl")
+mktempdir(RecoveryStudySummaryChecks.checks)
+mktempdir(RecoveryStudySummaryChecks.multi_quantity_checks)
+include("recovery_execution_example.jl")
+mktempdir(RecoveryExecutionExampleChecks.checks)
+mktempdir(RecoveryExecutionExampleChecks.sbc_checks)
 include("refit_metadata.jl")
 include("prior_sensitivity.jl")
+include("mean_profile_sensitivity.jl")
+include("prior_power_sensitivity.jl")
 include("prior_sensitivity_roundoff.jl")
+include("prior_sensitivity_example.jl")
+mktempdir(PriorSensitivityExampleChecks.checks)
 include("prior_predictive_sensitivity.jl")
 include("posterior_ranking.jl")
 mktempdir(PosteriorRankingChecks.checks)
@@ -27000,6 +27027,14 @@ include("dff_assignment.jl")
 mktempdir(DFFAssignmentChecks.checks)
 include("category_report.jl")
 mktempdir(CategoryReportChecks.checks)
+include("category_streaming.jl")
+CategoryStreamingChecks.checks()
+include("mcmc_parameter_memory.jl")
+MCMCParameterMemoryChecks.checks()
+MCMCParameterMemoryChecks.lag_checks()
+CategoryStreamingChecks.native_step_checks()
+include("category_report_d1.jl")
+CategoryReportD1Checks.checks()
 include("saved_reporting.jl")
 mktempdir(SavedReportingChecks.checks)
 println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
@@ -28105,15 +28140,16 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     report_path = joinpath(report_dir, "minimal_fit_report.json")
     report_export = save_fit_report(report_path, report)
     @test isfile(report_path)
-    @test report_export.schema == "bayesianmgmfrm.fit_report_export.v1"
+    @test report_export.schema == "bayesianmgmfrm.fit_report_export.v2"
     @test report_export.object === :fit_report_export
     @test report_export.report_schema == report.schema
     @test report_export.report_object === :fit_report
     @test report_export.report_content_hash.value == report_hash
     @test report_export.json_content_hash.value ==
-        BayesianMGMFRM._fit_report_json_hash_record(report_export.report).value
+        BayesianMGMFRM._fit_report_json_hash_record(report_export.report;
+            canonicalization = :cache_stable_string_exact_integers_v1).value
     @test public_report.source_report.content_hash ==
-        report_export.json_content_hash.value
+        BayesianMGMFRM._fit_report_json_hash_record(report_export.report).value
     loaded_report = load_fit_report(report_path)
     @test loaded_report["schema"] == report.schema
     @test loaded_report["object"] == "fit_report"
@@ -30329,31 +30365,29 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     @test_throws ArgumentError loo(loo_loglik; tail_fraction = 1.0)
     @test_throws ArgumentError loo(loo_loglik; min_tail_draws = 0)
 
-    psis_result = psis_loo(result; draw_indices = loo_indices)
+    psis_result = psis_loo(result)
+    psis_loglik = pointwise_loglikelihood_matrix(design,result.draws)
+    manual_psis_lppd = [BayesianMGMFRM._logmeanexp(c) for c in eachcol(psis_loglik)]
     @test psis_result.criterion === :loo
     @test psis_result.method === :pareto_smoothed_importance_sampling
     @test psis_result.psis_smoothing === true
-    @test psis_result.pareto_k_estimator === :hill_log_tail
-    @test psis_result.n_draws == length(loo_indices)
+    @test psis_result.pareto_k_estimator === :zhang_stephens
+    @test psis_result.n_draws == size(result.draws,1)
     @test psis_result.n_observations == data.n
     @test psis_result.pareto_k_threshold == 0.7
-    @test psis_result.tail_fraction == 0.2
-    @test psis_result.min_tail_draws == 5
-    @test psis_result.pointwise.lppd ≈ manual_loo_lppd
+    @test psis_result.pointwise.lppd ≈ manual_psis_lppd
     @test psis_result.pointwise.p_loo ≈
         psis_result.pointwise.lppd .- psis_result.pointwise.elpd_loo
     @test psis_result.pointwise.looic ≈ -2 .* psis_result.pointwise.elpd_loo
-    @test psis_result.lppd ≈ sum(manual_loo_lppd)
+    @test psis_result.lppd ≈ sum(manual_psis_lppd)
     @test psis_result.p_loo ≈ sum(psis_result.pointwise.p_loo)
     @test psis_result.elpd_loo ≈ sum(psis_result.pointwise.elpd_loo)
     @test psis_result.looic ≈ sum(psis_result.pointwise.looic)
     @test psis_result.looic ≈ -2 * psis_result.elpd_loo
     @test psis_result.se_looic ≈ 2 * psis_result.se_elpd_loo
-    @test psis_result.pointwise.pareto_k ≈ loo_result.pointwise.pareto_k
     @test all(isfinite, psis_result.pointwise.elpd_loo)
     @test all(isfinite, psis_result.pointwise.pareto_k)
-    @test all(k -> k >= 0, psis_result.pointwise.pareto_k)
-    @test all(ess -> 1 <= ess <= psis_result.n_draws,
+    @test all(ess -> 0 < ess,
         psis_result.pointwise.effective_sample_size)
     @test all(draws -> 1 <= draws <= psis_result.n_draws - 1,
         psis_result.pointwise.tail_draws)
@@ -30363,17 +30397,17 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     @test psis_result.min_effective_sample_size ==
         minimum(psis_result.pointwise.effective_sample_size)
     @test psis_result.warning in (:ok, :high_pareto_k)
-    @test psis_loo(design, result.draws[loo_indices, :]).looic ≈
+    @test psis_loo(design, result.draws;chain_ids=result.chain_ids).looic ≈
         psis_result.looic
-    @test psis_loo(loo_loglik).looic ≈ psis_result.looic
-    constant_loglik = fill(-1.2, length(loo_indices), 2)
+    @test psis_loo(psis_loglik;chain_ids=result.chain_ids).looic ≈ psis_result.looic
+    constant_loglik = fill(-1.2, size(result.draws,1), 2)
     constant_raw_loo = loo(constant_loglik)
     constant_psis_loo = psis_loo(constant_loglik)
     @test constant_psis_loo.pointwise.elpd_loo ≈
         constant_raw_loo.pointwise.elpd_loo
     @test all(isapprox.(constant_psis_loo.pointwise.p_loo,
         constant_raw_loo.pointwise.p_loo; atol = eps()))
-    @test all(iszero, constant_psis_loo.pointwise.pareto_k)
+    @test all(isinf, constant_psis_loo.pointwise.pareto_k)
     @test_throws ArgumentError psis_loo(result; ndraws = 2)
     @test_throws ArgumentError psis_loo(result; ndraws = 3, draw_indices = [1])
     @test_throws ArgumentError psis_loo(design, result.draws[loo_indices, 1:end-1])
@@ -31296,9 +31330,7 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     @test [row.pareto_k for row in loglik_loo_rows] ≈
         loo_result.pointwise.pareto_k
     @test !hasproperty(loglik_loo_rows[1], :person)
-    psis_loo_rows = loo_diagnostics(result;
-        draw_indices = loo_indices,
-        psis_smoothing = true)
+    psis_loo_rows = loo_diagnostics(result; psis_smoothing = true)
     @test length(psis_loo_rows) == data.n
     @test all(row -> row.criterion === :loo, psis_loo_rows)
     @test all(row -> row.method === :pareto_smoothed_importance_sampling,
@@ -31705,11 +31737,10 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
         [row.looic for row in loo_comparison]
     psis_comparison = compare_models(result, hmc_result;
         names = [:main, :hmc],
-        criterion = :psis_loo,
-        draw_indices = loo_indices)
+        criterion = :psis_loo)
     psis_comparison_stats = Dict(
-        "main" => psis_loo(result; draw_indices = loo_indices),
-        "hmc" => psis_loo(hmc_result; draw_indices = loo_indices),
+        "main" => psis_loo(result),
+        "hmc" => psis_loo(hmc_result),
     )
     @test length(psis_comparison) == 2
     @test [row.rank for row in psis_comparison] == [1, 2]
@@ -31748,8 +31779,7 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     psis_sensitivity = sensitivity_comparison(:main => result, :hmc => hmc_result;
         axis = :sampler,
         baseline = :main,
-        criterion = :psis_loo,
-        draw_indices = loo_indices)
+        criterion = :psis_loo)
     psis_sensitivity_baseline = only(filter(row -> row.model == "main",
         psis_sensitivity))
     psis_sensitivity_candidate = only(filter(row -> row.model == "hmc",
@@ -32993,16 +33023,22 @@ end
 end
 
 test_group_enabled(:fitting_core) && include("fitting_boundaries.jl")
+test_group_enabled(:fitting_core) && include("spec_display.jl")
+test_group_enabled(:fitting_core) && include("rater_free_irt.jl")
 test_group_enabled(:fitting_core) && include("warmup_diagnostics.jl")
 test_group_enabled(:fitting_core) && include("posterior_plot.jl")
 test_group_enabled(:fitting_core) && include("pathway_plot.jl")
 test_group_enabled(:fitting_core) && include("response_surface.jl")
+test_group_enabled(:fitting_core) && include("wright_ridge.jl")
 
 if test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS
     include("existing_api_design_robustness_recovery_scorer.jl")
 end
 if test_group_enabled(:fitting_reports)
+    include("joint_draw_artifact.jl")
+    include("reference_prior_reporting.jl")
     include("facets_conquest_bridge.jl")
+    include("conquest_reference.jl")
     include("model_contract.jl")
     include("facets_compatibility_stats.jl")
     include("practitioner_diagnostics.jl")
@@ -33050,6 +33086,7 @@ if test_group_enabled(:generalized)
     include("mgmfrm_validation_execution_design.jl")
     include("mgmfrm_validation_analysis_contract.jl")
     include("generalized_prior.jl")
+    include("generalized_summary.jl")
     include("mgmfrm_location_diagnostics.jl")
     include("mgmfrm_location_parameterization.jl")
     include("mgmfrm_core_location_section.jl")
@@ -33069,12 +33106,22 @@ if test_group_enabled(:generalized)
     include("mgmfrm_normalized_samples.jl")
     include("mgmfrm_unidimensional.jl")
     include("mgmfrm_slope_restriction.jl")
+    include("mgmfrm_slope_gradient.jl")
+    include("mgmfrm_slope_prior_blocks.jl")
+    include("mgmfrm_gradient_selection.jl")
+    include("mgmfrm_artifact_reuse.jl")
+    include("mgmfrm_report_reuse.jl")
+    MGMFRMReportReuseChecks.checks()
+    include("mgmfrm_diagnostic_memory.jl")
+    MGMFRMDiagnosticMemoryChecks.checks()
     include("mgmfrm_mean_profile.jl")
     include("matched_dimension_refit_plans.jl")
     include("mfrm_fixed_q_result.jl")
     include("mfrm_fixed_q_spec.jl")
     include("mfrm_correlated_2d.jl")
     include("sampling_observer.jl")
+    include("sampling_progress.jl")
+    include("sampling_execution.jl")
     include("mfrm_correlated_2d_samples.jl")
     include("mfrm_correlated_2d_result.jl")
     include("mfrm_prior_predictive.jl")
@@ -33098,6 +33145,7 @@ if test_group_enabled(:generalized)
 end
 test_group_enabled(:fitting_reports) && include("common_prediction_tests.jl")
 test_group_enabled(:fitting_reports) && include("fit_report_completeness.jl")
+test_group_enabled(:fitting_reports) && include("report_bundle_preflight.jl")
 test_group_enabled(:fitting_reports) && include("report_columns.jl")
 test_group_enabled(:fitting_reports) && include("report_figures.jl")
 test_group_enabled(:fitting_reports) && include("warmup_report.jl")
@@ -33107,8 +33155,16 @@ end
 test_group_enabled(:fitting_reports) && include("evidence_metadata_resilience.jl")
 if test_group_enabled(:generalized)
     include("experimental_namespace.jl")
+    include("joint_ratings.jl")
+    JointRatingsTests.finite_checks()
+    include("ordinal_association.jl")
+    OrdinalAssociationTests.finite_checks()
+    include("joint_rating_gradient.jl")
+    JointRatingGradientTests.finite_checks()
     include("mgmfrm_free_latent_correlation_2d.jl")
     include("mgmfrm_correlated_2d_cmdstan.jl")
+    include("mgmfrm_correlated_gradient.jl")
+    CorrelatedGradientTests.finite_checks()
     include("mgmfrm_correlated_2d_samples.jl")
     include("mgmfrm_correlated_2d_result.jl")
     include("mgmfrm_correlated_2d_predictive.jl")
@@ -33147,12 +33203,84 @@ end
 test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS &&
     include("publication_grade_policy_contract.jl")
 if test_group_enabled(:fitting_reports)
+    include("single_item_design_rank.jl")
+    SingleItemDesignRankChecks.checks()
+    include("release_metadata.jl")
     include("public_language_gate.jl")
     include("cache_hash.jl")
     include("cache_summary_roundoff.jl")
     CacheSummaryRoundoffChecks.checks()
+    include("posterior_direction.jl")
+    PosteriorDirectionChecks.checks()
+    include("json_integer_preservation.jl")
+    JSONIntegerPreservationChecks.checks()
+    include("report_integer_checksum.jl")
+    ReportIntegerChecksumChecks.checks()
     include("posterior_mcse.jl")
     include("saved_mgmfrm_contrasts.jl")
+    include("three_indicator_reports.jl")
+    ThreeIndicatorReportChecks.checks()
+    ThreeIndicatorReportChecks.provenance_checks()
+    ThreeIndicatorReportChecks.support_checks()
+    include("three_indicator_input.jl")
+    ThreeIndicatorInputChecks.checks()
+    ThreeIndicatorInputChecks.interface_checks()
+    include("three_indicator_concurrent.jl")
+    ThreeIndicatorConcurrentChecks.checks()
+    ThreeIndicatorConcurrentChecks.persistence_checks()
+    include("three_indicator_concurrent_prior_config.jl")
+    ThreeIndicatorConcurrentPriorConfigChecks.checks()
+    include("three_indicator_concurrent_association.jl")
+    ThreeIndicatorConcurrentAssociationChecks.checks()
+    ThreeIndicatorConcurrentAssociationChecks.lifecycle_checks()
+    include("three_indicator_concurrent_reports.jl")
+    ThreeIndicatorConcurrentReportChecks.checks()
+    ThreeIndicatorConcurrentReportChecks.support_checks()
+    include("three_indicator_concurrent_workflow.jl")
+    include("three_indicator_concurrent_parallel.jl")
+    ThreeIndicatorConcurrentParallelChecks.checks()
+    ThreeIndicatorConcurrentWorkflowChecks.checks()
+    include("three_indicator_concurrent_predictive.jl")
+    ThreeIndicatorConcurrentPredictiveChecks.checks()
+include("three_indicator_concurrent_prior_predictive.jl")
+ThreeIndicatorConcurrentPriorPredictiveChecks.checks()
+include("three_indicator_coordinates.jl")
+ThreeIndicatorCoordinateChecks.checks()
+include("three_indicator_adaptation.jl")
+ThreeIndicatorAdaptationChecks.checks()
+    include("three_indicator_fitting.jl")
+    ThreeIndicatorFittingChecks.context_checks()
+    include("three_indicator_priors.jl")
+    ThreeIndicatorPriorChecks.checks()
+    ThreeIndicatorPriorChecks.report_checks(ThreeIndicatorReportChecks.support_fixture)
+    mktempdir() do out
+        ThreeIndicatorFittingChecks.checks(joinpath(out,"three-indicator"))
+    end
+    include("rater_drift.jl")
+    RaterDriftChecks.checks()
+    include("rater_drift_comparison.jl")
+    mktempdir() do output
+        RaterDriftComparisonChecks.checks(joinpath(output,"comparison"))
+    end
+    include("rater_drift_fitting.jl")
+    mktempdir() do output
+        RaterDriftFittingChecks.prepare_checks(joinpath(output,"deterministic"))
+        RaterDriftFittingChecks.bridge_unit_checks()
+        RaterDriftFittingChecks.public_checks(output)
+    end
+    include("posterior_contrast.jl")
+    PosteriorContrastChecks.checks()
+    include("rater_item_interactions.jl")
+    include("additive_facets.jl")
+    include("additive_facets_workflow.jl")
+    include("rater_group_effects.jl")
+    include("criterion_collapse.jl")
+    include("criterion_collapse_prediction.jl")
+    include("criterion_collapse_loo.jl")
+    include("criterion_collapse_plots.jl")
+    include("rater_group_categories.jl")
+    include("rater_group_predictive.jl")
+    include("rater_group_example.jl")
     include("rank_normalized_diagnostics.jl")
     include("scientific_payload_digest.jl")
     RUN_RESEARCH_EVIDENCE_TESTS &&
@@ -33161,3 +33289,14 @@ end
 
 test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS &&
     include("full_paper_reproduction_archive_contract.jl")
+
+include("correlated_3d.jl")
+include("unified_api_and_star_association.jl")
+include("star_prior_identity.jl")
+include("unified_api_review_fixes.jl")
+include("mathematical_api_contract.jl")
+include("unified_persistence.jl")
+include("comparison_api_contract.jl")
+include("qualification_prediction_contract.jl")
+
+include("common_psis.jl")

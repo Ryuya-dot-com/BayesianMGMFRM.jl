@@ -1,12 +1,11 @@
 cff-version: 1.2.0
-message: "If you use BayesianMGMFRM.jl, please cite it using the metadata from this file."
+message: "Please cite the software version and exact development revision or source snapshot you used. For a released version, use the citation metadata supplied with that release."
 type: software
 title: "BayesianMGMFRM.jl: Bayesian many-facet Rasch measurement in Julia"
 authors:
   - family-names: "Komuro"
     given-names: "Ryuya"
-version: "0.1.1"
-date-released: "2026-07-19"
+version: "0.1.2"
 license: "MIT"
 repository-code: "https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl"
 url: "https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl"

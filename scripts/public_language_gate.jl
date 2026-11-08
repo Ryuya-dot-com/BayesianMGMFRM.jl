@@ -23,6 +23,7 @@ const PUBLIC_DOCUMENTATION_PAGES = (
     "index.md",
     "learning-guide.md",
     "visualization-gallery.md",
+    "score-information.md",
     "prior-sensitivity.md",
     "rating-model-theory.md",
     "interpreting-results.md",
@@ -31,10 +32,24 @@ const PUBLIC_DOCUMENTATION_PAGES = (
     "bayesian-workflow.md",
     "fitting.md",
     "experimental.md",
+    "joint-ratings.md",
+    "additive-facets.md",
+    "ordinal-association.md",
+    "star-association.md",
+    "correlated-3d.md",
+    "concurrent-three-outcome.md",
+    "rater-drift.md",
+    "rater-group-effects.md",
+    "criterion-collapse.md",
     "examples.md",
     "common_prediction_comparison.md",
+    "design-planning.md",
     "migration-facets-conquest.md",
     "scope.md",
+    "roadmap.md",
+    "mgmfrm-research-roadmap.md",
+    "contributing.md",
+    "registration.md",
     "api.md",
     "api-prediction-recovery.md",
     "api-experimental.md",
@@ -51,15 +66,13 @@ const DEVELOPER_DOCUMENTATION_PAGES = (
     "development-home-ledger.md",
     "development-readme-ledger.md",
     "development-workflow-notes.md",
-    "roadmap.md",
-    "registration.md",
-    "mgmfrm-research-roadmap.md",
     "v0.1.1-implementation-checklist.md",
 )
 
 const PUBLIC_ROOT_FILES = (
     "README.md",
     "NEWS.md",
+    "ROADMAP.md",
 )
 
 const ABSOLUTE_LOCAL_PATH_PATTERN =
@@ -72,6 +85,11 @@ const MAINTENANCE_TOKEN_PATTERN =
     r"(?i)\b(?:source[\s_-]?fixture[A-Za-z0-9_]*|fixture[\s_-]?only|fixture[\s_-]?provenance|promotion[\s_-]?candidate|guarded[\s_-]?local[\s_-]?entrypoint|guarded[\s_-]?local[\s_-]?fit|experimental_public|next[\s_-]?gate|blocked[\s_-]?option|supported[\s_-]?surface|candidate[\s_-]?gates|caveat[\s_-]?docs[\s_-]?artifact|internal[\s_-]?target[\s_-]?constructor|internal[\s_-]?sampler[\s_-]?diagnostic[\s_-]?constructor|publication[\s_-]?or[\s_-]?registration[\s_-]?action|manual[\s_-]?publication[\s_-]?or[\s_-]?registration[\s_-]?by[\s_-]?user[\s_-]?only|manuscript[\s_-]?claims[\s_-]?allowed|public[\s_-]?claim[\s_-]?allowed|package[\s_-]?default[\s_-]?change)\b"
 
 const LANGUAGE_RULES = (
+    (;
+        id = :study_process_wording,
+        pattern = r"(?i)\b(?:Stage[ -]+A|LD1[ab][0-9]*|MS[1-6]|MP1|frozen cohorts|execution-protocol authorization|attempt-complete evaluation-runner blocker|independent threshold review)\b",
+        guidance = "explain available operations and statistical limits; keep study scheduling and approval language outside user documentation",
+    ),
     (;
         id = :private_result_status,
         pattern = r"(?i)\bprivate[\s_-]+(?:reference|result|correlated)\b",
@@ -253,7 +271,7 @@ function _language_rule_hits(text::AbstractString, rules)
                     :runtime_private_identifier,
                     :rendered_private_identifier) &&
                     (_markdown_italic_placeholder(text, matched.offset) ||
-                     (matched.match == "__FILE__" && matched.offset > firstindex(text) &&
+                     (matched.match in ("__FILE__", "__DIR__") && matched.offset > firstindex(text) &&
                       text[prevind(text, matched.offset)] == '@'))
                 continue
             end
@@ -324,6 +342,24 @@ function rendered_public_surface_paths(root::AbstractString)
     return paths
 end
 
+# Inspect downloadable text assets as well as rendered page prose.
+function documentation_asset_path_violations(root::AbstractString)
+    assets = joinpath(root, "docs", "src", "assets")
+    isdir(assets) || return NamedTuple[]
+    rules = ((;id=:asset_working_path,
+        pattern=r"(?:results/workflows/[^\s\"<>]+|/Users/[^\s\"<>]+|/private/tmp/[^\s\"<>]+)",
+        guidance="retain source hashes and statistical results without working-directory paths"),)
+    violations = NamedTuple[]
+    for (directory, _, files) in walkdir(assets), file in files
+        splitext(file)[2] in (".json", ".txt") || continue
+        path = joinpath(directory, file)
+        for hit in _language_rule_hits(read(path, String), rules)
+            push!(violations, (;hit...,path=relpath(path,root)))
+        end
+    end
+    return violations
+end
+
 function public_language_violations(root::AbstractString;
         paths::AbstractVector{<:AbstractString} = public_surface_paths(root))
     normalized_root = abspath(normpath(root))
@@ -342,6 +378,7 @@ function public_language_violations(root::AbstractString;
             ))
         end
     end
+    append!(violations, documentation_asset_path_violations(normalized_root))
     return violations
 end
 

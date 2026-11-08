@@ -129,7 +129,8 @@ The result reports category-probability MAE/RMSE, expected-score MAE/RMSE, and
 mean proper log-score regret (the mean KL divergence from truth to prediction),
 plus observation-level rows. Exact predicted zeros where truth is positive are
 retained as infinite log-score regret rather than silently clamped. This is a
-descriptive Stage-A scorer, not validation evidence by itself.
+descriptive scoring function. Reliability or calibration claims require
+repeated evaluations under an explicitly specified generating model and design.
 """
 function mgmfrm_predictive_recovery_score(
         predicted_probabilities,

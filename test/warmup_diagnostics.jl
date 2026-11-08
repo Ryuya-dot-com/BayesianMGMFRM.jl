@@ -1,6 +1,8 @@
 module PublicWarmupDiagnosticChecks
 using Test, Random, Serialization, BayesianMGMFRM
+import Turing
 const B = BayesianMGMFRM
+const TE = Base.get_extension(B, :BayesianMGMFRMTuringExt)
 include("test_groups.jl")
 
 cells = [(p, i, r) for p in 1:2 for i in 1:4 for r in 1:3]
@@ -159,12 +161,12 @@ test_flag("BAYESIANMGMFRM_CMDSTAN_TESTS") && check_backend(:cmdstan)
         states = NamedTuple[]
         callback = (rng, model, sampler, sample, state, iteration; kwargs...) ->
             push!(states, (; transition = state.i, nadapts = kwargs[:nadapts]))
-        reference = B.Turing.sample(MersenneTwister(23),
-            B._turing_mfrm_logdensity_model(target, nparams),
-            B.Turing.NUTS(warmup, 0.8, 3, 1000.0, 0.03, B.AdvancedHMC.DiagEuclideanMetric;
-                adtype = B.Turing.AutoForwardDiff()), warmup + 7;
+        reference = Turing.sample(MersenneTwister(23),
+            TE._turing_mfrm_logdensity_model(target, nparams),
+            Turing.NUTS(warmup, 0.8, 3, 1000.0, 0.03, B.AdvancedHMC.DiagEuclideanMetric;
+                adtype = Turing.AutoForwardDiff()), warmup + 7;
             discard_initial = 0, progress = false, verbose = false, chain_type = Any,
-            initial_params = B.Turing.InitFromParams((params = initial_params(design),)), callback)
+            initial_params = Turing.InitFromParams((params = initial_params(design),)), callback)
         @test getproperty.(states, :transition) == collect(0:(warmup + 6))
         @test all(row -> row.nadapts == warmup, states)
         summary = only(sampler_diagnostics(fitted; phase = :warmup))
@@ -176,7 +178,7 @@ test_flag("BAYESIANMGMFRM_CMDSTAN_TESTS") && check_backend(:cmdstan)
         @test summary.n_nonfinite_logdensity == count(s -> !isfinite(s.log_density), warming)
         retained = reference[(warmup + 2):end]
         @test all(row -> row.transition > row.nadapts, states[(warmup + 2):end])
-        @test fitted.draws == reduce(vcat, permutedims(B._turing_params(t, nparams)) for t in retained)
+        @test fitted.draws == reduce(vcat, permutedims(TE._turing_params(t, nparams)) for t in retained)
         @test fitted.log_posterior == [t.stats.log_density for t in retained]
         @test all(row -> !row.is_adapt, fitted.sampler_stats)
         @test length(unique(getproperty.(fitted.sampler_stats, :step_size))) == 1

@@ -129,7 +129,8 @@ end
 
 """
     BayesianMGMFRM.plot_response_surface(fit::MGMFRMFit; item, rater,
-        size = nothing, azimuth = 1.275pi, elevation = pi/7, annotation_io = stdout, kwargs...)
+        size = nothing, azimuth = 1.275pi, elevation = pi/7,
+        layout = :overlay, annotation_io = stdout, kwargs...)
 
 Display editable 3D posterior-mean category probability wireframes, with a
 fixed color and legend entry for each stored rating value. Axes use numbered
@@ -138,6 +139,13 @@ heatmaps show each category's pointwise central credible interval width on a
 shared scale. Select a numeric `category` for one filled probability surface,
 or `category = nothing` for an expected-rating surface. Load `CairoMakie` first. All
 other keywords are forwarded to [`BayesianMGMFRM.item_response_surface`](@ref).
+Use `layout = :panels` to separate categories into filled 3D surfaces, or
+`layout = :heatmaps` for planar probability maps without perspective occlusion.
+Both layouts pair each mean with its interval-width map and use common scales
+across categories. A Q-excluded axis is explicitly labelled; a flat surface in
+that direction is a model constraint, not empirical evidence of no relationship.
+Widths are posterior uncertainty, not MCSE or simultaneous bands. These layouts
+use exactly the same numerical summaries as the default `:overlay`.
 The figure and accompanying text retain the whole-fit diagnostic note and the selected item, rater,
 dimensions, fixed abilities, interval and draw count. `azimuth` and `elevation`
 control the static viewing angle in radians. Save with CairoMakie's `save`.

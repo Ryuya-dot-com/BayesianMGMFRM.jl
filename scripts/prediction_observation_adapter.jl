@@ -244,8 +244,8 @@ end
     prediction_criteria(fit; dataset_id, observation_ids, criteria=..., ...)
 
 Compute native criteria once from the common full retained log-likelihood matrix.
-Allowed names are :waic, :raw_loo (native loo), and :hill_smoothed_loo (native
-psis_loo). The latter is the repository's Hill-tail smoother, not an assertion
+Allowed names are :waic, :raw_loo (native loo), and :hill_smoothed_loo (the
+historical Hill-tail smoother). The latter is not an assertion
 of equivalence to the reference loo package. No refit or ranking is performed.
 
 All original chains and draws are required. Retain sampling and criterion
@@ -263,7 +263,7 @@ function prediction_criteria(prediction::NamedTuple; criteria::Tuple=(:waic, :ra
     loglik = _criterion_draws(prediction)
     values = map(criteria) do criterion
         criterion === :waic ? B.waic(loglik) : criterion === :raw_loo ?
-            B.loo(loglik; controls...) : B.psis_loo(loglik; controls...)
+            B.loo(loglik; controls...) : B._hill_smoothed_loo(loglik; controls...)
     end
     scores = NamedTuple{criteria}(values)
     problem_ids = NamedTuple{criteria}(map(criteria, values) do criterion, stat

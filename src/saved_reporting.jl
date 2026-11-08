@@ -3,7 +3,7 @@
 function _saved_reporting_request(fit, request; prediction_request=nothing)
     request === nothing && return nothing
     request isa NamedTuple || throw(ArgumentError("reporting must be a named tuple"))
-    Set(keys(request)) ⊆ Set((:dataset_id,:observation_ids,:category,:agreement,:reliability,:classification,:ranking,:alpha,:icc)) ||
+    Set(keys(request)) ⊆ Set((:dataset_id,:observation_ids,:category,:agreement,:reliability,:classification,:ranking,:alpha,:icc,:score_information)) ||
         throw(ArgumentError("unknown reporting option"))
     ranking=get(request,:ranking,nothing)
     ranking===nothing || (ranking isa NamedTuple &&
@@ -15,9 +15,10 @@ function _saved_reporting_request(fit, request; prediction_request=nothing)
         throw(ArgumentError("classification must be a named tuple with parameters, cutoff, pass_probability and optional interval"))
     category=get(request,:category,nothing);agreement=get(request,:agreement,nothing)
     alpha=get(request,:alpha,nothing);icc=get(request,:icc,nothing)
-    all(x->x===nothing || x isa NamedTuple,(category,agreement,alpha,icc)) ||
-        throw(ArgumentError("reporting.category, reporting.agreement, reporting.alpha and reporting.icc must be named tuples or nothing"))
-    for options in (category,agreement,alpha,icc)
+    score_information=get(request,:score_information,nothing)
+    all(x->x===nothing || x isa NamedTuple,(category,agreement,alpha,icc,score_information)) ||
+        throw(ArgumentError("reporting.category, reporting.agreement, reporting.alpha, reporting.icc and reporting.score_information must be named tuples or nothing"))
+    for options in (category,agreement,alpha,icc,score_information)
         options===nothing && continue
         isempty(intersect(Set(keys(options)),Set((:dataset_id,:observation_ids)))) ||
             throw(ArgumentError("supply shared dataset_id and observation_ids in reporting, not individual sections"))
@@ -34,9 +35,9 @@ function _saved_reporting_request(fit, request; prediction_request=nothing)
         push!(names,String(cohort.id))
     end
     dataset_id=get(request,:dataset_id,nothing);ids=get(request,:observation_ids,nothing)
-    if category!==nothing || agreement!==nothing || alpha!==nothing || icc!==nothing
+    if category!==nothing || agreement!==nothing || alpha!==nothing || icc!==nothing || score_information!==nothing
         dataset_id isa AbstractString && !isempty(strip(dataset_id)) ||
-            throw(ArgumentError("category/agreement/alpha/icc reporting requires a nonempty shared dataset_id"))
+            throw(ArgumentError("category/agreement/alpha/icc/score_information reporting requires a nonempty shared dataset_id"))
         ids=PredictionObservationAdapter._ids(ids,PredictionObservationAdapter._fit_data(fit).n,"observation_ids")
         dataset_id=String(dataset_id)
         if prediction_request!==nothing
@@ -45,13 +46,14 @@ function _saved_reporting_request(fit, request; prediction_request=nothing)
         end
     else
         dataset_id===nothing && ids===nothing ||
-            throw(ArgumentError("reporting identities require a category, agreement, alpha or icc request"))
+            throw(ArgumentError("reporting identities require a category, agreement, alpha, icc or score_information request"))
     end
     prepared=(;dataset_id,observation_ids=ids,category,agreement,reliability=Tuple(cohorts))
     classification===nothing || (prepared=merge(prepared,(;classification)))
     ranking===nothing || (prepared=merge(prepared,(;ranking)))
     alpha===nothing || (prepared=merge(prepared,(;alpha)))
     icc===nothing || (prepared=merge(prepared,(;icc)))
+    score_information===nothing || (prepared=merge(prepared,(;score_information)))
     return deepcopy(prepared)
 end
 
@@ -281,6 +283,21 @@ function _saved_icc_section(fit,request,policy)
     return merge((;request=options,interpretation),section)
 end
 
+function _saved_score_information_section(fit,request,policy)
+    options=request.score_information
+    interpretation="Conditional expected scores and Fisher information for a declared scalar MFRM rating design. Rating rows describe one rating per item/rater pair; test rows sum the explicit independent repetitions within each joint draw. Pointwise posterior intervals omit realized-score variation. Conditional information is not posterior precision or reliability. Detailed quantile MCSE, all-fit warnings, labels, scale and source identity remain in result."
+    section=_fit_report_section(policy) do
+        r=score_information_report(fit;request.dataset_id,request.observation_ids,options...)
+        flatten(row)=merge(Base.structdiff(row,(;expected_score=nothing,information=nothing)),
+            _saved_summary_columns(row.expected_score;prefix="score_"),
+            _saved_summary_columns(row.information;prefix="information_"))
+        (;_saved_result_payload(r)...,rating_rows=flatten.(r.rating_rows),
+            test_rows=flatten.(r.test_rows),design_rows=r.rating_design,
+            warning_rows=_saved_reporting_warnings(r))
+    end
+    return merge((;request=_saved_reporting_request_record(options),interpretation),section)
+end
+
 function _with_saved_reporting(report,fit,request,policy)
     request===nothing && return report
     sections=(;category_report=_saved_category_section(fit,request,policy),
@@ -297,6 +314,9 @@ function _with_saved_reporting(report,fit,request,policy)
     end
     if haskey(request,:icc)
         sections=merge(sections,(;intraclass_correlation=_saved_icc_section(fit,request,policy)))
+    end
+    if haskey(request,:score_information)
+        sections=merge(sections,(;score_information=_saved_score_information_section(fit,request,policy)))
     end
     return merge(report,sections,(;report_policy=merge(report.report_policy,(;reporting=request))))
 end

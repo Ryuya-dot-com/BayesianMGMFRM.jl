@@ -5,7 +5,6 @@
     "sha256": "df7811201a7e96e361968e4ce6c01a3f96a556e6dfd2b82d2c08affee61c63fb",
     "new_independent_replications": 0,
     "sample_content_hash": "7004183f94a5b7b0d3f01beb6dd30bc79783517d9a4b2a19b062cf2a79a9af7f",
-    "path": "results/workflows/20261004-foundation-fixed-facet-assessment-01/attempts/B01-R1-050/samples.jls",
     "original_study": {
       "qualified": 184,
       "completed": 192,
@@ -106,5 +105,8 @@
   ],
   "n_ratings": 1250,
   "category_source_result_hash": "748bfe4b723aedc445aa7cc37446ef84a1c7f7cbf0fdb3de0a0cbbc42b1ff7b6",
-  "scientific_acceptance": "not_established"
+  "scientific_acceptance": "not_established",
+  "source_summary_sha256": "3dbc6013a9c5662fa71846c7db45df9184820df4b631427d8b88c08af03662e3",
+  "summary_kind": "documentation_summary",
+  "provenance_note": "Working-directory paths omitted; source identifiers and numerical results retained. This JSON is not a native fit cache."
 }

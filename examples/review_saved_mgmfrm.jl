@@ -1,12 +1,13 @@
 # Review an existing independent fixed-Q MGMFRM cache; never fit or refresh it.
 if isempty(ARGS) || ARGS == ["--help"]
     println("Usage: julia --project=. examples/review_saved_mgmfrm.jl FIT.jls NEW_DIRECTORY DIMENSION_LABEL")
-    println("Use an existing fit cache and an analysis environment with CairoMakie and JSON3 installed.")
+    println("Use an existing fit cache and an analysis environment with CairoMakie installed.")
     exit(0)
 end
 length(ARGS) == 3 || error("Supply FIT.jls, NEW_DIRECTORY and DIMENSION_LABEL; use --help for usage.")
 
-using BayesianMGMFRM, CairoMakie, JSON3, SHA
+using BayesianMGMFRM, CairoMakie, SHA
+using BayesianMGMFRM: JSON3
 
 function review_saved_mgmfrm(cache_path, output_dir, dimension)
     ispath(output_dir) && error("Choose a new output directory; existing reviews are preserved.")

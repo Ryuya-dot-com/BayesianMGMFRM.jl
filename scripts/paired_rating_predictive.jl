@@ -22,7 +22,7 @@ function prior_draws(t::Target; ndraws, seed)
         q[b.rater_free]=vec(r[1:end-1,:]); q[b.step_free]=vec(s[1:end-1,:])
         q[b.log_recording_sd]=collect(p.recording_log_sd_mean)+collect(p.recording_log_sd_sd).*randn(rng,2)
         for (j,eta) in enumerate((p.person_lkj_eta,p.recording_lkj_eta))
-            rho=2rand(rng,B.Turing.Beta(eta,eta))-1
+            rho=2rand(rng,B.Distributions.Beta(eta,eta))-1
             -1 < rho < 1 || throw(ArgumentError("unrepresentable prior correlation; no redraw performed"))
             q[b.z_correlation[j]]=atanh(rho)
         end

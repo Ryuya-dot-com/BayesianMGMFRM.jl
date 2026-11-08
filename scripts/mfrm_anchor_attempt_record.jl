@@ -64,7 +64,8 @@ end
 function _prepare_fit_inputs(design::BayesianMGMFRM.FacetDesign, options::NamedTuple)
     required = (:prior, :backend, :ndraws, :warmup, :chains, :step_size, :init,
         :rng, :seed, :target_accept, :max_depth, :max_energy_error, :metric,
-        :ad_backend, :init_jitter, :progress, :cmdstan_path, :cmdstan_cache_dir)
+        :ad_backend, :init_jitter, :progress, :chain_execution, :max_parallel_chains,
+        :cmdstan_path, :cmdstan_cache_dir)
     Set(keys(options)) == Set(required) || throw(ArgumentError(
         "fit input options must explicitly supply every minimal-fit keyword except _on_enter"))
     options.prior isa BayesianMGMFRM.MFRMPrior && options.rng isa AbstractRNG ||
@@ -72,7 +73,8 @@ function _prepare_fit_inputs(design::BayesianMGMFRM.FacetDesign, options::NamedT
     options.backend in (:julia, :advancedhmc, :turing, :cmdstan) &&
         all(k -> options[k] isa Int, (:ndraws, :warmup, :chains, :max_depth)) &&
         options.metric isa Symbol && options.ad_backend isa Symbol &&
-        options.progress isa Bool && all(k -> options[k] === nothing ||
+        options.progress isa Bool && options.chain_execution isa Symbol &&
+        options.max_parallel_chains isa Int && all(k -> options[k] === nothing ||
             options[k] isa AbstractString, (:cmdstan_path, :cmdstan_cache_dir)) ||
         throw(ArgumentError("invalid fit input option types or backend"))
     real_keys = (:step_size, :target_accept, :max_energy_error, :init_jitter)
@@ -106,7 +108,7 @@ function _prepare_fit_inputs(design::BayesianMGMFRM.FacetDesign, options::NamedT
     owned = merge(deepcopy(Base.structdiff(options, (; rng = nothing))), reals,
         (; rng = owned_rng, seed, init = options.init === nothing ? nothing : initial))
     fit_input = Archive._ld1b_object((;
-        schema = "bayesianmgmfrm.anchor_fit_input.v2",
+        schema = "bayesianmgmfrm.anchor_fit_input.v3",
         julia_version = string(VERSION), architecture = string(Sys.ARCH),
         word_size = Sys.WORD_SIZE,
         design = BayesianMGMFRM._design_identity_payload(snapshot),
@@ -128,6 +130,9 @@ end
 
 Snapshot the labelled minimal design, prior, all explicit fit options, ordered
 initial values, and either an explicit seed or a copied MersenneTwister state.
+The v3 record requires explicit `chain_execution` and `max_parallel_chains`,
+including inactive serial-mode settings. Older declarations remain bound to their
+producing source; they are not silently upgraded or accepted for a new call.
 This does not fit, consume the caller's RNG, publish, or accept a study policy.
 Retain this native JSON object as `fit_input` in the caller's content-hashed
 pre-call declaration. RNG serialization is scoped to the recorded Julia/version

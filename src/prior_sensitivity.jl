@@ -1,5 +1,21 @@
 const _PRIOR_SENSITIVITY_SCHEMA = "bayesianmgmfrm.prior_sensitivity.v1"
 
+function _sensitivity_prior_contract(fit, vary)
+    p, spec = fit.record.prior, fit.record.spec
+    if vary === :loading_sd
+        return merge(Base.structdiff(p, (; scales=nothing)),
+            (; scales=Base.structdiff(p.scales, (; log_discrimination_sd=nothing))))
+    end
+    spec.dimensions == 1 && spec.thresholds === :partial_credit &&
+        p.schema === Symbol("bayesianmgmfrm.normalized_mean_profile_prior.v1") &&
+        p.prior_model === :exchangeable && p.item_slopes === :fixed_one &&
+        p.rater_consistency === :fixed_one || throw(ArgumentError(
+            "vary=:mean_profile requires independent D1 fixed-one PCM fits with MeanProfilePrior"))
+    return merge(p, (;
+        scales=Base.structdiff(p.scales, (; item_sd=nothing, step_sd=nothing)),
+        mean_profile=Base.structdiff(p.mean_profile, (; item_means=nothing, step_means=nothing))))
+end
+
 function _sensitivity_estimands(estimands, context)
     specs = collect(estimands)
     all(p -> p isa Pair, specs) || throw(ArgumentError("estimands must contain label => definition pairs"))
@@ -51,13 +67,19 @@ end
     BayesianMGMFRM.prior_sensitivity(fits; planned_prior_ids, estimands,
         dataset_id, observation_ids, baseline=first(planned_prior_ids),
         interval=0.90, failures=Pair[], cutoffs=Dict(), max_mcse=nothing,
-        mcse_multiplier=2.0)
+        mcse_multiplier=2.0, vary=:loading_sd)
 
 Compare saved prior variants without fitting. `fits` contains `id => fit` pairs;
-declare every planned ID, including failures and missing fits. The first supported
-scope is `Experimental.NormalizedMGMFRMFit` with identical data/specification and
-prior, except `log_discrimination_sd`. Different dimensions, identifying priors,
-models and unsupported fit types are rejected. Use exact coordinate names from
+declare every planned ID, including failures and missing fits. The default
+`vary=:loading_sd` requires `Experimental.NormalizedMGMFRMFit` with identical
+data/specification and prior, except `log_discrimination_sd`.
+Opt-in `vary=:mean_profile` requires independent D1 item-step PCM fits with
+fixed-one item slopes/rater consistency and exchangeable `MeanProfilePrior`.
+Only item/step means and `item_sd`/`step_sd` may differ; person/rater SDs,
+coefficient policies, category/owner IDs, raw units and all other prior fields
+must match. Changing the location prior does not align or recenter the draws.
+Different data, dimensions, models and other prior families are rejected.
+This does not extend `prior_predictive_sensitivity`. Use exact coordinate names from
 `recovery_quantities(fit)`. An estimand maps a label to a name, or to `(left,right)`
 for a within-fit draw-paired difference in the same block/dimension/scale.
 
@@ -77,7 +99,10 @@ prior predictive adequacy and recommendations are not established by this report
 """
 function prior_sensitivity(fits; planned_prior_ids, estimands, dataset_id::AbstractString,
         observation_ids, baseline=first(planned_prior_ids), interval::Real=0.90,
-        failures=Pair[], cutoffs=Dict(), max_mcse=nothing, mcse_multiplier::Real=2.0)
+        failures=Pair[], cutoffs=Dict(), max_mcse=nothing, mcse_multiplier::Real=2.0,
+        vary::Symbol=:loading_sd)
+    vary in (:loading_sd, :mean_profile) || throw(ArgumentError(
+        "vary must be :loading_sd or :mean_profile"))
     ids = _recovery_replication_names(planned_prior_ids, "planned_prior_ids")
     baseline in ids || throw(ArgumentError("baseline must be a planned ID"))
     isempty(strip(dataset_id)) && throw(ArgumentError("dataset_id must be nonempty"))
@@ -103,16 +128,17 @@ function prior_sensitivity(fits; planned_prior_ids, estimands, dataset_id::Abstr
         failed[String(first(p))] = String(last(p))
     end
     reference_fit = last(first(entries))
-    prior_contract(p) = merge(Base.structdiff(p, (; scales=nothing)),
-        (; scales=Base.structdiff(p.scales, (; log_discrimination_sd=nothing))))
     spec_hash = design_identity(getdesign(reference_fit.record.spec; preview=true)).value
-    reference_prior = prior_contract(reference_fit.record.prior)
+    reference_prior = _sensitivity_prior_contract(reference_fit, vary)
     observations = PredictionObservationAdapter._ids(observation_ids, reference_fit.record.spec.data.n, "observation_ids")
     evaluations = Dict{String,Any}()
     descriptor_hash = nothing
     for (id, fit) in entries
-        design_identity(getdesign(fit.record.spec; preview=true)).value == spec_hash && isequal(prior_contract(fit.record.prior), reference_prior) ||
-            throw(ArgumentError("only log_discrimination_sd may vary; data, model, labels and identifying priors must match"))
+        design_identity(getdesign(fit.record.spec; preview=true)).value == spec_hash &&
+            isequal(_sensitivity_prior_contract(fit, vary), reference_prior) ||
+            throw(ArgumentError(vary === :loading_sd ?
+                "only log_discrimination_sd may vary; data, model, labels and identifying priors must match" :
+                "only item/step means and item_sd/step_sd may vary; data, model, labels and other prior fields must match"))
         context = _recovery_context(fit)
         es = _sensitivity_estimands(estimands, context)
         all(k -> k in getproperty.(es, :label), keys(cutoffs)) || throw(ArgumentError("unknown cutoff label"))
@@ -152,7 +178,8 @@ function prior_sensitivity(fits; planned_prior_ids, estimands, dataset_id::Abstr
     end
     return _prediction_seal((; schema=_PRIOR_SENSITIVITY_SCHEMA, dataset_id=String(dataset_id),
         observation_ids=observations, source_binding=_prediction_source_binding(reference_fit.record.spec.data, observations, String(dataset_id)),
-        spec_hash, scope=:normalized_mgmfrm_loading_prior_sd_only, scale=:model,
+        spec_hash, scope=vary === :loading_sd ? :normalized_mgmfrm_loading_prior_sd_only :
+            :normalized_d1_fixed_mean_profile, scale=:model,
         model_contract=(; family=reference_fit.record.spec.family, dimensions=reference_fit.record.spec.dimensions,
             dimension_labels=copy(reference_fit.record.spec.dimension_labels), q_matrix=copy(reference_fit.record.spec.q_matrix),
             origin=:prior_anchored, common_prior=reference_prior),
@@ -245,6 +272,9 @@ Draw same-scale prior rows in separate estimand panels; `kind=:ridge` adds KDEs.
 Requires CairoMakie. Warning/missing/failed rows remain visible. Figure titles and
 notes are external by default. Ridge heights share one density scale within each
 panel; density overlap is neither a contrast test nor evidence of equivalence.
+External notes list each row's mean/quantile MCSE, declared limit and screen,
+sampling warning and cutoff decision. Fixed-one D1 profile location axes state
+the conversion to unit logits; dimensionless coefficients are labelled separately.
 """
 function plot_prior_sensitivity(result; kwargs...)
     extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)

@@ -19,12 +19,19 @@ evidence_metadata
 simulate_responses
 ```
 
-## Research-only planning and evidence helpers
+## ValidationSuite and research-protocol helpers
 
-The bindings below remain package-root exports for `0.1.x` source
-compatibility. They plan, score, or record package research and release
-evidence; they are not part of the stable MFRM user workflow, and their
-presence is not validation of GMFRM, MGMFRM, or local-dependence claims.
+Methodological validation protocols, known-truth calibration pilots, and
+cross-engine benchmark harnesses are organized under
+`BayesianMGMFRM.ValidationSuite`. The individual bindings below also remain
+package-root exports for `0.1.x` source compatibility; they are not part of the
+primary practitioner workflow, and their presence is not validation of GMFRM,
+MGMFRM, or local-dependence claims.
+
+```@docs
+BayesianMGMFRM.ValidationSuite
+BayesianMGMFRM.ValidationSuite.contract
+```
 
 `comparison_evidence_summary`, `benchmark_summary`, `simulation_grid`,
 `simulation_grid_summary`, and `falsification_rule_summary` accept

@@ -65,15 +65,15 @@ end
         @test C*u ≈ (C*v)[permutation]
         @test abs(det(T)) ≈ 1 atol=1e-12
         # Carrying the old density into the new chart preserves its meaning.
-        carried = B.Turing.MvNormal(zeros(n-1), sd^2 .* (T*T'))
-        @test B.Turing.logpdf(carried,u) ≈ normal_lp(v,sd) atol=1e-12
+        carried = B.Distributions.MvNormal(zeros(n-1), sd^2 .* (T*T'))
+        @test B.Distributions.logpdf(carried,u) ≈ normal_lp(v,sd) atol=1e-12
         # Resetting the same independent free normals generally changes it.
         @test normal_lp(u,sd)-normal_lp(v,sd) ≈ -n*(n-2)/2 atol=1e-12
         # Existing normalized zero-sum correction supplies a distinct symmetric reference.
         covariance = sd^2 .* (Matrix{Float64}(I,n-1,n-1)-ones(n-1,n-1)/n)
-        exchangeable = B.Turing.MvNormal(zeros(n-1), covariance)
+        exchangeable = B.Distributions.MvNormal(zeros(n-1), covariance)
         lp = normal_lp(v,sd) + B._zero_sum_prior_correction(v,sd)
-        @test lp ≈ B.Turing.logpdf(exchangeable,v) atol=1e-12
+        @test lp ≈ B.Distributions.logpdf(exchangeable,v) atol=1e-12
         @test lp ≈ normal_lp(u,sd) + B._zero_sum_prior_correction(u,sd) atol=1e-12
         full_covariance = C*covariance*C'
         @test full_covariance ≈ sd^2 .* (Matrix{Float64}(I,n,n)-ones(n,n)/n) atol=1e-12

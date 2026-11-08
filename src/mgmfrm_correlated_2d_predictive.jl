@@ -8,7 +8,7 @@ function _mgmfrm_correlated_2d_prior_draws(target, ndraws::Int, rng::AbstractRNG
             row[i] = _source_fixture_prior_sd(base, i) * randn(rng)
         end
         # In two dimensions (rho + 1)/2 ~ Beta(eta, eta), on d_rho.
-        rho = 2rand(rng, Turing.Beta(target.prior.lkj_eta, target.prior.lkj_eta)) - 1
+        rho = 2rand(rng, Distributions.Beta(target.prior.lkj_eta, target.prior.lkj_eta)) - 1
         -1 < rho < 1 || throw(ArgumentError("LKJ draw reached an unrepresentable correlation boundary"))
         row[end] = atanh(rho)
         for i in first(base.blueprint.blocks[:person]):2:last(base.blueprint.blocks[:person])

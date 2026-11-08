@@ -344,7 +344,13 @@ function check_samples(target, backend, directory; record_warmup = true)
     @test isequal(report.metadata.prior, record.prior) && report.metadata.sampler_controls == run.controls
     @test report.metadata.diagnostic_settings == (; run.checked..., split_chains = run.split_chains_requested)
     @test report.report_status === :complete && fit_report_health(report).n_unsupported_sections == 10
-    @test Set(row.section for row in fit_report_sections(report)) == Set(B._FIT_REPORT_SECTION_ORDER)
+    # This private report predates the optional common reporting sections.
+    # Its complete contract is these 19 sections, not every globally known section.
+    expected_sections = (:diagnostics, :warmup, :rating_design, :fixed_coordinates,
+        :category_functioning, :rater_homogeneity, :q_matrix, :mcmc_budget_guidance,
+        :prior_policy, :pooling_policy, :prior_predictive, :posterior, :direct_posterior,
+        :posterior_predictive, :calibration, :waic, :loo, :dff, :artifact)
+    @test Set(row.section for row in fit_report_sections(report)) == Set(expected_sections)
     @test isequal(report.diagnostics.parameter_rows, result.diagnostics.parameter_rows)
     @test isequal(report.diagnostics.model_parameter_rows, result.diagnostics.model_parameter_rows)
     @test isequal(report.diagnostics.summary, result.diagnostics.summary)

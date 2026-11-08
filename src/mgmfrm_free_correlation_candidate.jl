@@ -926,7 +926,9 @@ LogDensityProblems.dimension(
 
 LogDensityProblems.capabilities(
     ::Type{_MGMFRMFreeLatentCorrelation2DLogDensity},
-) = LogDensityProblems.LogDensityOrder{0}()
+) = LogDensityProblems.LogDensityOrder{1}()
+
+include("mgmfrm_correlated_gradient.jl")
 
 function initial_params(
         target::_MGMFRMFreeLatentCorrelation2DLogDensity;

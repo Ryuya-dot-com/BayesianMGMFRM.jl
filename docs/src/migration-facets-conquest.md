@@ -18,6 +18,143 @@ fitted interactions, soft anchors, threshold anchors, and group-mean anchors
 are not silently approximated by the current stable API. Exact individual
 rater/item hard anchors are supported in the minimal MFRM path.
 
+## [At-a-glance comparison with related rating software](@id software-comparison)
+
+Before translating a specification or comparing parameter estimates across
+packages, review how each tool handles estimation, uncertainty, design
+validation, and model extensions:
+
+| Capability / Workflow Stage | `BayesianMGMFRM.jl` | `FACETS` | `ACER ConQuest` | `R (TAM / mirt)` | `brms / CmdStan` |
+| --- | --- | --- | --- | --- | --- |
+| **Primary estimation & uncertainty** | Joint Bayesian MCMC (`AdvancedHMC` NUTS or `CmdStan`); simultaneous posterior draws & MCSE for all facets | Joint Maximum Likelihood (JMLE); asymptotic point-estimate SEs | Marginal Maximum Likelihood (MML) & Patz–Junker MCMC; asymptotic or MCMC SEs | MML-EM / quasi-MCEM; asymptotic SEs and plausible values | Joint Bayesian MCMC (HMC/NUTS); simultaneous posterior draws & MCSE |
+| **Pre-fit rating connectivity & rank audit** | **Built-in** (`validate_design`, graph connectedness, category-gap & rank checks) | Subset connectivity checks during estimation | Design-matrix rank & aliasing checks during model setup | Manual data preparation or custom matrix checks | Manual data preparation & custom code |
+| **Core 1D MFRM (RSM / PCM & hard anchors)** | **Supported** (`mfrm_spec`, `anchors = ...`, `rater = nothing` for 1PL) | **Supported** (comprehensive operational facet & anchor options) | **Supported** (general linear facet & anchor expressions) | **Supported** (via facet design matrices in `TAM::tam.mml.mfr`) | Requires custom formula / Stan program & sum-to-zero constraints |
+| **Additional main-effect facets (5+ facets)** | **Experimental** ([User-Named Additive Facets](additive-facets.md)) | **Supported** (arbitrary declared main-effect facets) | **Supported** (arbitrary main-effect facet terms) | **Supported** (via facet formula in `TAM::tam.mml.mfr`) | **Supported** (via additional varying/fixed effects) |
+| **Generalized slopes & multidimensional traits (GMFRM / MGMFRM)** | **Experimental** (1D GMFRM, fixed-Q 1D–3D MGMFRM, correlated 2D/3D traits) | 1D Rasch family (fixed unit slopes; diagnostic discrimination indices) | Multidimensional Rasch / 2PL MML (`score` statements) | Multidimensional 2PL / GPCM (`mirt`, `TAM`) | Requires custom non-linear formula or custom Stan program |
+| **Multi-criterion rating events & rater-mechanism models** | **Experimental** (`:none` shared-response, `:uniform` paired, `:star` multi-criterion, RW1 drift, criterion collapse, rater group/item) | Bias/interaction tables (`Barcharts`, pairwise bias reports) | Linear interaction terms (`rater*item`, `rater*step`) | Facet interaction terms (`xsi.fixed` / custom design) | Requires writing custom likelihoods & Jacobians in Stan |
+| **Prior predictive checks, PSIS-LOO & prior sensitivity** | **Built-in** (`prior_predictive_check`, `predictive_check`, `criteria`, `prior_sensitivity`) | Classic infit/outfit mean-square & standardized residuals | Classic infit/outfit, deviance/AIC, plausible-value checks | Infit/outfit, information criteria (AIC/BIC), item fit | Available via external R packages (`loo`, `priorsense`, `bayesplot`) |
+| **Psychometric maps & reproducible portable reports** | **Built-in** (`plot` for Wright, Pathway, 3D surfaces; SHA-256 JSON `save_report`) | Built-in ASCII / GUI Wright maps & score tables | Built-in Wright maps & text/table outputs | Requires external plotting packages (`WrightMap`, `ggplot2`) | Requires custom post-processing & plotting scripts |
+| **Glass-Box mathematical inspection** | **Built-in** (`contract`, `facet_basis`, `logposterior`, `logdensity_and_gradient`, `stan_data`) | Output tables & residual files | Design matrices & parameter logs | Exported design matrices & likelihood values | Generated Stan code & unconstrained draw methods |
+
+## Two different comparison questions
+
+**Do two implementations target the same posterior?** Match responses, category
+support, likelihood, scale, identification, joint prior and reported quantities.
+Changing from a reference level to a sum-zero constraint can also shift abilities
+and induce prior dependence. Reassigning independent priors with the same SD is
+not generally the same distribution. Compare whole-fit and focal numerical
+precision before interpreting differences. A limited common binary-Rasch check
+does not validate the public PCM prior or an additional rater mechanism.
+
+**Which analysis helps explain these ratings?** Competing models and estimators
+need not have identical priors, but their differences must be explicit. Keep the
+observations, categories and evaluation question comparable, choose suitable
+predictive or descriptive quantities and retain uncertainty and failures.
+ConQuest MML standard errors, Bayesian posterior intervals and Monte Carlo error
+have different meanings; unmatched fit statistics are not interchangeable.
+An unresolved exact-prior MCMC mapping does not prevent this separate question.
+
+For halo-related questions, ConQuest documents rater severity, rater-by-criterion
+effects and rater/criterion-specific steps in its
+[rater tutorial](https://conquestmanual.acer.org/s2-00.html#the-analysis-of-rater-effects).
+These models can investigate relevant rating patterns with appropriate checks;
+their coefficients do not by themselves identify a psychological halo or horns
+mechanism. The package's [criterion-collapse model](criterion-collapse.md)
+represents one specific loss of criterion discrimination. It does not estimate
+signed positive/negative general-impression effects. The same shared-class
+likelihood and joint prior have not been verified in native ConQuest. Neither
+that uncertainty nor the package implementation establishes exclusive capability.
+
+## [When fitted category counts agree by construction](@id fitted-category-counts)
+
+Suppose some judges use the middle score much more often than others. A model
+with only rater severity may leave this pattern unexplained. Adding a
+rater-specific category effect can reproduce it, but a fitted match is not
+independent evidence that the model has identified its cause.
+
+A bounded ConQuest 5.47.5 comparison used two existing simulated datasets, each
+with 12 persons, four raters, three criteria, scores 0–2 and 144 ratings. The
+baseline was `rater + criteria + criteria*step`; the alternative added
+`rater*step`. The alternative's initial design had thirteen columns of rank
+twelve. Fixing the final rater's category-1 interaction to zero removed this
+redundancy without changing the response family. Both models used normal-person
+MML with mean zero and estimated variance. These directly written native
+controls are separate from the minimal additive bridge described below.
+
+Let `Nr` count rater r's middle-category ratings and define
+`D=(N3+N4)-(N1+N2)`. Each rater contributes 36 ratings.
+
+| Fixed input | Observed D | Baseline expected D | Category-use expected D | AIC(category-use − baseline) |
+| --- | ---: | ---: | ---: | ---: |
+| Ordinary ratings | 0 | 1.88 | approximately 0 | +3.17 |
+| Middle-category preference | 15 | 2.61 | approximately 15 | -0.56 |
+
+All four cells met independent likelihood, gradient, curvature and integration
+criteria. Native reports stopped by deviance convergence; a false stored
+convergence flag was retained rather than represented as an all-flags pass.
+The two inputs share their original simulation uniforms and are not independent
+replications. The alternative matches the counts, but its small AIC advantage
+on the second input does not decisively favor that explanation. With twelve
+persons, asymptotic model-selection claims are especially limited; the usual
+AICc formula is not applicable when its `n > k+1` condition fails.
+
+### Why the match occurs
+
+Write an additive log-weight contribution as
+``\gamma_r\mathbf{1}\{k=1\}`` for rater r. Let ``\psi`` include this coefficient
+and the other global parameters. Define
+``N_r=\sum_{(p,i)\in\mathcal O_r}\mathbf{1}\{y_{pir}=1\}``, with
+``\mathcal O_r`` the observed person/criterion pairs for that rater. For the
+unpenalized marginal log likelihood ``\ell(\psi)`` and a latent-person density
+that does not itself depend on ``\gamma_r``, differentiation gives
+
+```math
+\frac{\partial\ell(\psi)}{\partial\gamma_r}
+=N_r-\sum_{(p,i)\in\mathcal O_r}
+  \mathbb E_{\theta\mid y,\psi}
+  \left[P(Y_{pir}=1\mid\theta,\psi)\right].
+```
+
+At an interior maximum, a free coefficient's score is zero: its observed count
+equals its conditional fitted expectation. Under identification constraints the
+corresponding free contrasts must be used. In this example, the rater-category
+and criterion-category score equations together cover all four rater counts,
+so their contrast D also matches. The identity follows by differentiating the
+[ConQuest multinomial-logit kernel](https://conquestmanual.acer.org/s3-00.html#the-item-response-model)
+and its marginal likelihood; it is not a new detection method. Boundary
+solutions, insufficient rank, penalties and priors change the conclusion.
+In particular, this equality is not promised for Bayesian posterior means.
+
+### What to report and check
+
+State that the added effects reproduce the fitted category counts. Do not call
+that match a successful independent check of centrality, halo/horns or fairness.
+Choose further discrepancies for the substantive question, such as variation
+across performances or dependence among criteria; first check whether those
+summaries are also determined by the estimating equations. If the claim concerns
+future ratings, evaluate genuinely unused observations at the relevant person,
+rater or response level, preserving shared effects. These are requirements for
+stronger claims, not automatic instructions to expand every descriptive analysis.
+
+Also specify what uncertainty was integrated. The native calculations above fix
+global MML estimates and integrate each existing person's ability conditional on
+their ratings, along with replicated-response variation. They omit uncertainty
+in fitted item/rater/population parameters. Saved Julia ordinary-model predictions
+integrate joint posterior uncertainty under finite-panel priors and also leave
+the middle-category discrepancy. Their predictive tails cannot be ranked as
+though the two calculations used the same uncertainty treatment. MML standard
+errors, posterior intervals and MCSE are distinct; an expected-value interval
+does not include all replicated-count variation.
+
+Low criterion-collapse class support does not establish adequate ordinary-model
+fit. Conversely, a near-central predictive tail for a fitted count is not a
+certificate of adequacy. The [Stan predictive-check guide](https://mc-stan.org/docs/stan-users-guide/posterior-predictive-checks.html#which-statistics-to-test)
+illustrates why a fitted mean can be reproduced while another relevant feature
+is wrong. See [interpreting results](interpreting-results.md#rater-decision-evidence)
+for separating numerical precision, fit, model comparison and practical decisions.
+The four-cell comparison does not establish exact native support for the shared
+criterion-collapse mixture, general classification accuracy or a speed ranking.
+
 ## Source features worth preserving
 
 The migration design follows several useful conventions documented by the two
@@ -378,6 +515,68 @@ does not turn receipt completion into convergence evidence. Versions other
 than 5.47.5 and category counts other than three fail closed until matching
 execution fixtures and structural tests are added.
 
+### Align point estimates to the Julia reference gauge
+
+For the same validated, unanchored three-category bundle, use the qualified
+[`BayesianMGMFRM.load_conquest_reference_parameters`](@ref) loader:
+
+```julia
+aligned = BayesianMGMFRM.load_conquest_reference_parameters(
+    "conquest_minimal_rsm_bridge", spec;
+    expected_bundle_id = conquest_bundle_id,
+    software_version = ENV["CONQUEST_REPORTED_VERSION"],
+    executable_sha256 = ENV["CONQUEST_EXE_SHA256"],
+    executed_at_utc = ENV["CONQUEST_EXECUTED_AT_UTC"],
+)
+aligned.parameter_rows  # aligned point values with source/reference values
+aligned.source          # original semantic record, constraints and provenance
+@assert aligned.destination_gauge_aligned
+@assert !aligned.numerical_comparison_allowed
+# For a source-scale ability theta_source, use:
+# theta_julia = theta_source + aligned.ability_shift
+```
+
+Let the ConQuest source item difficulty and rater severity be $b_i$ and $r_j$.
+With their first levels as references, the destination coordinates are
+
+```math
+b_i^{J}=b_i-b_1,\quad r_j^{J}=r_j-r_1,\quad
+\theta^{J}=\theta-b_1-r_1,\quad \tau^{J}_{ik}=\tau_{ik}.
+```
+
+The same step identity holds for shared rating-scale steps. Therefore
+$\theta^{J}-b_i^{J}-r_j^{J}-\tau^{J}_{ik}
+=\theta-b_i-r_j-\tau_{ik}$: every adjacent-category log odds, normalized
+category probability and conditional expected score agrees at the translated
+ability. **Using the same numerical ability on both scales is incorrect.**
+For the retained RSM point estimates the ability shift is +1.11884 logits;
+for the PCM estimates it is +0.93482 logits. The first levels follow `spec`'s
+validated level order. The loader neither selects a different reference nor
+imports person estimates. It returns coordinate rows, not a `fit` object or a
+complete fitting parameter vector.
+
+Point-coordinate alignment is narrower than matching inference. A source
+population with mean zero would have a destination mean equal to the ability
+shift at these fixed estimates. A Bayesian transformation would also have to
+transform the **joint** parameter/population prior and its density measure.
+For the full free-coordinate change from last-derived sum-zero rater/item
+blocks to first-fixed blocks (with person translation), the absolute forward
+Jacobian determinant is the number of raters times the number of items, not
+one. This observation does not specify or validate ConQuest's Bayesian prior.
+No prior transformation is performed by this loader.
+
+Likewise, the variance of a difference is
+$\operatorname{Var}(b_i-b_1)=\operatorname{Var}(b_i)+
+\operatorname{Var}(b_1)-2\operatorname{Cov}(b_i,b_1)$.
+Marginal standard errors alone do not provide that covariance. The output
+therefore supplies no transformed standard errors, intervals or posterior
+draws. Original source provenance and limitations remain under `aligned.source`.
+The saved 5.47.5 fixtures are MML runs using Gaussian integration, not MCMC.
+Their retained parameter/design-matrix bytes support fixed-point arithmetic
+checks; artificial complete bundles test loading. The original executed rating
+rows and full returns are not reconstructed by those tests. Matched-data,
+matched-estimand comparisons and convergence/uncertainty checks are separate.
+
 ### What a returned bundle establishes
 
 A valid receipt establishes input continuity, a zero recorded process exit,
@@ -390,11 +589,63 @@ product equivalence. The bridge therefore does not turn a reported external
 run into validation evidence by itself.
 
 The current bridge accepts unanchored specifications only. The ConQuest
-semantic adapter reconstructs the supported source gauge; it does not align
-it to the package gauge or create anchors. [`anchor_refit_plan`](@ref) checks
+semantic adapter reconstructs the supported source gauge. The qualified
+reference loader additionally aligns point coordinates; neither loader creates
+anchors or transfers uncertainty. [`anchor_refit_plan`](@ref) checks
 destination declarations separately and runs neither an external calibration
 nor a package refit. A supported numerical declaration can be passed to
 `fit`, as shown below.
+
+## Comparing fit and decisions
+
+Match a common model to check implementation. Select an analysis for its
+measurement question, assumptions and decision consequences; ConQuest is not a
+truth criterion, and this package's defaults are not automatically preferable.
+ConQuest also offers MCMC, so this is not simply a choice between frequentist
+and Bayesian software.
+
+For the same target, a change of coordinates must transport the full prior,
+abilities, anchors and relevant cut scores. The same category probabilities,
+paired contrasts and observation-based fit statistic should then agree within
+numerical precision. Raw locations need not agree. With a changed prior or
+estimator, a different result is possible without a computational defect.
+The [route-specific prior conventions](model-equations.md#Fixed-coefficient-routes-and-their-priors)
+explain why scalar reference-zero priors can treat contrasts unequally.
+
+Inspect `spec` before fitting and `report.fixed_coordinates.warning_rows`
+afterward. The scalar default uses stored label order rather than input row
+order; changing IDs can change the reference. Its independent free-coordinate
+priors do not automatically transform with that change. Existing saved draws
+can be re-expressed jointly without another fit, but they then belong to the
+transported prior. Do not call them samples from freshly assigned independent
+priors, or pair independently sorted parameter columns.
+
+| Question | Suitable comparison and interpretation |
+| --- | --- |
+| Reproduce a legacy calibration | Preserve the actual estimator, anchors, weights and report definitions; reproducibility does not establish model adequacy. |
+| Estimate population distributions | Check the population model. A fixed ability-prior SD in the minimal Julia fit is not an estimated population SD. |
+| Judge differences or adjusted performance | Compare named joint contrasts or predictions for the same panel, with numerical precision and sensitivity to defensible priors. A reference is not an external calibration. |
+| Predict future ratings | Specify whether the target is a new rating of known levels or an unobserved person/rater; use the matching held-out unit. |
+| Select software for efficiency | Compare the full path to the required accuracy on the selected target, including diagnostics and save/reload; unlike MML/MCMC runtimes do not establish an engine ranking. |
+
+The [ConQuest technical manual](https://conquestmanual.acer.org/s3-00.html#fit-testing)
+describes MML parameter-level fit using design-column sufficient statistics and
+integration over conditional person posteriors. The scalar `fit_stats` here
+summarizes observation-score infit/outfit over joint posterior draws by facet
+level. `facets_report` is a separate approximate plug-in calculation. Match
+the statistic, aggregation, conditioning and uncertainty before comparing
+numbers or transferring a cutoff. A narrower interval or lower training
+deviance alone does not establish the better analysis; marginal deviance,
+conditional deviance and WAIC/LOO are not interchangeable.
+
+Define the actual action and practically important difference before choosing
+a probability threshold. Check numerical precision, relevant misfit and whether
+reasonable assumptions change the decision. If they do, report the sensitivity
+and the information needed to resolve it. Increasing MCMC length addresses
+computational error; it does not resolve prior ambiguity or missing links.
+The current evidence does not establish scenario-specific false-flag rates or
+a universally preferred prior/software choice. Existing experimental symmetric
+prior routes have their own support and validation boundaries.
 
 ## Parameter and output crosswalk
 
@@ -461,6 +712,9 @@ Use the following migration rules:
    labels. Compare point recovery separately from uncertainty calibration.
 
 ## Anchor-constrained refitting policy
+
+For the distinction between a reference, an external calibration and a starting
+value, begin with [references and anchors](learning-guide.md#references-and-anchors).
 
 The stable minimal path accepts exact individual rater/item hard anchors. The
 anchored level is removed from the sampled coordinates and restored at its

@@ -203,7 +203,7 @@ using Random
     @test fully_anchored_report.fixed_coordinates.summary.hard_anchor_counts ==
         (rater = 2, item = 0)
     @test fully_anchored_report.fixed_coordinates.summary.within_facet_anchor_contrast_restriction
-    @test fully_anchored_report.fixed_coordinates.n_warning_rows == 3
+    @test fully_anchored_report.fixed_coordinates.n_warning_rows == 4
     contrast_warning = only(filter(
         row -> row.code ===
             :multiple_hard_anchors_fix_within_facet_contrasts,
@@ -222,7 +222,7 @@ using Random
     @test report_fixed_contrast.contrast_uncertainty_status ===
         :not_applicable_both_coordinates_fixed
     fully_anchored_public_report = fit_report_public(fully_anchored_report)
-    @test fully_anchored_public_report.fixed_coordinates.n_warning_rows == 3
+    @test fully_anchored_public_report.fixed_coordinates.n_warning_rows == 4
     @test fully_anchored_public_report.fixed_coordinates.summary.within_facet_anchor_contrast_restriction
     public_fixed_contrast = only(
         fully_anchored_public_report.rater_homogeneity.contrast_rows,
@@ -281,7 +281,7 @@ using Random
     @test report.fixed_coordinates.schema ==
         "bayesianmgmfrm.fit_report_fixed_coordinates.v1"
     @test report.fixed_coordinates.n_rows == 2
-    @test report.fixed_coordinates.n_warning_rows == 2
+    @test report.fixed_coordinates.n_warning_rows == 3
     @test report.fixed_coordinates.summary.n_hard_anchors == 1
     @test report.fixed_coordinates.summary.hard_anchor_counts ==
         (rater = 1, item = 0)
@@ -335,7 +335,7 @@ using Random
     ))
     @test fixed_section.status === :computed
     @test fixed_section.row_fields == [:rows, :warning_rows]
-    @test fixed_section.n_rows == 4
+    @test fixed_section.n_rows == 5
     @test fit_report_rows(report, :fixed_coordinates) ===
         report.fixed_coordinates.rows
     @test fit_report_rows(
@@ -346,7 +346,7 @@ using Random
 
     public_report = fit_report_public(report)
     @test public_report.fixed_coordinates.n_rows == 2
-    @test public_report.fixed_coordinates.n_warning_rows == 2
+    @test public_report.fixed_coordinates.n_warning_rows == 3
     public_fixed = only(filter(
         row -> row.facet === :rater && row.level == "R2",
         public_report.fixed_coordinates.rows,
@@ -375,7 +375,7 @@ using Random
         draw_indices = 1:4,
     )
     @test combined_warning_report.report_status === :complete
-    @test combined_warning_report.fixed_coordinates.n_warning_rows == 2
+    @test combined_warning_report.fixed_coordinates.n_warning_rows == 3
     @test combined_warning_report.category_functioning.n_warning_rows == 1
     @test combined_warning_report.category_functioning.summary.n_review_rows >=
         combined_warning_report.category_functioning.summary.n_usage_rows
@@ -434,13 +434,13 @@ using Random
     @test plain_report.fixed_coordinates.summary.hard_anchor_counts ==
         (rater = 0, item = 0)
     @test plain_report.fixed_coordinates.summary.n_default_reference_coordinates == 2
-    @test isempty(plain_report.fixed_coordinates.warning_rows)
+    @test length(plain_report.fixed_coordinates.warning_rows) == 1
     @test !plain_report.fixed_coordinates.summary.hard_anchor_warning
     @test plain_report.fixed_coordinates.summary.hard_anchor_value_uncertainty_status ===
         :not_applicable
     @test !plain_report.fixed_coordinates.summary.hard_anchor_prior_coordinate_dependence
     @test !plain_report.fixed_coordinates.summary.within_facet_anchor_contrast_restriction
-    @test !occursin("## Warnings", fit_report_markdown(plain_report))
+    @test occursin("reference_zero_prior_coordinate_dependence", fit_report_markdown(plain_report))
 
     anchored_gradient = ForwardDiff.gradient(
         params -> logposterior(anchored, params),
@@ -476,7 +476,7 @@ using Random
         save_fit_report(report_path, public_report)
         loaded_report = load_fit_report(report_path)
         @test loaded_report["fixed_coordinates"]["n_rows"] == 2
-        @test loaded_report["fixed_coordinates"]["n_warning_rows"] == 2
+        @test loaded_report["fixed_coordinates"]["n_warning_rows"] == 3
         loaded_fixed_report_row = only(filter(
             row -> row["facet"] == "rater" && row["level"] == "R2",
             loaded_report["fixed_coordinates"]["rows"],

@@ -9,16 +9,26 @@ A useful plot answers a question. Start with **location**, then examine
 **response patterns**, and finally ask how a multidimensional model translates
 abilities into **rating probabilities**.
 
-| Question | Display | What the axes mean |
-| --- | --- | --- |
-| Where are people, items and raters on the measurement scale? | Wright Map | Separate facets share a vertical logit scale. |
-| Which response patterns deserve a closer look at a given location? | Pathway Map | Infit on the horizontal axis; facet location on the vertical axis. |
-| How do two abilities change the probability of a rating? | MGMFRM response surface | Two ability axes and a vertical probability axis. |
+## [Unified plotting overview (`BayesianMGMFRM.plot`)](@id unified-plotting-overview)
 
-The Wright and Pathway illustrations use **deterministic artificial draws**, not
+After loading `CairoMakie` (`using BayesianMGMFRM, CairoMakie`), you can call
+either the unified `BayesianMGMFRM.plot(x; kind = ...)` dispatcher or the
+dedicated `plot_*` helpers:
+
+| Question | Unified call (`BayesianMGMFRM.plot`) | Dedicated helper | What the display shows |
+| --- | --- | --- | --- |
+| Where are people, items, raters, and steps on the shared measurement scale? | `BayesianMGMFRM.plot(fit; kind = :wright)` | `plot_wright(fit)` (`person_display = :histogram` or `kind = :ridge`) | Separate facets share a vertical (or horizontal ridge) logit scale with medians, intervals, and fixed-reference diamonds. |
+| Which response patterns deserve a closer look at a given location? | `BayesianMGMFRM.plot(fit; kind = :pathway)` | `plot_pathway(fit)` | Posterior infit/outfit mean-square on the horizontal axis; facet logit location on the vertical axis. |
+| How do two abilities change the probability of a rating? | `BayesianMGMFRM.plot(fit; kind = :response_surface, ...)` | `plot_response_surface(fit; layout = :overlay \| :panels \| :heatmaps, ...)` | Two ability axes, a 0–1 probability axis/color scale, and pointwise credible-interval width heatmaps. |
+| What are the parameter estimates, chain traces, or posterior predictive checks? | `BayesianMGMFRM.plot(fit; kind = :posterior \| :diagnostics \| :predictive)` | `plot_posterior(fit)`, `plot_diagnostics(fit)`, `plot_predictive(fit)` | Credible intervals, chain trace/rank histograms, or observed vs. replicated category proportions. |
+| How sensitive are conclusions to the prior, or how precise is a planned design? | `BayesianMGMFRM.plot(rep; kind = :prior_sensitivity \| :prior_predictive_sensitivity \| :design_precision)` | `plot_prior_sensitivity`, `plot_prior_predictive_sensitivity`, `plot_design_precision` | Prior-variant interval/ridge shifts ([guide](prior-sensitivity.md)) or planned-cohort target interval-width frequencies ([guide](design-planning.md)). |
+| How does rater severity drift over time, or which raters collapse criteria? | `BayesianMGMFRM.plot(rep; kind = :rater_drift \| :criterion_collapse_classes \| :criterion_collapse_categories)` | `Experimental.RaterDrift.plot_trajectory`, `Experimental.CriterionCollapse.plot_classes` / `plot_categories` | Temporal severity trajectories ([guide](rater-drift.md)) or latent-class probabilities and category curves ([guide](criterion-collapse.md)). |
+
+The Wright and Pathway illustrations below use **deterministic artificial draws**, not
 fitted posteriors. They demonstrate the output and its reading conventions, not
-uncertainty calibrated by a study. The MGMFRM figures reuse a saved experimental fit
-to simulated ratings. None of these pictures establishes a recommended model.
+uncertainty calibrated by a study. The original MGMFRM figures reuse a saved experimental fit
+to simulated ratings; the new category-panel illustrations explicitly use artificial
+display fixtures. None of these pictures establishes a recommended model.
 Select a figure to inspect it at full resolution. Titles and notes now appear
 outside the images, matching the default plotting behavior. Each figure has a
 separate downloadable text note; keep it with the image when sharing results.
@@ -331,3 +341,83 @@ compares category use, every item mean and every rater mean across explicit
 loading priors. Its worked example shows why matching the overall average can
 still conceal a category-use mismatch. Predictive intervals describe replicated
 score statistics; the adjacent posterior ridge views describe parameter draws.
+
+## Marginal uncertainty across facets
+
+The ridge Wright map places one density per person, rater, item or item-step
+boundary on the same horizontal logit scale. Facet panels retain their stored
+level order. This is useful for seeing skewness and different uncertainty widths
+that an interval alone conceals. A single ridge pooling all people would mix
+between-person variation with uncertainty about each person; that is not what
+this view displays.
+
+![Artificial ridge Wright-map illustration with four facets.](assets/visual-guide/wright-ridge.png)
+
+**Artificial display fixture, not an estimated posterior.** The illustration uses
+40 deterministic parameter vectors. Its whole-fit warnings remain in the
+[external note](assets/visual-guide/wright-ridge-note.txt).
+[PDF](assets/visual-guide/wright-ridge.pdf) ·
+[Numerical inputs](assets/visual-guide/wright-ridge.json).
+
+For a saved stable unidimensional MFRM fit:
+
+```julia
+using BayesianMGMFRM, CairoMakie
+open("ridge-note.txt", "w") do note
+    fig = BayesianMGMFRM.plot_wright(fit_result;
+        kind = :ridge, interval = 0.95, annotation_io = note)
+    save("ridge.pdf", fig)
+end
+inputs = BayesianMGMFRM.wright_ridge_data(fit_result)
+```
+
+One common Gaussian bandwidth and one height multiplier apply to every density.
+The automatic bandwidth is the median of positive per-level Silverman bandwidths,
+so different facet locations do not inflate the smoothing width. Specify
+`bandwidth` in logits and `points` for reproducible display choices. This is
+descriptive smoothing, not an ESS or MCSE calculation. Circles and intervals use
+unsmoothed draws. Diamonds are fixed anchors or references; crosses flag constant
+estimated draws. Item-step boundaries use the **joint draw-by-draw sum**.
+There is no re-centering or sign reversal. This common-logit view is restricted
+to scalar MFRM; it does not put multidimensional abilities and free slopes on one
+interchangeable scale. Large selections still require explicit `max_levels` and
+figure size, or use the existing person histogram.
+
+## Reading categories without surface overlap
+
+The existing overlay can hide low-probability categories. Use `layout = :panels`
+for one filled 3D surface per category, or `layout = :heatmaps` to compare values
+without perspective. The numerical means and pointwise intervals are identical
+across layouts; no new sampling occurs. All probability panels share 0–1 scales,
+and all interval-width panels share a separate scale.
+
+![Artificial category-specific 3D surfaces paired with interval widths.](assets/visual-guide/surface-panels.png)
+
+![The same artificial category probabilities and interval widths as planar maps.](assets/visual-guide/surface-heatmaps.png)
+
+**Artificial display fixtures, not estimated posteriors.** These mixed-Q examples
+use 40 deterministic vectors to illustrate dependence on both displayed axes.
+[3D PDF](assets/visual-guide/surface-panels.pdf) ·
+[Planar PDF](assets/visual-guide/surface-heatmaps.pdf) ·
+[Numerical inputs](assets/visual-guide/surface.json) ·
+[3D note](assets/visual-guide/surface-panels-note.txt) ·
+[Planar note](assets/visual-guide/surface-heatmaps-note.txt).
+
+```julia
+# An independent MGMFRMFit with GeneralizedPrior, as in the saved example below.
+fig = BayesianMGMFRM.plot_response_surface(restored;
+    item = "I1", rater = "R1", category = :all, layout = :panels)
+save("category-panels.pdf", fig)
+```
+
+For a pure-Q item, the excluded axis is labelled explicitly. Its flatness follows
+from the specified model, rather than demonstrating the absence of an empirical
+relationship. For more than two dimensions, explicitly fix the others. This
+entry does not yet cover normalized-prior, correlated or fixed-coefficient fit
+types. Interval width describes uncertainty in the conditional probability;
+it is **not MCSE**, a simultaneous band or variation in future ratings. Density
+and surface illustrations do not replace model-fit checks or independent review.
+
+The numerical and optional rendering checks that reproduce these artificial
+illustrations are `test/wright_ridge.jl` and `test/facet_visualization_render.jl`
+in the source distribution.

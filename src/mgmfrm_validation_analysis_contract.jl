@@ -114,9 +114,9 @@ end
 """
     mgmfrm_validation_analysis_contract()
 
-Return the non-executing analysis-profile contract for the narrow fixed-Q
-MGMFRM validation program. The result separates Stage-A components that are
-already specified from decisions that still block fresh-seed evaluation.
+Return a proposed analysis specification for fixed-Q MGMFRM validation.
+The result separates specified settings from missing study choices; it is
+not an executable simulation or a result from completed validation.
 
 The contract fixes the four-chain sampler controls, computational diagnostics,
 estimands, interval and scale policies, prior regimes, held-out design,
@@ -125,11 +125,10 @@ cells, terminal statuses, seed rules, and all-attempt denominator. It does not
 choose unresolved sample-size cells, replication counts, resource caps, or
 scientific thresholds.
 
-This function generates no data, runs no sampler, and cannot authorize an
-analysis. Runtime pilots may inform resource choices only; they cannot set
-scientific thresholds. The provisional staged primary-grid review narrows the
-next decisions but does not freeze cells or require automatic short-NUTS
-progression.
+This function generates no data and runs no sampler. A complete study still
+needs explicit sample-size cells, replication counts, resource limits and
+scientific accuracy criteria. Timing experiments can inform resource limits;
+they cannot establish the accuracy criteria or replace independent evaluation.
 """
 function mgmfrm_validation_analysis_contract()
     protocol = mgmfrm_validation_protocol()

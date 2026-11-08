@@ -10,15 +10,32 @@ only in the limited configurations documented below. They are not part of the
 stable MFRM fitting contract, and their availability does not imply broader
 GMFRM or MGMFRM support.
 
+For user-named additive scalar facets (such as prompt, occasion, or rating session),
+see [User-Named Additive Facets](additive-facets.md).
+
+For simultaneous multi-criterion ratings of the same produced response or rating
+event, `Experimental.joint_rating_spec(...; association = :none | :uniform | :star)`
+and `Experimental.fit` connect three bounded experimental routes:
+[Shared-response Joint Ratings](joint-ratings.md) (`Experimental.JointRatings`),
+[Paired Ordinal Association](ordinal-association.md) (`Experimental.JointRatings.OrdinalAssociation`),
+and [Star-Factorized Multi-Criterion Association](star-association.md) (`Experimental.StarAssociation`).
+For two-study 9/9/2 ratings with a binary exact-match indicator, see
+[Concurrent Three-Outcome Study](concurrent-three-outcome.md) (`Experimental.ThreeIndicator`).
+
+For scalar rater-mechanism and longitudinal extensions, see
+[Group Differences in Rater Severity](rater-group-effects.md) (`Experimental.RaterGroupEffects`),
+[Criterion Collapse](criterion-collapse.md) (`Experimental.CriterionCollapse`), and
+[Rater Drift: Fitting, Static Comparison and Saved Results](rater-drift.md) (`Experimental.RaterDrift`).
+
 ## Boundary
 
 Use [Scope and Releases](scope.md#Current-Support) to choose a model, prior and
-backend together. Eight documented result types cover several distinct policies;
+backend together. Documented result types cover several distinct policies;
 the type count is not the number of fitted models. The
 [current evidence summary](scope.md#current-scientific-evidence) separates
 implementation checks, recovery findings and unresolved scientific acceptance.
 
-The unwrapped fitting entry admits these five structural configurations:
+Calling `Experimental.fit(spec)` directly on a model specification supports these five structural configurations:
 
 - fixed-coefficient multidimensional MFRM with at least two dimensions, fixed Q
   coefficients, item-specific partial-credit steps and identity latent correlation;
@@ -41,8 +58,10 @@ Its one-dimensional model differs from the rater-step scalar GMFRM above;
 see the [equations](model-equations.md#One-versus-multiple-dimensions-under-the-same-kernel).
 
 All five reject anchors and fitted DFF terms. Broader discrimination, rating-scale
-generalized kernels, exploratory or rotated loadings, and higher-dimensional
-correlation estimation remain outside the fitting boundary.
+generalized kernels and exploratory or rotated loadings remain outside these fitting routes.
+For three pure-Q traits, [Correlations among Three Traits](correlated-3d.md)
+(`Experimental.Correlated3D`, also accessible via `Experimental.correlated(spec; scales = ...)`
+on a 3D pure-Q `mfrm_spec`) admits its restricted three-trait normalized exchangeable model.
 
 The [D1 slope restriction](#Matched-fixed-and-estimated-item-slopes) and
 [mean-profile prior](#Fixed-location-and-step-mean-profiles) refine the independent
@@ -158,6 +177,37 @@ a default coordinate choice or empirical model-selection performance.
 
 ## Fixed location and step mean profiles
 
+The D1 `slope_restriction` route defaults to `ad_backend=:auto` in
+`Experimental.fit`. It selects the validated analytic gradient for fixed-one
+or estimated-positive item slopes with rater consistency fixed at one,
+including the fixed mean profiles below. Eligibility follows the actual model,
+prior and declared category/constraint layout. It does not infer a different
+model from the number of rows, observed categories or a preliminary fit.
+Other model routes retain their existing defaults; no automatic benchmark or
+search across estimators is run. Once `model` and its explicit `prior` are prepared:
+
+```julia
+selection = Experimental.surface_contract(model; prior).gradient_selection
+# (requested = :auto, selected = :analytic, reason = :validated_d1_analytic_score)
+fit = Experimental.fit(model; prior,
+    chains=4, warmup=1_500, ndraws=4_000, progress=SamplingProgress())
+fit_metadata(fit).sampler_controls.ad_backend # :analytic
+```
+
+Explicit `ad_backend=:ForwardDiff` and `:analytic` requests override the default.
+The prior, chain settings, precision criteria and saved parameter chart remain
+unchanged. Invalid configurations and numerical errors are reported without
+silently switching methods. The analytic score is specific to this D1 wrapper;
+it does not add analytic gradients to every MGMFRM or JointRatings model.
+
+For this D1 route, fitting, diagnostics and cache restoration check observation
+log likelihoods one draw at a time. They retain per-draw totals and all
+nonfinite-value warnings without requiring a full draw-by-observation matrix.
+Raw and constrained parameter draws are still needed for their diagnostics.
+Explicit prediction calls continue to return the requested observation and
+category arrays; those outputs can still be large. This memory change does not
+alter the model, prior, sampling accuracy, cache format or precision criteria.
+
 **Local candidate:** `Experimental.MeanProfilePrior` adds explicit fixed means
 on the independent D1, item-owned PCM route with item slopes and rater
 consistency both fixed at one. This option is not in the published
@@ -219,7 +269,10 @@ and common K-fold refit-plan APIs. Reports, target identities and manual fit
 caches retain the profile. Julia raw-coordinate fitting is supported; CmdStan
 fitting, automatic caches, free slopes, correlation, additional dimensions,
 other threshold owners and learned profile hyperparameters are unavailable.
-Existing prior-sensitivity wrappers remain limited to loading-SD changes;
+Saved posterior comparisons admit `prior_sensitivity(...; vary=:mean_profile)`
+for changes in item/step means and `item_sd`/`step_sd`, with all other prior
+fields and the model/data held fixed. See [prior sensitivity](prior-sensitivity.md).
+The prior-predictive comparison wrapper remains limited to loading-SD changes;
 use explicit per-profile prior predictions for this option.
 Statistical acceptance, recovery/SBC and an application-specific prior choice
 remain separate from this API's operation checks. The
@@ -299,6 +352,11 @@ variance `(K-2)*step_sd^2`. Both steps are zero for binary responses. The
 nonbaseline steps are dependent; their prior does not require ordered
 thresholds. Response categories still have their declared order, so permuting
 step positions generally changes response probabilities.
+
+Here the two stored binary contributions mean the structural baseline zero
+and the sole transition offset, also fixed to zero; there are not two binary
+thresholds. The scalar reference-rater route has different location constraints;
+see the [route comparison](model-equations.md#Fixed-coefficient-routes-and-their-priors).
 
 Person and item locations are **prior-anchored**. Adding the same dimension
 vector `c` to each person's abilities and adding `dot(Q[i,:], c)` to each item's
@@ -779,6 +837,11 @@ declared 95% range `[-delta,delta]` for one severity difference gives
 simultaneous guarantee or a recommended practical tolerance. Use prior
 predictions to inspect the resulting rating distributions before fitting.
 
+The [free-coordinate density derivation](model-equations.md#Density-on-free-and-constrained-coordinates)
+gives the normalizing factor and explains why reconstructing the final effect
+does not call for an additional density adjustment. Both the raw and normalized
+priors are proper; matching their numerical SD settings does not match their laws.
+
 Inspect category probabilities as well as expected scores. With four categories,
 zero location and consistency one, steps `(-1,0,1)` and `(1,0,-1)` both give
 expected score 2.5, but their total endpoint probabilities are approximately
@@ -964,6 +1027,19 @@ above illustrate the API, not analysis recommendations. Inspect
 `Experimental.surface_contract(model)` for the exact operation boundary.
 An explicit `GeneralizedPrior` is required for both prior prediction and fitting
 this combined model.
+
+Julia fitting defaults to `ad_backend=:auto`, selecting an exact analytic
+gradient for the admitted correlated 2D pure-Q target. This includes positive
+loadings, product-one rater consistency, reconstructed severity/step constraints,
+the correlated ability prior and the LKJ/tanh Jacobian. Inspect
+`Experimental.surface_contract(model).gradient_selection` before fitting and
+`fit_metadata(result).sampler_controls.ad_backend` for the actual choice.
+Explicit `:ForwardDiff`, `:ReverseDiff` and `:analytic` requests are honored;
+a numerical error does not cause a silent switch. This changes computation,
+not the likelihood, prior measure, target identity or cache schema. CmdStan
+continues to use its own automatic differentiation. This route does not add
+JointRatings recording effects, criterion-specific rater effects or paired-event
+dependence, and its optimization does not establish empirical model adequacy.
 
 For pure item i, the adjacent-category logit is
 `1.7 * gamma_r * (a_i,d(i) * theta_p,d(i) - b_i - r_r - s_i,h)`.
@@ -1181,3 +1257,7 @@ authenticity, or external validation.
 
 The [experimental API reference](api-experimental.md) documents the model types,
 priors and callable functions. The model explanations and examples remain above.
+
+## Correlations among three traits
+
+Use the separate [Correlated3D workflow](correlated-3d.md) for its declared three-dimensional pure-Q domain. Its normalized priors and unit marginal scales differ from the existing 2D wrappers; changing a dimension label does not select it.

@@ -97,6 +97,31 @@ function _observations(data)
                                            for role in roles)) for n in 1:data.n]
 end
 
+function _prediction_logit_normalizer!(eta, design, params, n, s, loadings)
+    family = design.spec.family
+    if family === :mfrm
+        B._linear_predictors!(eta, design, params, n)
+    elseif family === :gmfrm
+        B._gmfrm_source_linear_predictors!(eta, design, params, n)
+    else
+        B._mgmfrm_source_linear_predictors!(eta, design, params, n, loadings)
+    end
+    all(isfinite, eta) || throw(ArgumentError("nonfinite category logits at draw $s, row $n"))
+    eta .-= maximum(eta)
+    z = B._logsumexp(eta)
+    isfinite(eta[design.spec.data.category[n]]-z) ||
+        throw(ArgumentError("nonfinite pointwise log likelihood at draw $s, row $n"))
+    return z
+end
+
+function _observation_binding(data, ids, dataset_id)
+    observations = _observations(data)
+    order = sortperm(ids)
+    binding = B._cache_hash((; dataset_id=String(dataset_id),
+        category_levels=data.category_levels, observations=collect(zip(ids[order], observations[order]))))
+    return observations, binding
+end
+
 function _prediction_arrays(design, direct, include_probabilities)
     data = design.spec.data
     S, N, K = size(direct, 1), data.n, length(data.category_levels)
@@ -108,16 +133,7 @@ function _prediction_arrays(design, direct, include_probabilities)
     loadings = family === :mgmfrm ? B._mgmfrm_source_loading_index_matrix(design) : nothing
     for s in 1:S, n in 1:N
         params = view(direct, s, :)
-        if family === :mfrm
-            B._linear_predictors!(eta, design, params, n)
-        elseif family === :gmfrm
-            B._gmfrm_source_linear_predictors!(eta, design, params, n)
-        else
-            B._mgmfrm_source_linear_predictors!(eta, design, params, n, loadings)
-        end
-        all(isfinite, eta) || throw(ArgumentError("nonfinite category logits at draw $s, row $n"))
-        eta .-= maximum(eta)
-        z = B._logsumexp(eta)
+        z = _prediction_logit_normalizer!(eta, design, params, n, s, loadings)
         pointwise[s, n] = eta[data.category[n]]-z
         if include_probabilities
             for k in 1:K
@@ -163,11 +179,9 @@ function prediction_observations(fit::SupportedFit; dataset_id::AbstractString,
     data = design.spec.data
     probabilities, pointwise = _prediction_arrays(design, direct, include_probabilities)
     N = data.n
-    observations = deepcopy(_observations(data))
+    observations, binding = _observation_binding(data, ids, dataset_id)
+    observations = deepcopy(observations)
     category_contract = B._model_family_category_contract(spec)
-    order = sortperm(ids)
-    binding = B._cache_hash((; dataset_id=String(dataset_id),
-        category_levels=data.category_levels, observations=collect(zip(ids[order], observations[order]))))
     return (; schema="bayesianmgmfrm.prediction_observations.v1",
         dataset_id=String(dataset_id), observation_ids=ids, observations,
         source_row_indices=collect(1:N), category_levels=copy(data.category_levels),
@@ -246,31 +260,32 @@ end
     prediction_criteria(fit; dataset_id, observation_ids, criteria=..., ...)
 
 Compute native criteria once from the common full retained log-likelihood matrix.
-Allowed names are :waic, :raw_loo (native loo), and :hill_smoothed_loo (native
-psis_loo). The latter is the repository's Hill-tail smoother, not an assertion
-of equivalence to the reference loo package. No refit or ranking is performed.
+Allowed names are :waic, :raw_loo, :psis_loo (standard PSIS with chain efficiency),
+and :hill_smoothed_loo (the unchanged historical approximation). No refit or ranking is performed.
 
 All original chains and draws are required. Retain sampling and criterion
 warnings, including affected observation IDs. Native pointwise SE is not MCMC
-MCSE or a cluster/replication SE; native importance ESS is not autocorrelation
-adjusted. The LOO target omits one rating with specification/level maps fixed,
+MCSE or a cluster/replication SE. Only standard PSIS adjusts importance ESS
+for chain efficiency; its unavailable-efficiency and Pareto-tail warnings remain. The LOO target omits one rating with specification/level maps fixed,
 not a person, response group, or new-level prediction task.
 """
 function prediction_criteria(prediction::NamedTuple; criteria::Tuple=(:waic, :raw_loo),
         pareto_k_threshold::Real=0.7, tail_fraction::Real=0.2, min_tail_draws::Int=5)
     !isempty(criteria) && length(unique(criteria)) == length(criteria) &&
-        all(in((:waic, :raw_loo, :hill_smoothed_loo)), criteria) ||
-        throw(ArgumentError("choose unique criteria from :waic, :raw_loo, :hill_smoothed_loo"))
+        all(in((:waic, :raw_loo, :hill_smoothed_loo, :psis_loo)), criteria) ||
+        throw(ArgumentError("choose unique criteria from :waic, :raw_loo, :hill_smoothed_loo, :psis_loo"))
     controls = B._check_loo_controls(; pareto_k_threshold, tail_fraction, min_tail_draws)
     loglik = _criterion_draws(prediction)
     values = map(criteria) do criterion
         criterion === :waic ? B.waic(loglik) : criterion === :raw_loo ?
-            B.loo(loglik; controls...) : B.psis_loo(loglik; controls...)
+            B.loo(loglik; controls...) : criterion === :hill_smoothed_loo ?
+            B._hill_smoothed_loo(loglik; controls...) : B.psis_loo(loglik; chain_ids=prediction.chain_ids, controls...)
     end
     scores = NamedTuple{criteria}(values)
     problem_ids = NamedTuple{criteria}(map(criteria, values) do criterion, stat
         selected = criterion === :waic ? findall(>(0.4), stat.pointwise.p_waic) :
             findall(>(stat.pareto_k_threshold), stat.pointwise.pareto_k)
+        criterion === :psis_loo && (selected = sort(union(selected,stat.relative_efficiency_unavailable)))
         prediction.observation_ids[selected]
     end)
     quality = prediction.sampling_quality
@@ -281,9 +296,9 @@ function prediction_criteria(prediction::NamedTuple; criteria::Tuple=(:waic, :ra
         criterion_warnings=NamedTuple{criteria}(map(stat -> stat.warning, values)),
         evaluation_unit=:single_rating_row, loo_target=:single_rating_omission_fixed_specification,
         uncertainty=(; standard_errors=:native_pointwise_not_cluster_adjusted,
-            mcmc_mcse=:not_computed, relative_efficiency=:not_used,
-            importance_ess=:weight_only_not_mcmc_adjusted),
-        reference_psis_validation=:not_established, scientific_acceptance=:not_established)
+            mcmc_mcse=:not_computed, relative_efficiency=:psis_loo in criteria ? :chain_basic_ess_for_psis : :not_used,
+            importance_ess=:psis_loo in criteria ? :estimator_specific : :weight_only_not_mcmc_adjusted),
+        reference_psis_validation=:psis_loo in criteria ? :finite_reference_checks : :not_established, scientific_acceptance=:not_established)
 end
 
 function prediction_criteria(fit::SupportedFit; dataset_id::AbstractString, observation_ids,

@@ -35,8 +35,8 @@ const _LD1B1_PER_DATASET_CAPS = (;
     local_dependence_calibration_pilot_contract(;
         calibration_contract = local_dependence_calibration_contract())
 
-Return the fixed LD1b1 planning contract for the 30-replication diagnostic
-pilot. The contract fixes the complete LD1a scenario set, computation and
+Return a fixed plan for a 30-replication diagnostic pilot over the 22 scenarios
+from `local_dependence_simulation_grid`. The plan specifies computation and
 quality requirements, operational completion bounds, Wilson-interval precision
 references, and bounded generator workload. Evaluation uses either 50 or 100
 replications, selected after the pilot and before any evaluation result is
@@ -579,18 +579,17 @@ end
     local_dependence_calibration_pilot_preflight(plan_rows;
         contract = local_dependence_calibration_pilot_contract())
 
-Validate the complete 660-job LD1b1 pilot plan without generating scores or
+Validate the complete 660-job diagnostic pilot plan without generating scores or
 fitting models. The plan must be the unmodified 22-scenario by 30-replication
 cross returned by `local_dependence_simulation_grid` with `phase = :pilot` and
 the fixed base dimensions. The result records compact job rows, deterministic
 workload counts, Wilson precision references, pilot/evaluation seed separation,
 and the currently available sampler-diagnostic capability.
 
-Execution-protocol authorization requires an executable MFRM backend,
-algorithm, and gradient route as well as rank-normalized R-hat and bulk/tail
-ESS capabilities matching the frozen quality contract. Authorization does not
-execute the pilot: a successful planning preflight alone is not calibration
-evidence and does not enable decision or mechanism labels.
+The check requires an available MFRM backend, algorithm and gradient route,
+plus rank-normalized R-hat and bulk/tail ESS matching the plan's diagnostic
+requirements. A passing result does not execute the pilot, establish
+calibration or identify an observed-data dependence mechanism.
 """
 function local_dependence_calibration_pilot_preflight(
         plan_rows::AbstractVector;
@@ -765,7 +764,7 @@ end
     local_dependence_calibration_pilot_check(plan_rows;
         contract = local_dependence_calibration_pilot_contract())
 
-Check the complete 660-job LD1b1 pilot plan without generating scores or
+Check the complete 660-job diagnostic pilot plan without generating scores or
 fitting models. The result records workload counts, seed separation, resource
 limits, precision references, and sampler-diagnostic capability.
 """

@@ -31,8 +31,8 @@ All original draws/chains are used; different fit draw counts are permitted.
 Declare `comparison_axis=:model` (same D/Q), `:dimensions` (D and Q may differ),
 or `:q_matrix` (same D). Family, priors, scales and correlation metadata are
 retained; an axis label alone does not isolate a causal effect of that choice.
-Allowed criteria are `:waic`, `:raw_loo`, and `:hill_smoothed_loo`; the last is
-the package's non-reference-validated Hill smoother, not validated PSIS.
+Allowed criteria are `:waic`, `:raw_loo`, `:psis_loo` and `:hill_smoothed_loo`.
+Standard PSIS uses chain efficiency; Hill is the unchanged historical approximation.
 
 Rows retain input order. ELPD differences are model minus the declared baseline
 (first model by default), not an automatically selected winner. `se_unit=:none`
@@ -58,8 +58,8 @@ function compare_predictions(models::Pair...; comparison_axis::Symbol,
         throw(ArgumentError("declare comparison_axis=:model, :dimensions, or :q_matrix"))
     se_unit in (:none, :observation, :person) ||
         throw(ArgumentError("se_unit must be :none, :observation, or :person"))
-    criterion in (:waic, :raw_loo, :hill_smoothed_loo) ||
-        throw(ArgumentError("choose :waic, :raw_loo, or :hill_smoothed_loo"))
+    criterion in (:waic, :raw_loo, :hill_smoothed_loo, :psis_loo) ||
+        throw(ArgumentError("choose :waic, :raw_loo, :hill_smoothed_loo, or :psis_loo"))
     base_label = baseline === nothing ? first(labels) : string(baseline)
     base = findfirst(==(base_label), labels)
     base === nothing && throw(ArgumentError("baseline must name a supplied model"))
@@ -110,7 +110,11 @@ function compare_predictions(models::Pair...; comparison_axis::Symbol,
             sampling_warning=e.sampling_warning, criterion_warning,
             problem_observation_ids=copy(getproperty(e.problem_observation_ids,criterion)),
             status=e.sampling_warning || criterion_warning !== :ok ? :warning : :descriptive,
-            model_contract=deepcopy(p.model), source_sample_hash=p.source_sample_hash,
+            model_contract=deepcopy(p.model),
+            estimator=criterion === :psis_loo ? :psis_zhang_stephens : criterion,
+            relative_efficiency_unavailable=criterion === :psis_loo ?
+                copy(e.scores.psis_loo.relative_efficiency_unavailable) : Int[],
+            source_sample_hash=p.source_sample_hash,
             source_hash_status=p.source_hash_status, n_retained_draws=p.n_retained_draws,
             pointwise_elpd=pointwise[i], pointwise_difference=delta)
     end
@@ -123,7 +127,8 @@ function compare_predictions(models::Pair...; comparison_axis::Symbol,
         criterion_target=:single_rating_omission_fixed_specification,
         rows, se_unit, uncertainty=(; standard_error=se_unit === :none ? :not_requested : :approximate_exchangeable_unit,
             crossed_cluster_adjustment=:not_computed, mcmc_mcse=:not_computed,
-            replication_uncertainty=:not_computed, relative_efficiency=:not_used),
-        reference_psis_validation=:not_established,
+            replication_uncertainty=:not_computed,
+            relative_efficiency=criterion === :psis_loo ? :chain_basic_ess : :not_used),
+        reference_psis_validation=criterion === :psis_loo ? :finite_reference_checks : :not_established,
         model_selection=:not_performed, scientific_acceptance=:not_established)
 end

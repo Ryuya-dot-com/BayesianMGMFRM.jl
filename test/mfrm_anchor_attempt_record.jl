@@ -275,13 +275,22 @@ end
         chains = 1, step_size = 0.05, init = nothing, rng = MersenneTwister(17),
         seed = nothing, target_accept = 0.8, max_depth = 10,
         max_energy_error = 1000.0, metric = :diagonal, ad_backend = :ForwardDiff,
-        init_jitter = 0.0, progress = false, cmdstan_path = nothing, cmdstan_cache_dir = nothing)
+        init_jitter = 0.0, progress = false, chain_execution = :serial, max_parallel_chains = 1,
+        cmdstan_path = nothing, cmdstan_cache_dir = nothing)
     @test Set(Base.kwarg_decl(which(fit, (FacetDesign,)))) ==
         union(Set(keys(options)), Set((:_on_enter,)))
     rand(options.rng, 11) # Test state only; not an evaluation allocation.
     checkpoint = copy(options.rng)
     input = Records.fit_input_record(design; options)
-    @test input["schema"] == "bayesianmgmfrm.anchor_fit_input.v2"
+    @test input["schema"] == "bayesianmgmfrm.anchor_fit_input.v3"
+    @test input["settings"]["chain_execution"] == "serial"
+    @test input["settings"]["max_parallel_chains"] == 1
+    threaded = merge(options, (;backend=:advancedhmc, chains=2,
+        chain_execution=:threads, max_parallel_chains=2))
+    threaded_input = Records.fit_input_record(design; options=threaded)
+    @test threaded_input["settings"]["chain_execution"] == "threads"
+    @test threaded_input["settings"]["max_parallel_chains"] == 2
+    @test threaded.rng == options.rng == checkpoint
     @test input["design_identity"] == Archive._ld1b_json_native(
         Base.structdiff(design_identity(design), (; data_signature = nothing)))
     @test Archive.ld1b_archive_canonical_sha256(input) == Archive.ld1b_archive_canonical_sha256(
@@ -312,7 +321,12 @@ end
             merge(options, (; backend = :unknown)), merge(options, (; progress = 1)),
             merge(options, (; init = zeros(length(design.parameter_names), 1))),
             merge(options, (; init = [NaN])), merge(options, (; _on_enter = () -> nothing)),
-            Base.structdiff(options, (; warmup = nothing)))
+            Base.structdiff(options, (; warmup = nothing)),
+            Base.structdiff(options, (; chain_execution = nothing)),
+            Base.structdiff(options, (; max_parallel_chains = nothing)),
+            merge(options, (; chain_execution = true)),
+            merge(options, (; max_parallel_chains = true)),
+            merge(options, (; max_parallel_chains = 1.0)))
         @test_throws Exception Records.fit_input_record(design; options = invalid)
     end
     @test options.rng == checkpoint
@@ -349,6 +363,7 @@ end
             (; seed = 17), (; target_accept = 0.9), (; max_depth = 9),
             (; max_energy_error = 999.0), (; metric = :unit), (; ad_backend = :analytic),
             (; init_jitter = 0.01), (; progress = true),
+            (; chain_execution = :threads), (; max_parallel_chains = 2),
             (; cmdstan_path = "/test/cmdstan"), (; cmdstan_cache_dir = "/test/cache"))
         for change in changes
             @test_throws ArgumentError call(; actual_options = merge(options, change))
@@ -381,13 +396,18 @@ end
         altered = Archive.ld1b_archive_with_content_hash((; schema = "test.declaration.v1",
             phase = "test", attempt = 1, fit_input = input, extra = "different bytes"))
         @test_throws ArgumentError call(; declaration = altered)
-        legacy_input = merge(input, Dict("schema" => "bayesianmgmfrm.anchor_fit_input.v1"))
-        legacy = Archive.ld1b_archive_with_content_hash((; schema = "test.declaration.v1",
-            phase = "test", attempt = 1, fit_input = legacy_input))
-        legacy_path = joinpath(root, "legacy-input.json")
-        Records.publish_record(legacy_path, legacy, staging, root; semantic_validator = validator)
-        @test_throws ArgumentError call(; declaration = legacy, input_path = legacy_path)
-        @test read(legacy_path) == Archive._ld1b_encode_json_bytes(legacy)
+        for version in (1, 2)
+            legacy_input = deepcopy(input)
+            legacy_input["schema"] = "bayesianmgmfrm.anchor_fit_input.v$version"
+            delete!(legacy_input["settings"], "chain_execution")
+            delete!(legacy_input["settings"], "max_parallel_chains")
+            legacy = Archive.ld1b_archive_with_content_hash((; schema = "test.declaration.v1",
+                phase = "test", attempt = 1, fit_input = legacy_input))
+            legacy_path = joinpath(root, "legacy-input-v$version.json")
+            Records.publish_record(legacy_path, legacy, staging, root; semantic_validator = validator)
+            @test_throws ArgumentError call(; declaration = legacy, input_path = legacy_path)
+            @test read(legacy_path) == Archive._ld1b_encode_json_bytes(legacy)
+        end
         @test isempty(events) && read(path) == before && options.rng == checkpoint
     end
 
@@ -450,6 +470,7 @@ end
         step_size = 0.05, init = nothing, rng = MersenneTwister(29), seed = 17,
         target_accept = 0.8, max_depth = 10, max_energy_error = 1000.0,
         metric = :diagonal, ad_backend = :ForwardDiff, init_jitter = 0.0, progress = false,
+        chain_execution = :serial, max_parallel_chains = 4,
         cmdstan_path = nothing, cmdstan_cache_dir = nothing)
     declaration(opts) = Archive.ld1b_archive_with_content_hash((;
         schema = "test.declaration.v1", phase = "test", reference.dataset_id,
@@ -607,7 +628,8 @@ end
         chains = 1, step_size = 0.05, init = nothing, rng = MersenneTwister(17),
         seed = nothing, target_accept = 0.8, max_depth = 10,
         max_energy_error = 1000.0, metric = :diagonal, ad_backend = :ForwardDiff,
-        init_jitter = 0.0, progress = false, cmdstan_path = nothing, cmdstan_cache_dir = nothing)
+        init_jitter = 0.0, progress = false, chain_execution = :serial, max_parallel_chains = 1,
+        cmdstan_path = nothing, cmdstan_cache_dir = nothing)
     checkpoint = copy(options.rng)
     previous_project = Base.ACTIVE_PROJECT[]
     original_project = Base.active_project()

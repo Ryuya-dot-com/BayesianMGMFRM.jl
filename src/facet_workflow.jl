@@ -11,6 +11,12 @@ using LinearAlgebra
 Prepare a table of observed ratings for analysis. Each row is one person's
 score on one item from one rater. Pass column names as Julia symbols, such as
 `person = :student`; the example below uses a named tuple of column vectors.
+For responses without a rater facet, explicitly pass `rater = nothing`; no
+rater column is needed. Use the scalar unit-slope `mfrm_spec` entry: binary
+categories `0:1` give Rasch/1PL, and ordered categories give PCM or RSM.
+The internal single `"no_rater"` reference has fixed zero severity and no free
+rater parameter. It is not an observed judge. `data.columns.rater === nothing`
+records this choice; rater anchors and rater bias terms are not applicable.
 Use `category_levels` to preserve the complete intended consecutive integer
 score scale, even if a category was not observed. Missing ratings are not score zero. By default,
 missing required values are rejected, and `missing_policy = :error` is the
@@ -129,6 +135,10 @@ configuration intent for design inspection. A narrower scalar-GMFRM and
 fixed-Q confirmatory MGMFRM subset is available through the explicitly limited
 `BayesianMGMFRM.Experimental.fit(spec)` entrypoint; broader represented
 configurations remain inspection-only.
+
+Display `spec` at the Julia prompt, or use `show(stdout, MIME"text/plain"(), spec)`
+in a script, to read its slopes, step ownership, validation-only terms and fitting
+entry. This display uses the existing model contract without fitting a model.
 """
 struct FacetSpec
     data::FacetData
@@ -246,6 +256,7 @@ function _column(table, name::Symbol)
     if hasproperty(table, name)
         return collect(getproperty(table, name))
     end
+    table isa NamedTuple && throw(ArgumentError("column :$name was not found"))
     col = _try_column_getindex(table, !, name)
     col === nothing || return col
     col = _try_column_getindex(table, :, name)
@@ -343,7 +354,7 @@ end
 
 function FacetData(table;
         person::Symbol,
-        rater::Symbol,
+        rater::Union{Nothing,Symbol},
         item::Symbol,
         score::Symbol,
         group::Union{Nothing,Symbol} = nothing,
@@ -359,15 +370,15 @@ function FacetData(table;
 
     person_col = _column(table, person)
     n = length(person_col)
-    rater_col = _column(table, rater)
+    rater_col = rater === nothing ? fill("no_rater", n) : _column(table, rater)
     item_col = _column(table, item)
     score_col = _column(table, score)
-    _check_length!(n, rater_col, rater)
+    _check_length!(n, rater_col, something(rater, :rater))
     _check_length!(n, item_col, item)
     _check_length!(n, score_col, score)
 
     person_index, person_levels = _encode_levels(person_col, person)
-    rater_index, rater_levels = _encode_levels(rater_col, rater)
+    rater_index, rater_levels = _encode_levels(rater_col, something(rater, :rater))
     item_index, item_levels = _encode_levels(item_col, item)
     scores, category_index, checked_category_levels =
         _encode_scores(score_col, score, category_levels)
@@ -424,7 +435,8 @@ Base.length(data::FacetData) = data.n
 function Base.show(io::IO, data::FacetData)
     print(io, "FacetData(", data.n, " ratings, ",
         length(data.person_levels), " persons, ",
-        length(data.rater_levels), " raters, ",
+        data.columns.rater === nothing ? "no rater facet, " :
+            string(length(data.rater_levels), " raters, "),
         length(data.item_levels), " items, ",
         length(data.category_levels), " categories)")
 end
@@ -776,12 +788,28 @@ function _minimal_location_matrix(data::FacetData)
     return matrix
 end
 
+function _single_item_location_rank(data::FacetData)
+    # Incidence rank is V-components; deleting the reference-rater column
+    # removes that component's redundant column, preserving the rank.
+    P, R = length(data.person_levels), length(data.rater_levels)
+    parent = collect(1:(P+R))
+    for n in 1:data.n
+        _anchor_link_union!(parent, data.person[n], P+data.rater[n])
+    end
+    return P+R-count(i -> parent[i] == i, eachindex(parent))
+end
+
 function _validate_minimal_location_rank!(issues, data::FacetData)
     data.n == 0 && return nothing
-    matrix = _minimal_location_matrix(data)
-    ncol = size(matrix, 2)
+    if length(data.item_levels) == 1
+        ncol = length(data.person_levels)+length(data.rater_levels)-1
+        r = _single_item_location_rank(data)
+    else
+        matrix = _minimal_location_matrix(data)
+        ncol = size(matrix, 2)
+        r = rank(matrix)
+    end
     ncol == 0 && return nothing
-    r = rank(matrix)
     r == ncol && return nothing
     push!(issues, ValidationIssue(
         :rank_deficient_design,
@@ -2664,8 +2692,8 @@ remain blocked. Set `include_evidence = true` to include the local evidence rows
 recorded by the guarded GMFRM/MGMFRM exposure manifests plus the current
 fit-cache, reproduction-manifest, documentation-size, and pre-registration gate
 guardrails. The evidence rows also retain separate machine-readable operational,
-integration, and scientific denominators for the free-correlation and LD1b
-workstreams; operational or dirty-worktree attainment does not enter a
+integration, and scientific denominators for the free-correlation and local-dependence
+studies; operational or dirty-worktree attainment does not enter a
 scientific numerator.
 
 This is a release-scope guardrail, not a statistical validation result and not a
@@ -4669,8 +4697,8 @@ identity-correlation prior anchor, and dimension-specific person-rater-item
 subgraph coverage. Error rows make `passed = false`; warning rows remain
 actionable review evidence without rejecting the guarded fixed-Q spec.
 `identification.conservative_stable_structure_ready` is a stricter sufficient
-promotion screen; it is not by itself evidence of empirical recovery or stable
-public readiness.
+structural screen; it does not establish parameter recovery or reliable
+inference for an observed dataset.
 """
 function q_matrix_validation(data::FacetData;
         family::Symbol = :mgmfrm,
@@ -5584,6 +5612,15 @@ priors before fitting. Use [`fit`](@ref) for stable one-dimensional MFRM and
 [`BayesianMGMFRM.Experimental.fit`](@ref) for admitted experimental models.
 Constructing a specification does not mean that every configuration is fit-supported.
 
+Display `spec` to check the model meaning before fitting. `family` selects the
+response model even though this constructor retains the name `mfrm_spec`.
+The MGMFRM selector `discrimination = :none` still estimates positive active
+item-dimension loadings and rater consistency; GMFRM's `:rater` selector also
+estimates item discrimination. These are compatibility selectors, not a list of
+all estimated slopes. `bias` requests cell/design checks only: it does not add
+fitted interactions. For jointly fitted rater-item effects, see the separate
+`BayesianMGMFRM.Experimental.RaterItemInteractions` model and its restrictions.
+
 # Extended help
 
 The default `family = :mfrm`, `dimensions = 1`, and
@@ -5624,6 +5661,10 @@ function mfrm_spec(data::FacetData;
     checked_dimension_labels =
         _normalize_dimension_labels(checked_dimensions, dimension_labels)
     checked_discrimination = _check_discrimination(checked_family, discrimination)
+    if data.columns.rater === nothing
+        checked_family === :mfrm && checked_dimensions == 1 ||
+            throw(ArgumentError("rater = nothing supports scalar unit-slope Rasch/PCM/RSM only"))
+    end
     report = validation_report === nothing ?
         validate_design(data; bias, min_cell_count) :
         validation_report
@@ -5648,6 +5689,12 @@ function mfrm_spec(data::FacetData;
     )
     checked_bias_terms = _normalize_bias_terms(bias, report)
     checked_anchors = _normalize_anchors(anchors)
+    if data.columns.rater === nothing
+        any(term -> :rater in term, checked_bias_terms) &&
+            throw(ArgumentError("rater bias terms require an observed rater facet"))
+        any(anchor -> _stable_anchor_block(anchor.block) === :rater, checked_anchors) &&
+            throw(ArgumentError("rater anchors require an observed rater facet"))
+    end
     _check_mfrm_fixed_q_options(checked_family, checked_dimensions, thresholds,
         checked_discrimination, checked_bias_terms, checked_anchors)
     estimation_status = _estimation_status(
@@ -5693,6 +5740,74 @@ function Base.show(io::IO, spec::FacetSpec)
         ", dimensions = ", spec.dimensions,
         ", estimation_status = :", spec.estimation_status,
         ", ", spec.data, ")")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", spec::FacetSpec)
+    get(io, :compact, false) && return show(io, spec)
+    contract = model_family_contract(spec)
+    println(io, "FacetSpec: ", uppercase(string(spec.family)), " (", spec.dimensions,
+        spec.dimensions == 1 ? " dimension)" : " dimensions)")
+    print(io, "  Dimensions: ")
+    show(io, spec.dimension_labels)
+    println(io, "\n  Ratings: ", spec.data.n, "; people: ", length(spec.data.person_levels),
+        "; items: ", length(spec.data.item_levels), "; raters: ",
+        spec.data.columns.rater === nothing ? "none (fixed zero reference)" : length(spec.data.rater_levels))
+    print(io, "  Categories: ")
+    show(io, spec.data.category_levels)
+    println(io, "\n  Threshold option: :", spec.thresholds)
+    println(io, "  Response: adjacent-category logit; scale multiplier ",
+        contract.category.implementation_scale_constant)
+    step_owner = contract.steps.owner
+    println(io, "  Steps: ", step_owner === :global ? "shared across items and raters" :
+        step_owner === :rater ? "rater-specific, shared across items" :
+        "item-specific, shared across raters")
+    if spec.family === :mgmfrm
+        println(io, "  Slopes: positive item-dimension loadings and rater consistency estimated")
+        println(io, "  Legacy discrimination=:", spec.discrimination,
+            " does not mean fixed slopes.")
+    elseif spec.family === :gmfrm
+        println(io, "  Slopes: positive item discrimination and rater consistency estimated")
+        println(io, "  Legacy discrimination=:", spec.discrimination,
+            " is a compatibility selector.")
+    else
+        println(io, "  Slopes: item coefficients and rater consistency fixed at one")
+    end
+    if spec.q_matrix !== nothing
+        println(io, "  Q: ", size(spec.q_matrix, 1), " items × ", size(spec.q_matrix, 2),
+            " dimensions; ", count(spec.q_matrix), " active cells; other coefficients fixed at zero")
+    end
+    if !isempty(spec.validation_bias_terms)
+        println(io, "  Validation-only terms (not fitted interactions): ",
+            join((string(a, " × ", b) for (a, b) in spec.validation_bias_terms), ", "))
+    end
+    println(io, "  Anchor declarations: ", length(spec.anchors),
+        "; inspect constraint_table(spec) for their meaning.")
+    if spec.family === :mfrm && spec.dimensions == 1 && isempty(spec.anchors)
+        print(io, "  Default zero references: item = ")
+        show(io, first(spec.data.item_levels))
+        if spec.data.columns.rater !== nothing
+            print(io, "; rater = ")
+            show(io, first(spec.data.rater_levels))
+        end
+        println(io, " (stored label order, not input row order)")
+        if length(spec.data.item_levels) > 1 || length(spec.data.rater_levels) > 1
+            println(io, "  MFRMPrior uses free coordinates; changing a reference without transporting the joint prior can change the model.")
+        end
+    end
+    support = contract.support
+    if support.fit_available
+        println(io, "  Fit entry: ", support.entrypoint,
+            support.experimental_fit_available ? " (experimental)" : "")
+    else
+        println(io, "  Fit entry: unavailable for this specification; inspection only")
+    end
+    validation_warnings = count(issue -> issue.severity === :warning, spec.validation.issues)
+    println(io, "  Design warnings: ", validation_warnings,
+        "; Q warnings: ", length(support.warning_checks))
+    if validation_warnings > 0 || !isempty(support.warning_checks)
+        println(io, "  Read spec.validation.issues and, when Q is present, q_matrix_validation(spec).")
+    end
+    print(io, "  Select priors and sampler settings explicitly before fitting.")
 end
 
 function _push_block!(names::Vector{String}, blocks::Dict{Symbol,UnitRange{Int}}, block::Symbol, labels, prefix::String)
@@ -7074,6 +7189,9 @@ function _mgmfrm_source_pointwise_loglikelihood(
     T = typeof(_param_zero(params) + 0.0)
     etas = Vector{T}(undef, K)
     out = Vector{T}(undef, data.n)
+    # Reuse the same per-draw thresholds as the total-likelihood kernel.
+    step_values = T[_source_step_value(design, params, :item_steps, item, category)
+        for category in 1:K, item in eachindex(data.item_levels)]
     for row in 1:data.n
         _mgmfrm_source_linear_predictors!(
             etas,
@@ -7081,6 +7199,7 @@ function _mgmfrm_source_pointwise_loglikelihood(
             params,
             row,
             loading_indices,
+            step_values,
         )
         out[row] = etas[data.category[row]] - _logsumexp(etas)
     end

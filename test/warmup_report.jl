@@ -25,7 +25,8 @@ table_headers(markdown) = [lines[i - 1] for lines in (split(markdown, '\n'),)
         @test (row.n_divergences, row.n_max_treedepth, row.n_nonfinite_logdensity) == (1, 1, 1)
         @test report.report_status === :complete
         @test isequal(report.diagnostics, diagnostics(f))
-        @test isempty(B._fit_report_warning_rows(report))
+        expected_codes = family === :mfrm ? [:reference_zero_prior_coordinate_dependence] : Symbol[]
+        @test [row.code for row in B._fit_report_warning_rows(report)] == expected_codes
         @test !hasproperty(row, :flag)
         @test only(r for r in fit_report_sections(report) if r.section === :warmup).row_fields == [:rows]
         public_report = fit_report_public(report)
@@ -36,7 +37,7 @@ table_headers(markdown) = [lines[i - 1] for lines in (split(markdown, '\n'),)
             markdown = fit_report_markdown(projected)
             @test occursin("### warmup / rows", markdown)
             @test occursin(projected.warmup.interpretation, markdown)
-            @test !occursin("## Warnings", markdown)
+            @test occursin("## Warnings", markdown) == (family === :mfrm)
             mktempdir() do directory
                 save_fit_report_bundle(directory, projected; require_complete = true)
                 loaded = load_fit_report_bundle(directory; require_complete = true)

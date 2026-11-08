@@ -8,6 +8,8 @@
 ## Stable fitting and shared artifacts
 
 ```@docs
+SamplingProgress
+progress_snapshot
 MFRMPrior
 MFRMLogDensity
 MFRMFit
@@ -41,20 +43,31 @@ save_fit_report_bundle
 save_fit_report_markdown
 save_fit_report_tables
 related_software_capability_matrix
+prepare_fit
+run_chain_worker
+worker_status
+collect_fit
+save_fit
+load_fit
+save_report
+load_report
 ```
 
 ## Optional analysis figures
 
-Load CairoMakie to use these qualified entry points. They return editable
-Figures and use the numerical summary functions documented in this manual.
-`plot_wright` and `plot_pathway` accept stable unidimensional MFRM fits only.
+Load CairoMakie to use `BayesianMGMFRM.plot(x; kind = ...)` or the specialized
+qualified entry points below. They return editable Figures and use the numerical
+summary functions documented in this manual. `plot_wright` and `plot_pathway`
+accept stable unidimensional MFRM fits only.
 
 ```@docs
+BayesianMGMFRM.plot
 BayesianMGMFRM.plot_posterior
 BayesianMGMFRM.plot_prior
 BayesianMGMFRM.plot_diagnostics
 BayesianMGMFRM.plot_predictive
 BayesianMGMFRM.plot_wright
+BayesianMGMFRM.wright_ridge_data
 BayesianMGMFRM.plot_pathway
 BayesianMGMFRM.item_response_surface
 BayesianMGMFRM.plot_response_surface
@@ -142,3 +155,77 @@ generalized workflows should access these result types through
 GMFRMFit
 MGMFRMFit
 ```
+
+## Carry joint draws into another calculation
+
+For `MFRMFit`, `GMFRMFit` and `MGMFRMFit`, request retained draws explicitly:
+
+```julia
+artifact = fit_artifact(fitted; view=:public, include_draws=true,
+    include_environment=false)
+artifact.draw_index.chain_ids
+artifact.draw_index.iterations
+artifact.fit_metadata.prior
+```
+
+Each matrix row is one joint posterior draw, excluding warmup. The row index
+matches `draws` for scalar MFRM and both `raw_draws` and `direct_draws` for the
+listed generalized fit types. Scalar columns follow `parameter_names`. For
+generalized fits, the full view includes both matrices with `raw_parameter_names`
+and `direct_parameter_names`; the public view retains only `direct_draws` and
+`direct_parameter_names`. Do not mix those coordinate systems. With `include_draws=false`, the row index
+and matrices are omitted. Older artifacts may lack these fields: obtain them
+from the original fit rather than guessing from a matrix's size. Separate
+recorded, normalized and correlated result types retain their existing artifact
+contracts; this example does not establish a common export for every model.
+
+For a saved scalar Rasch/PCM/RSM fit, the example below writes ordinary JSON
+with rows of numbers, exact parameter names, chain/iteration indices, actual
+prior settings, model constraints, prior/reference warnings, warmup and retained
+diagnostics, and posterior intervals with MCSE. It performs no sampling:
+
+```julia
+using BayesianMGMFRM
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "joint_draw_handoff.jl"))
+fitted = load_fit_cache("analysis-fit.jls")
+receipt = JointDrawHandoff.write_json("joint-draws.json", fitted)
+```
+
+The cache must be opened in its compatible source/Julia/dependency environment.
+This is a scalar example, not a new universal serialization API. JSON rows
+preserve their parameter pairing; stored user IDs are not anonymized. The
+returned SHA-256 verifies the file bytes. The embedded source-artifact hash
+identifies the original Julia object, not the JSON file's different encoding.
+Retain the receipt and the report's numerical and model warnings with the file.
+
+A Python calculation can then use the same row for both effects:
+
+```python
+import json
+import numpy as np
+with open("joint-draws.json", encoding="utf-8") as source:
+    saved = json.load(source)
+x = np.asarray(saved["draws"], dtype=float)
+names = saved["parameter_names"]
+# Existing binary Rasch example: item I01 is the fixed zero reference.
+delta = x[:, names.index("item[I03]")] - x[:, names.index("item[I02]")]
+print(delta.mean(), np.quantile(delta, [0.025, 0.975]))
+```
+
+Check that the intended IDs exist and read the diagnostic/MCSE information
+before interpreting the interval. Differences, predictions and decision
+probabilities must be computed row by row; subtracting interval endpoints or
+independently sorting/resampling columns destroys joint uncertainty. Sorting
+rows within each chain is legitimate only if every parameter and its row index
+move together. Preserve iteration order when computing autocorrelation or MCSE.
+Fixed reference effects are constants, not missing sampled columns; follow the
+saved constraints when a requested contrast includes one.
+
+This connection makes uncertainty available for another computation. Using
+posterior means as error-free regression predictors, or fitting a separate
+regression to every draw and calling it a joint model, is not justified by this
+export. An outcome-linked model needs its own likelihood, priors and validation;
+retained measurement draws do not automatically incorporate outcome feedback.
+The [fit and decision guide](migration-facets-conquest.md#Comparing-fit-and-decisions)
+explains reference changes and prior sensitivity. The saved example validates
+transport, not general calibration or a preferred prior.

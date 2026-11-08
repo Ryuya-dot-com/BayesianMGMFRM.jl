@@ -32,6 +32,14 @@ end
     @test contract.legacy_entrypoint ==
         "BayesianMGMFRM.fit(spec; experimental = true)"
     @test Set(contract.reader_facing_bindings) == Set((
+        :JointRatings,
+        :StarAssociation,
+        :RecoveryPlanning,
+        :RaterDrift,
+        :RaterItemInteractions,
+        :RaterGroupEffects,
+        :CriterionCollapse,
+        :Correlated3D,
         :GMFRMFit,
         :MGMFRMFit,
         :MultidimensionalMFRMFit,
@@ -42,9 +50,11 @@ end
         :ExchangeablePrior,
         :ExchangeableMFRMFit,
         :correlated,
+        :joint_rating_spec,
         :slope_restriction,
         :GeneralizedPrior,
         :NormalizedMGMFRMPrior,
+        :MeanProfilePrior,
         :NormalizedMGMFRMFit,
         :cached_fit,
         :fit,

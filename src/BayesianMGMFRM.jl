@@ -1,41 +1,49 @@
 """
     BayesianMGMFRM
 
-Analyze ratings while accounting for person ability, item difficulty and rater
-severity, with Bayesian uncertainty estimates and diagnostic checks.
+Analyze ordinal and multi-criterion ratings while accounting for entity/person
+ability, item/task difficulty, and rater severity, with Bayesian uncertainty
+estimates, diagnostic qualification, and transparent target densities.
 
-Start with `FacetData` to describe one observed rating per row, then
-`validate_design` to inspect the data and `mfrm_spec` to choose a model.
-`fit(spec; backend = :advancedhmc, chains = 4)` runs Julia NUTS; its draw counts
-and priors still need to suit the analysis. Read `diagnostics`,
-`posterior_summary` and `posterior_mcse` before interpreting a fitted result.
-Use `save_fit_cache` and `load_fit_cache` to revisit it without fitting again.
-Stable fitting covers one-dimensional MFRM. GMFRM and multidimensional models
-use the restricted `BayesianMGMFRM.Experimental` entry points.
+# Unified Practitioner Workflow
 
-At the Julia prompt, type `?FacetData` for a complete data example, `?fit` for
-fitting help, and `??fit` for detailed controls. In a script or notebook,
-`@doc FacetData` retrieves the documentation. The manual's Getting Started
-guide introduces the model choices; the repository's `examples/inspect_ratings.jl`
-runs a first data-and-model example without sampling or writing files.
+1. **Specify & Inspect Design**: Build a table with `FacetData` and inspect it
+   with `design_summary` and `mfrm_spec` (or `Experimental.joint_rating_spec`
+   for multi-criterion rating events). Modify specifications cleanly with `with_options`.
+2. **Check Priors & Simulate**: Draw from the joint prior with `prior_draw`,
+   generate synthetic datasets with `simulate`, and screen plausibility with
+   `prior_predictive_check`.
+3. **Fit & Checkpoint**: Estimate models via `fit` (or multi-worker
+   `prepare_fit`, `run_chain_worker`, `worker_status`, `collect_fit`).
+4. **Qualify, Summarize & Decide**: Screen convergence with `qualify` and
+   `diagnostics`, inspect `posterior_summary`, `facet_summary`, `category_summary`,
+   `contrast`, `event_probabilities`, `reliability`, `ranking`, `classification`,
+   `predictive_check`, `criteria` (`waic`, `psis_loo`), `compare_models`, and
+   `prior_sensitivity`.
+5. **Visualize & Persist**: Render publication-ready figures via
+   `BayesianMGMFRM.plot(fit; kind = :posterior)` (after `using CairoMakie`),
+   and persist verified fits or portable JSON reports with `save_fit` / `load_fit`
+   and `save_report` / `load_report`.
 
-# Extended help
+# Glass-Box Researcher Surface
 
-The stable fitting surface supports the documented MFRM/RSM/PCM configurations.
-`BayesianMGMFRM.Experimental.fit(spec)` additionally supports fixed-coefficient
-multidimensional MFRM in unit logits, a limited partial-credit scalar GMFRM
-configuration and a fixed-Q, identity-correlation
-confirmatory MGMFRM configuration. Explicit normalized-prior MGMFRM and
-two-dimensional correlated MFRM/MGMFRM configurations also have experimental
-fit results, diagnostics, parameter MCSE, and manual save/reload operations.
-See `Experimental.fit` for required priors and supported configurations.
-Unsupported generalized options are rejected before numerical execution.
-Computational availability does not establish replicated recovery, calibrated
-intervals, or a scientific model-selection recommendation.
+Methodological researchers can inspect exact model contracts, coordinate maps,
+basis partitions, Jacobians, analytical gradients, and CmdStan inputs directly via
+`contract`, `parameter_names`, `facet_basis`, `coordinates`, `to_ncp_reference`,
+`from_ncp_reference`, `reparameterize_point`, `reparameterize_draws`,
+`log_jacobian_to_ncp`, `logprior`, `loglikelihood`, `pointwise_loglikelihood`,
+`logposterior`, `logdensity_and_gradient`, `stan_data`, and `sampler_controls`.
+
+Simulation-study, calibration-pilot, and benchmark harnesses are organized in
+`BayesianMGMFRM.ValidationSuite`. Generalized, multidimensional, correlated, and
+multi-criterion models use `BayesianMGMFRM.Experimental`; computational
+availability does not establish scientific model-selection acceptance.
 """
 module BayesianMGMFRM
 
-export FacetData,
+export SamplingProgress,
+    progress_snapshot,
+    FacetData,
     FacetDesign,
     FacetSpec,
     CmdStanError,
@@ -220,7 +228,42 @@ export FacetData,
     predictive_check_plot_data,
     wright_map_data,
     waic,
-    waic_diagnostics
+    waic_diagnostics,
+    category_summary,
+    classification,
+    collect_fit,
+    contract,
+    contrast,
+    coordinates,
+    criteria,
+    design_summary,
+    event_probabilities,
+    facet_basis,
+    facet_summary,
+    from_ncp_reference,
+    load_fit,
+    load_report,
+    log_jacobian_to_ncp,
+    logdensity_and_gradient,
+    parameter_names,
+    predictive_check,
+    prepare_fit,
+    prior_draw,
+    prior_sensitivity,
+    qualify,
+    ranking,
+    reliability,
+    reparameterize_draws,
+    reparameterize_point,
+    run_chain_worker,
+    sampler_controls,
+    save_fit,
+    save_report,
+    simulate,
+    stan_data,
+    to_ncp_reference,
+    with_options,
+    worker_status
 
 include("cmdstan_backend.jl")
 include("evidence_metadata.jl")
@@ -231,7 +274,9 @@ include("mgmfrm_validation_protocol.jl")
 include("mgmfrm_validation_scoring.jl")
 include("model_contract.jl")
 include("testlet_design_audit.jl")
+include("sampling_progress.jl")
 include("bayesian_fit.jl")
+include("sampling_execution.jl")
 include("mgmfrm_location_diagnostics.jl")
 include("mgmfrm_location_parameterization.jl")
 include("posterior_plot.jl")
@@ -239,12 +284,14 @@ include("response_surface.jl")
 include("cmdstan_fit.jl")
 include("mgmfrm_normalized_prior.jl")
 include("mgmfrm_slope_restriction.jl")
+include("mgmfrm_slope_gradient.jl")
 include("mfrm_fixed_q_samples.jl")
 include("mgmfrm_free_correlation_candidate.jl")
 include("mgmfrm_correlated_2d_samples.jl")
 include("mgmfrm_correlated_2d_predictive.jl")
 include("mgmfrm_correlated_2d_reports.jl")
 include("mgmfrm_normalized_fit.jl")
+include("generalized_summary.jl")
 include("mfrm_correlated_2d.jl")
 include("mfrm_prior_predictive.jl")
 include("mfrm_exchangeable_raters.jl")
@@ -275,12 +322,14 @@ include("scalar_validation_logp.jl")
 
 # Qualified candidate APIs; exports and legacy comparison semantics are preserved.
 include("prediction_observations.jl")
+include("common_psis.jl")
 using .PredictionObservationAdapter: prediction_observations, observation_alignment, prediction_criteria
 include("prediction_comparison.jl")
 include("prediction_refit.jl")
 include("prediction_mcse.jl")
 include("prediction_kfold.jl")
 include("recovery_evaluation.jl")
+include("posterior_contrast.jl")
 include("posterior_reliability.jl")
 include("posterior_classification.jl")
 include("posterior_ranking.jl")
@@ -288,11 +337,17 @@ include("rater_agreement.jl")
 include("krippendorff_alpha.jl")
 include("intraclass_correlation.jl")
 include("category_report.jl")
+include("score_information.jl")
 include("recovery_replications.jl")
 include("prior_sensitivity.jl")
+include("prior_power_sensitivity.jl")
 include("prior_predictive_sensitivity.jl")
 include("prediction_report.jl")
 include("saved_reporting.jl")
+include("validation_suite.jl")
+include("unified_workflow.jl")
+include("glass_box.jl")
+include("additive_facets.jl")
 
 # Exact 0.1.x root-export classification and growth boundary.
 include("root_api_contract.jl")

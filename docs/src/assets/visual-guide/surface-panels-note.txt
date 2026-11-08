@@ -1,0 +1,9 @@
+Artificial display fixture; not fitted posterior evidence.
+Experimental MGMFRM · Item 1 · Rater 2
+
+Note. Category probability; 40 of 40 retained joint draws. No additional ability dimensions.
+Pointwise intervals describe uncertainty in the conditional mean/probability, not future individual ratings.
+Interval widths are posterior uncertainty, not MCSE or simultaneous bands.
+Ability ranges are display choices; they do not establish data support.
+MCMC warnings: inspect diagnostics(fit) (whole fit).
+Common mean and width scales across all category panels.

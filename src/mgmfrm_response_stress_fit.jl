@@ -591,7 +591,7 @@ end
         truth_scale = 0.15, cmdstan_path = nothing,
         cmdstan_cache_dir = nothing)
 
-Run a resource-bounded fit-wiring smoke over an explicit response-stress plan.
+Run a small operational fitting check over an explicit response-stress plan.
 The plan is expanded across the selected backends and prior regimes, and
 `maximum_attempts` is checked before generation or fitting. Every admitted
 attempt terminates as `:generation_failed`, `:pre_fit_rejected`, `:fit_failed`,
@@ -600,9 +600,10 @@ object, concrete type, message, and phase.
 
 Only `profile = :wiring_smoke` is currently executable. It uses four warmup and
 four retained draws in one chain, does not assess convergence, and cannot be
-used for recovery, backend, prior, or scientific decisions. `profile =
-:analysis` fails before execution until the Stage-A protocol and independent
-threshold review are frozen.
+used to assess recovery, compare backends, select priors, or support scientific
+conclusions. `profile = :analysis` is not implemented in this version and is
+rejected before generating data or fitting. Completing this small check does
+not make that profile available.
 """
 function mgmfrm_response_stress_fit_attempts(plan;
         profile::Symbol = :wiring_smoke,

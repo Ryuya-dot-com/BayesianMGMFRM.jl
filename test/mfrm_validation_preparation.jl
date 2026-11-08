@@ -232,7 +232,7 @@ end
 end
 
 struct BoundaryBeta <: AbstractRNG end
-Random.rand(::BoundaryBeta, ::B.Turing.Beta) = 1.0
+Random.rand(::BoundaryBeta, ::B.Distributions.Beta) = 1.0
 
 @testset "joint-prior generation and SBC quantity binding (no posterior sampling)" begin
     geometry=V._geometry(4)
@@ -506,7 +506,7 @@ pair_report(p,julia,cmdstan;kwargs...) = V.compare_backend_pairs([p],
         @test report.rows[1].combined_mcse ≈ sqrt(2)*0.001
         @test report.rows[2].combined_mcse ≈ sqrt(2)*0.002
         @test report.rows[3].combined_mcse ≈ sqrt(2)*0.003
-        @test report.rows[1].z ≈ quantile(B.Turing.Normal(),1-0.05/(2n))
+        @test report.rows[1].z ≈ quantile(B.Distributions.Normal(),1-0.05/(2n))
         @test !report.scientific_acceptance && !report.margins_adopted && !report.independence_verified
         @test report.multiplicity_scope===:within_pair
         absent=merge(c,(;rows=c.rows[2:end]))

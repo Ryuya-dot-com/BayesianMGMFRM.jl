@@ -48,10 +48,10 @@ function marginal_pcm(location::Real,sd::Real,steps::AbstractVector;atol,maxeval
         p=B._ld1_pcm_probabilities(location+sd*z,steps)
         [p;cumsum(p)[1:end-1]].*(exp(-z^2/2)/sqrt(2pi))
     end
-    # Distributions already imports this installed QuadGK function; no new core dependency.
-    values,error=B.Turing.Distributions.quadgk(integrand,knots...;
+    # Use the declared quadrature dependency without requiring a sampling backend.
+    values,error=B.QuadGK.quadgk(integrand,knots...;
         atol=Float64(atol)/2,rtol=0.0,maxevals=limit,norm=v->maximum(abs,v))
-    tail=2B.Turing.Distributions.ccdf(B.Turing.Distributions.Normal(),9.0)
+    tail=2B.Distributions.ccdf(B.Distributions.Normal(),9.0)
     estimated_error=error+tail
     isfinite(estimated_error) && estimated_error<=atol && all(isfinite,values) &&
         all(v->-atol<=v<=1+atol,values) && abs(sum(values[1:H+1])-1)<=atol ||

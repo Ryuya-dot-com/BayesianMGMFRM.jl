@@ -1,0 +1,22 @@
+# Same mathematical verbs; no alternate practitioner workflow or silent M0 fallback.
+initial_params(t::_TIC.AssociationTarget)=_TIC.initial(t)
+contract(t::_TIC.AssociationTarget)=_TIC.contract(t)
+coordinates(t::_TIC.AssociationTarget,q::AbstractVector{<:Real})=_TIC.coordinates(t,q)
+logposterior(t::_TIC.AssociationTarget,q::AbstractVector{<:Real})=LogDensityProblems.logdensity(t,q)
+function logprior(t::_TIC.AssociationTarget,q::AbstractVector{<:Real})
+    native,ell=_TIC.association_point(t,q)
+    logprior(t.base,native)+_TIC.association_prior(t,ell)
+end
+loglikelihood(t::_TIC.AssociationTarget,q::AbstractVector{<:Real})=sum(_TIC.pointwise(t,q))
+pointwise_loglikelihood(t::_TIC.AssociationTarget,q::AbstractVector{<:Real})=_TIC.pointwise(t,q)
+design_summary(t::_TIC.AssociationTarget)=merge(design_summary(t.base),
+    (;free_parameters=LogDensityProblems.dimension(t),association=:plackett))
+parameter_names(t::_TIC.AssociationTarget)=vcat(parameter_names(t.base),"ac_log_psi")
+stan_data(t::_TIC.AssociationTarget)=_TIC.stan_data(t)
+_save_report(path::AbstractString,t::_TIC.AssociationTarget)=_TIC.save_model(path,t)
+prepare_fit(t::_TIC.AssociationTarget;kwargs...)=_TICW.prepare(t;kwargs...)
+fit(t::_TIC.AssociationTarget;kwargs...)=_TICW.fit(t;kwargs...)
+prior_predictive_check(t::_TIC.AssociationTarget;kwargs...)=Experimental.ThreeIndicator.ConcurrentPriorPredictive.check(t;kwargs...)
+predictive_check(t::_TIC.AssociationTarget;kwargs...)=prior_predictive_check(t;kwargs...)
+event_probabilities(t::_TIC.AssociationTarget,q::AbstractVector{<:Real};kwargs...)=Experimental.ThreeIndicator.ConcurrentReports.probabilities(t,q;kwargs...)
+contrast(t::_TIC.AssociationTarget,q::AbstractVector{<:Real})=Experimental.ThreeIndicator.ConcurrentReports.contrasts(t,q)

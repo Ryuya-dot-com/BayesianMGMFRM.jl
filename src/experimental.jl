@@ -139,6 +139,13 @@ manual `save_fit_cache`/`load_fit_cache`. It returns `NormalizedMGMFRMFit` with
 the restriction bound to target identity, reduced raw coordinates and fixed
 coefficients reconstructed in model summaries. Inspect the order with
 `surface_contract(model; prior).raw_parameter_names` before supplying `init`.
+The default `ad_backend=:auto` selects the exact D1 likelihood/prior gradient,
+including reconstructed last severities/steps and estimated log item slopes.
+This also supports `MeanProfilePrior`. Explicit `ad_backend=:ForwardDiff` or
+`:analytic` requests are respected. Inspect `surface_contract(model; prior)`
+before fitting and `fit_metadata(fit).sampler_controls.ad_backend` afterwards.
+Selection does not change the model, prior measure or acceptance rules, and a
+numerical error does not trigger a silent switch to another gradient.
 Summaries, MCSE, diagnostics, existing-level prediction, reports and common
 K-fold refit planning retain the policy and numerical warnings. CmdStan fitting,
 other sampling coordinates, source priors, correlations, higher dimensions,
@@ -149,8 +156,10 @@ function slope_restriction(spec::_FacetSpec; item_slopes::Symbol, rater_consiste
     getfield(_PACKAGE, :_SlopeRestrictedSpec)(spec; item_slopes, rater_consistency)
 end
 
-function surface_contract(spec::getfield(_PACKAGE, :_SlopeRestrictedSpec); prior)
+function surface_contract(spec::getfield(_PACKAGE, :_SlopeRestrictedSpec);
+        prior, ad_backend::Symbol=:auto)
     target = getfield(_PACKAGE, :_normalized_mgmfrm_target)(spec, prior)
+    selected = getfield(_PACKAGE, :_slope_gradient_backend)(ad_backend)
     return (; family=:mgmfrm, status=:experimental, dimensions=1,
         step_owner=:item, thresholds=:partial_credit, likelihood_scale=1.7,
         loading_policy=spec.item_slopes, rater_consistency=:fixed_one,
@@ -159,6 +168,8 @@ function surface_contract(spec::getfield(_PACKAGE, :_SlopeRestrictedSpec); prior
         direct_parameter_names=copy(target.blueprint.constrained_parameter_names),
         prior=getfield(_PACKAGE, :_mgmfrm_normalized_prior_metadata)(target),
         supported_backends=(:advancedhmc,), sampling_coordinates=(:raw,),
+        gradient_selection=(;requested=ad_backend, selected,
+            reason=ad_backend===:auto ? :validated_d1_analytic_score : :explicit_request),
         fit_enabled=true, automatic_cache_enabled=false, manual_cache_enabled=true,
         scientific_acceptance=:not_established)
 end
@@ -221,18 +232,26 @@ reader-facing output and retain the selected prior and sampler warnings.
 const ExchangeableMFRMFit = getfield(_PACKAGE, :_ExchangeableMFRMFit)
 
 """
-    correlated(spec; lkj_eta = 2)
+    correlated(spec; lkj_eta = 2, scales = nothing)
 
-Estimate population correlation between the two named ability dimensions of
-a fixed-coefficient MFRM or an estimated-loading MGMFRM.
-For MFRM, pass the returned specification to `Experimental.fit`
+Estimate population correlation between the named ability dimensions of a
+fixed-coefficient MFRM or an estimated-loading MGMFRM.
+For two-dimensional MFRM, pass the returned specification to `Experimental.fit`
 with `backend = :advancedhmc` (Julia) or `:cmdstan` and `prior = MFRMPrior(...)`
 or [`ExchangeablePrior`](@ref).
 The input specification is copied and retains its independent-model meaning.
 
+For three-dimensional pure-Q normalized MGMFRM (`spec.family == :mgmfrm` and
+`spec.dimensions == 3`), pass an explicit named tuple `scales` with unit
+`person_sd = 1.0` and positive `rater_sd`, `item_sd`, `log_discrimination_sd`,
+`log_consistency_sd`, and `step_sd` to construct a
+[`BayesianMGMFRM.Experimental.Correlated3D.model`](@ref)
+Cholesky LKJ target ready for `fit`, `prior_draw`, `simulate`, and glass-box
+density evaluation.
+
 Requires `family = :mfrm`, exactly two dimensions, partial-credit thresholds,
 between-item Q with at least two pure items per dimension, and observations in
-both dimensions for every person. Anchors and fitted bias terms are unavailable.
+both dimensions for every person when `family == :mfrm`. Anchors and fitted bias terms are unavailable.
 Q coefficients and rater consistency are fixed at one; locations use unit
 logits and zero-centered priors. Direct ability pairs have covariance
 `person_sd^2 * [1 rho; rho 1]`. `lkj_eta` is a fixed positive integer LKJ shape
@@ -240,29 +259,46 @@ on rho; it is not a standard deviation. Sampling uses `rho = tanh(z)` with
 the transformation Jacobian. A custom `init` ends in Fisher z, not rho.
 
 Use `prior_predictive_check` before fitting, and `save_fit_cache`/`load_fit_cache`
-to save and reopen MFRM results. Automatic request caching is unavailable.
+(or unified `save_fit`/`load_fit`) to save and reopen MFRM results. Automatic request caching is unavailable.
 
-For `family = :mgmfrm`, the same 2D pure-Q and observation-coverage restrictions
+For two-dimensional `family = :mgmfrm`, the same 2D pure-Q and observation-coverage restrictions
 apply, with estimated positive active loadings and product-one rater consistency.
 Pass an explicit `prior = GeneralizedPrior(...)` to `Experimental.fit`; there is
 no implicit prior choice for this combined model. Locations/loading scales are
 prior-anchored and the response equation retains its literal 1.7 multiplier.
+Julia fitting defaults to `ad_backend=:auto`, selecting the exact analytic
+gradient for this pure-Q 2D raw-prior target. Explicit `:ForwardDiff`,
+`:ReverseDiff` or `:analytic` choices are retained. Inspect
+`surface_contract(model).gradient_selection` before fitting and the saved
+`fit_metadata(result).sampler_controls.ad_backend` afterwards. Numerical errors
+do not trigger an implicit backend switch. CmdStan uses its own autodiff.
 Both backends return `CorrelatedMGMFRMFit`, supporting raw/direct summaries,
 MCSE, diagnostics, existing-row prediction, full fit artifacts and manual
 save/reload. Pass the same explicit prior to `prior_predictive_check` before
 fitting. Reports, exports and optional CairoMakie figures preserve the model,
 prior, diagnostic warnings and conditional prediction target after reload.
 """
-correlated(spec::_FacetSpec; lkj_eta = 2) = spec.family === :mgmfrm ?
-    CorrelatedMGMFRMSpec(spec; lkj_eta) : CorrelatedMFRMSpec(spec; lkj_eta)
+function correlated(spec::_FacetSpec; lkj_eta = 2, scales = nothing)
+    if scales !== nothing
+        spec.family === :mgmfrm && spec.dimensions == 3 || throw(ArgumentError(
+            "scales in correlated(spec; scales, lkj_eta) requires a 3D pure-Q MGMFRM FacetSpec; for 2D models pass prior to fit",
+        ))
+        return Correlated3D.model(spec; scales, lkj_eta = Float64(lkj_eta))
+    end
+    return spec.family === :mgmfrm ?
+        CorrelatedMGMFRMSpec(spec; lkj_eta) : CorrelatedMFRMSpec(spec; lkj_eta)
+end
 
-function surface_contract(spec::CorrelatedMGMFRMSpec)
+function surface_contract(spec::CorrelatedMGMFRMSpec; ad_backend::Symbol=:auto)
     checked = CorrelatedMGMFRMSpec(spec.base_spec; lkj_eta = spec.lkj_eta)
     return merge(_family_surface_contract(:mgmfrm), (;
         scope = :correlated_2d_mgmfrm_raw_prior, maximum_dimensions = 2,
         item_structure = :between_item, minimum_pure_items_per_dimension = 2,
         person_dimension_observation_coverage = :complete,
         latent_correlation = :free_2d, likelihood_scale = 1.7,
+        gradient_selection=(;backend=:advancedhmc, requested=ad_backend,
+            selected=getfield(_PACKAGE,:_correlated_mgmfrm_gradient_backend)(ad_backend),
+            reason=ad_backend===:auto ? :validated_correlated_2d_analytic_score : :explicit_request),
         expected_blocks = (:person, :rater_free, :item, :log_item_dimension_discrimination,
             :log_rater_consistency_free, :item_steps, :z_latent_correlation),
         prior = (; constructor = :GeneralizedPrior, explicit_prior_required = true,
@@ -434,6 +470,16 @@ function _require_generalized_spec(spec, caller::AbstractString)
     end
     spec isa _FacetSpec ||
         throw(ArgumentError("$caller requires a FacetSpec"))
+    if getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)
+        detail = if caller == "Experimental.preview"
+            "inspect the design with getdesign(spec; preview = true)"
+        elseif caller in ("Experimental.cached_fit", "Experimental.fit_cache_key")
+            "automatic request caching is unavailable; use Experimental.fit, then save_fit_cache/load_fit_cache"
+        else
+            "inspect model_equation(spec) for available operations"
+        end
+        throw(ArgumentError("$caller is not available for fixed-coefficient multidimensional MFRM; $detail"))
+    end
     spec.family in (:gmfrm, :mgmfrm) ||
         throw(ArgumentError(
             "$caller accepts only family = :gmfrm or :mgmfrm; " *
@@ -477,6 +523,14 @@ function surface_contract()
         legacy_entrypoint = getfield(_PACKAGE, :_EXPERIMENTAL_LEGACY_ENTRYPOINT),
         legacy_status = :compatibility_only,
         reader_facing_bindings = (
+            :JointRatings,
+            :StarAssociation,
+            :Correlated3D,
+            :RecoveryPlanning,
+            :RaterDrift,
+            :RaterItemInteractions,
+            :RaterGroupEffects,
+            :CriterionCollapse,
             :GMFRMFit,
             :MGMFRMFit,
             :MultidimensionalMFRMFit,
@@ -492,6 +546,7 @@ function surface_contract()
             :NormalizedMGMFRMFit,
             :cached_fit,
             :correlated,
+            :joint_rating_spec,
             :slope_restriction,
             :fit,
             :fit_cache_key,
@@ -510,6 +565,14 @@ function surface_contract()
             mgmfrm = _family_surface_contract(:mgmfrm),
         ),
         candidate_surfaces = (
+            joint_ratings = JointRatings.contract(),
+            star_association = StarAssociation.contract(),
+            correlated_3d = Correlated3D.contract(),
+            recovery_planning = RecoveryPlanning.contract(),
+            rater_drift = RaterDrift.contract(),
+            rater_item_interactions = RaterItemInteractions.contract(),
+            rater_group_effects = RaterGroupEffects.contract(),
+            criterion_collapse = CriterionCollapse.contract(),
             mgmfrm_free_latent_correlation_2d =
                 _free_latent_correlation_2d_contract(),
         ),
@@ -978,6 +1041,12 @@ an explicit exchangeable `NormalizedMGMFRMPrior`. The wrapper requires D1,
 item-owned partial-credit steps, `backend=:advancedhmc` and
 `sampling_coordinates=:raw`. Its optional `MeanProfilePrior` additionally
 requires `item_slopes=:fixed_one` and explicit item/category IDs and mean units.
+Both wrappers default to `ad_backend=:auto`, selecting the validated analytic
+D1 score. Explicit `:ForwardDiff` and `:analytic` requests remain available.
+Inspect `surface_contract(model; prior, ad_backend=:auto).gradient_selection`
+for the selected method and reason. Other model routes retain their existing
+defaults. Selection changes gradient evaluation, not sampling settings, the
+prior or the retained parameter chart; numerical errors are not hidden by fallback.
 Both return `NormalizedMGMFRMFit` and support manual caches and existing-level
 refit planning. CmdStan, alternative coordinates, source priors and correlated
 specifications are unavailable for these wrappers. Use
@@ -1008,6 +1077,10 @@ and rater consistency are fixed; latent correlation is identity and locations
 are prior-anchored. With `MFRMPrior`, both backends return `MultidimensionalMFRMFit`, with warmup
 sampler statistics recorded by default (`record_warmup = true`). Save and reload
 with `save_fit_cache`/`load_fit_cache`; automatic request caching is unavailable.
+The shared independent generalized AdvancedHMC routes also accept
+`chain_execution=:threads` and `max_parallel_chains`; default serial streams are
+unchanged. Correlated wrappers and fixed-coefficient multidimensional MFRM do not
+support these options. See the fitting guide for RNG, progress and memory behavior.
 Shared sampler controls include `ndraws`, `warmup`, `chains`, `seed`, `init`,
 `step_size`, `target_accept`, `max_depth`, and stored diagnostic thresholds.
 CmdStan additionally accepts `cmdstan_path` and `cmdstan_cache_dir`.
@@ -1017,6 +1090,13 @@ correlated specifications then return `ExchangeableMFRMFit`, with the same
 summary, report, plotting and manual cache operations.
 """
 function fit(spec; kwargs...)
+    mode = get(kwargs, :chain_execution, :serial)
+    getfield(_PACKAGE, :_check_chain_execution)(mode, get(kwargs, :max_parallel_chains, 1), get(kwargs, :backend, :advancedhmc))
+    if mode === :threads && (spec isa CorrelatedMGMFRMSpec || spec isa CorrelatedMFRMSpec ||
+            (spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)))
+        throw(ArgumentError("threaded chains currently support scalar MFRM and shared independent generalized AdvancedHMC routes"))
+    end
+    getfield(_PACKAGE, :_check_sampling_progress)(get(kwargs, :progress, false), get(kwargs, :backend, :advancedhmc))
     _reject_legacy_keyword(kwargs, "Experimental.fit")
     spec isa getfield(_PACKAGE, :_SlopeRestrictedSpec) && !(get(kwargs, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior}) &&
         throw(ArgumentError("slope_restriction requires an explicit NormalizedMGMFRMPrior"))
@@ -1082,4 +1162,111 @@ function cached_fit(spec; backend::Symbol = :advancedhmc, kwargs...)
     )
 end
 
+include("star_association/StarAssociation.jl")
+include("joint_ratings.jl")
+include("recovery_planning.jl")
+include("rater_drift.jl")
+include("three_indicator_reports.jl")
+include("rater_item_interactions.jl")
+include("rater_group_effects.jl")
+include("criterion_collapse.jl")
+include("correlated_3d.jl")
+
+"""
+    joint_rating_spec(rows; criteria, prior, association = :none,
+        root_criterion = nothing, parameterization = nothing,
+        predictor_columns = Symbol[])
+
+Construct an experimental multi-criterion rating-event model specification
+from long-format event rows, explicit `criteria` metadata, and an explicit
+`prior`.
+
+- `association = :none` builds a two-criterion shared-response Gaussian PCM
+  via `JointRatings.model(rows; criteria, prior, predictor_columns)`.
+- `association = :uniform` builds a two-criterion common-support paired
+  ordinal association target via `JointRatings.OrdinalAssociation.model(rows; criteria, prior)`.
+- `association = :star` builds a general `D >= 2` mixed-support star-factorized
+  ordinal association model (`StarAssociation.StarModel`) around `root_criterion`
+  (defaulting to the criterion marked `role = :root` or the first declared criterion)
+  with optional `parameterization` (`StarAssociation.ParameterizationConfig`).
+
+All three routes support `fit`, `design_summary`, and their glass-box coordinate
+and density functions. Among these routes, shared `prior_draw`, `simulate`, and
+`prior_predictive_check` are available only for `association=:star`; they are
+not implemented for the shared-response (`:none`) or uniform-association
+(`:uniform`) targets. Check the selected model's contract for prediction,
+reporting, and persistence boundaries. Availability is experimental and does
+not imply scientific acceptance.
+"""
+function joint_rating_spec(
+        rows;
+        criteria,
+        prior,
+        association::Symbol = :none,
+        root_criterion = nothing,
+        parameterization = nothing,
+        entity_key::Union{Nothing, Symbol} = nothing,
+        basis_order::Union{Nothing, Symbol} = nothing,
+        include_phi::Bool = true,
+        reference_prior::Bool = true,
+        require_connected::Bool = false,
+        predictor_columns = Symbol[])
+    if association === :none
+        root_criterion === nothing && parameterization === nothing || throw(ArgumentError(
+            "root_criterion and parameterization apply to association = :star",
+        ))
+        return JointRatings.model(rows; criteria, prior, predictor_columns)
+    elseif association === :uniform
+        isempty(predictor_columns) && root_criterion === nothing && parameterization === nothing ||
+            throw(ArgumentError("association = :uniform does not accept predictors, root_criterion, or parameterization"))
+        return JointRatings.OrdinalAssociation.model(rows; criteria, prior)
+    elseif association === :star
+        isempty(predictor_columns) || throw(ArgumentError("association = :star does not accept predictor_columns"))
+        !isempty(criteria) || throw(ArgumentError("criteria must not be empty"))
+        root_str = if root_criterion !== nothing
+            String(root_criterion)
+        else
+            idx_root = findfirst(c -> hasproperty(c, :role) && c.role === :root, criteria)
+            idx_root !== nothing ? String(criteria[idx_root].criterion) : String(first(criteria).criterion)
+        end
+        ekey = if entity_key !== nothing
+            entity_key
+        elseif rows isa NamedTuple
+            haskey(rows, :entity) ? :entity : (haskey(rows, :person) ? :person : :entity)
+        elseif !isempty(rows) && hasproperty(first(rows), :entity)
+            :entity
+        elseif !isempty(rows) && hasproperty(first(rows), :person)
+            :person
+        else
+            :entity
+        end
+        param_arg = parameterization === nothing ? :cp_ncp : parameterization
+        return StarAssociation.model(
+            rows;
+            criteria,
+            root = root_str,
+            prior,
+            entity_key = ekey,
+            parameterization = param_arg,
+            basis_order,
+            association = include_phi,
+            reference_prior,
+            require_connected,
+        )
+    end
+    throw(ArgumentError("association must be :none, :uniform, or :star"))
 end
+
+surface_contract(t::Correlated3D.Target) = Correlated3D.contract(t)
+surface_contract(::StarAssociation.StarModel) = StarAssociation.contract()
+
+fit(m::StarAssociation.StarModel; kwargs...) = StarAssociation.fit(m; kwargs...)
+fit(t::Correlated3D.Target; kwargs...) = Correlated3D.fit(t; kwargs...)
+fit(t::JointRatings.S.Target; kwargs...) = JointRatings.fit(t; kwargs...)
+fit(t::JointRatings.OrdinalAssociation.Target; kwargs...) = JointRatings.OrdinalAssociation.fit(t; kwargs...)
+fit(t::RaterGroupEffects.Target; kwargs...) = RaterGroupEffects.fit(t; kwargs...)
+fit(t::RaterItemInteractions.Target; kwargs...) = RaterItemInteractions.fit(t; kwargs...)
+fit(t::CriterionCollapse.Target; kwargs...) = CriterionCollapse.fit(t; kwargs...)
+
+end
+

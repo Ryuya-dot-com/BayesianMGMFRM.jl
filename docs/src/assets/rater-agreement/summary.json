@@ -3,8 +3,6 @@
     "selection": "first_planned_R1_block_middle_loading_prior",
     "calibration_not_established": true,
     "input_sha256": "93dcc51defa616c6e4dd6dc721d77b65968273dfc22b304893630b722cc5b451",
-    "input": "results/workflows/20261004-foundation-fixed-facet-assessment-01/inputs/B01-R1.json",
-    "path": "results/workflows/20261004-foundation-fixed-facet-assessment-01/attempts/B01-R1-050/samples.jls",
     "new_fits": 0,
     "original_study": {
       "qualified": 184,
@@ -1195,5 +1193,8 @@
   "scientific_acceptance": "not_established",
   "expected_target": "conditional_expected_agreement_existing_responses",
   "weighting": "equal_unordered_pair_opportunity",
-  "content_hash": "7def00818bfaae7502049573b6304fb3b1ceb9bf112b80cdc51808340841033d"
+  "source_result_hash": "7def00818bfaae7502049573b6304fb3b1ceb9bf112b80cdc51808340841033d",
+  "source_summary_sha256": "f7a4bda6d0f13c926ef97ecf4c1b9d665dc1471e15d65a001157ee28383f1ed3",
+  "summary_kind": "documentation_summary",
+  "provenance_note": "Working-directory paths omitted; source identifiers and numerical results retained. This JSON is not a native fit cache."
 }

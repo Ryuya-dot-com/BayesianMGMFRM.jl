@@ -65,7 +65,7 @@ end
         @test stat.prediction === allrows
         @test isequal(stat.scores.waic,waic(allrows.pointwise_loglikelihood))
         @test isequal(stat.scores.raw_loo,loo(allrows.pointwise_loglikelihood))
-        @test isequal(stat.scores.hill_smoothed_loo,psis_loo(allrows.pointwise_loglikelihood))
+        @test isequal(stat.scores.hill_smoothed_loo,B._hill_smoothed_loo(allrows.pointwise_loglikelihood))
         @test stat.sampling_warning
         @test stat.reference_psis_validation === :not_established
         @test_throws ArgumentError prediction_criteria(result)
@@ -88,7 +88,7 @@ end
         @test result.prediction.probabilities === nothing
         @test isequal(result.scores.waic,waic(L))
         @test isequal(result.scores.raw_loo,loo(L))
-        @test isequal(result.scores.hill_smoothed_loo,psis_loo(L))
+        @test isequal(result.scores.hill_smoothed_loo,B._hill_smoothed_loo(L))
         @test result.sampling_warning && result.scientific_acceptance === :not_established
         @test result.uncertainty.mcmc_mcse === :not_computed
         @test result.uncertainty.importance_ess === :weight_only_not_mcmc_adjusted

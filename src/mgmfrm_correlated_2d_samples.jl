@@ -122,6 +122,10 @@ function _mgmfrm_correlated_2d_summary_input(result, parameter_space)
         "correlated MGMFRM parameter_space must be :auto, :direct_constrained, or :raw_unconstrained"))
     checked = result isa _RecordedMGMFRMFit ? _recorded_mgmfrm_samples(result) :
         _restore_mgmfrm_correlated_2d_samples(result.record; expected_identity = result.record.target_identity)
+    return _recorded_mgmfrm_summary_input(checked, selected)
+end
+
+function _recorded_mgmfrm_summary_input(checked, selected)
     raw = selected === :raw_unconstrained
     return (; checked, selected,
         draws = raw ? checked.record.run.draws : checked.diagnostics.direct_values.direct_draws,
@@ -131,10 +135,15 @@ function _mgmfrm_correlated_2d_summary_input(result, parameter_space)
 end
 
 function _mgmfrm_correlated_2d_posterior_summary(result;
-        parameter_space::Symbol = :auto, lower::Real = 0.025, upper::Real = 0.975,
+        parameter_space::Symbol = :auto, kwargs...)
+    input = _mgmfrm_correlated_2d_summary_input(result, parameter_space)
+    return _recorded_mgmfrm_posterior_summary(input; kwargs...)
+end
+
+function _recorded_mgmfrm_posterior_summary(input;
+        lower::Real = 0.025, upper::Real = 0.975,
         intervals = (0.66, 0.9, 0.95), reference::Real = 0.0, rope = nothing,
         rope_probability_threshold::Real = 0.95)
-    input = _mgmfrm_correlated_2d_summary_input(result, parameter_space)
     rows = _posterior_summary_rows(input.draws, input.names;
         lower, upper, intervals, reference, rope, rope_probability_threshold)
     return [merge(row, (; parameter_space = space)) for (row, space) in zip(rows, input.spaces)]
@@ -190,11 +199,18 @@ function _mgmfrm_correlated_2d_target(spec::_CorrelatedMGMFRMSpec, prior)
 end
 
 function _mgmfrm_correlated_2d_fit(spec::_CorrelatedMGMFRMSpec;
-        prior = nothing, backend::Symbol = :advancedhmc, init = nothing, kwargs...)
+        prior = nothing, backend::Symbol = :advancedhmc, init = nothing,
+        ad_backend::Symbol = :auto, kwargs...)
     target = _mgmfrm_correlated_2d_target(spec, prior)
     init === nothing || init isa AbstractVector{<:Real} ||
         throw(ArgumentError("init must be a real raw-coordinate vector ending in Fisher z"))
-    result = _mgmfrm_correlated_2d_sample(target, init; backend, kwargs...)
+    result = if backend === :advancedhmc
+        selected = _correlated_mgmfrm_gradient_backend(ad_backend)
+        _mgmfrm_correlated_2d_sample(target, init; backend, ad_backend=selected, kwargs...)
+    else
+        ad_backend === :auto || throw(ArgumentError("ad_backend is a Julia AdvancedHMC option"))
+        _mgmfrm_correlated_2d_sample(target, init; backend, kwargs...)
+    end
     return _CorrelatedMGMFRMFit(result.record; expected_identity = result.record.target_identity)
 end
 
@@ -204,6 +220,10 @@ _mgmfrm_correlated_2d_samples(fit::_CorrelatedMGMFRMFit) =
 function fit_metadata(fit::_CorrelatedMGMFRMFit; view::Symbol = :full)
     view in (:full, :public) || throw(ArgumentError("view must be :full or :public"))
     checked = _mgmfrm_correlated_2d_samples(fit)
+    return _recorded_mgmfrm_metadata(fit, checked; view)
+end
+
+function _recorded_mgmfrm_metadata(fit::_CorrelatedMGMFRMFit, checked; view::Symbol = :full)
     record, run = checked.record, checked.record.run
     spec, data = record.spec, record.spec.data
     metadata = (; family = :mgmfrm, model = checked.model,
@@ -248,14 +268,22 @@ function Base.show(io::IO, fit::_CorrelatedMGMFRMFit)
         metadata.backend, "; estimated rho; experimental)")
 end
 
-posterior_summary(fit::_RecordedMGMFRMFit; kwargs...) =
-    _mgmfrm_correlated_2d_posterior_summary(fit;
-        parameter_space = :raw_unconstrained, kwargs...)
+function posterior_summary(fit::_RecordedMGMFRMFit;
+        scale=nothing, estimand::Symbol=:parameters, parameter_space=nothing, kwargs...)
+    selected = _generalized_summary_selection(scale, estimand; parameter_space)
+    selected === :adjacent_logit_slope && return _generalized_slope_rows(fit; kwargs...)
+    return _mgmfrm_correlated_2d_posterior_summary(fit; parameter_space=selected, kwargs...)
+end
 direct_posterior_summary(fit::_RecordedMGMFRMFit; kwargs...) =
     _mgmfrm_correlated_2d_posterior_summary(fit;
         parameter_space = :direct_constrained, kwargs...)
-posterior_mcse(fit::_RecordedMGMFRMFit; kwargs...) =
-    _mgmfrm_correlated_2d_posterior_mcse(fit; kwargs...)
+function posterior_mcse(fit::_RecordedMGMFRMFit;
+        estimand::Symbol=:parameters, parameter_space::Symbol=:auto,
+        probabilities=(0.025, 0.5, 0.975))
+    selected = _generalized_summary_selection(nothing, estimand; parameter_space)
+    selected === :adjacent_logit_slope && return _generalized_slope_rows(fit; operation=:mcse, probabilities)
+    return _mgmfrm_correlated_2d_posterior_mcse(fit; parameter_space, probabilities)
+end
 
 function diagnostics(fit::_RecordedMGMFRMFit; view::Symbol = :full,
         split_chains::Bool = fit.record.run.split_chains_requested,
@@ -263,6 +291,14 @@ function diagnostics(fit::_RecordedMGMFRMFit; view::Symbol = :full,
         ess_threshold::Real = fit.record.run.checked.ess_threshold)
     view in (:full, :public) || throw(ArgumentError("view must be :full or :public"))
     checked = _recorded_mgmfrm_samples(fit)
+    return _recorded_mgmfrm_diagnostics(checked; view, split_chains, rhat_threshold, ess_threshold)
+end
+
+function _recorded_mgmfrm_diagnostics(checked; view::Symbol = :full,
+        split_chains::Bool = checked.record.run.split_chains_requested,
+        rhat_threshold::Real = checked.record.run.checked.rhat_threshold,
+        ess_threshold::Real = checked.record.run.checked.ess_threshold)
+    view in (:full, :public) || throw(ArgumentError("view must be :full or :public"))
     run, tables = checked.record.run, checked.diagnostics
     thresholds = _check_diagnostic_thresholds(rhat_threshold, ess_threshold)
     split_chains == run.split_chains_requested && thresholds == run.checked ||
@@ -294,10 +330,17 @@ function sampler_diagnostics(fit::_RecordedMGMFRMFit; phase::Symbol = :retained)
 end
 
 function _mgmfrm_correlated_2d_artifact_payload(fit::_RecordedMGMFRMFit;
+        kwargs...)
+    # Share validation only inside this operation; every new public call rechecks.
+    checked = _recorded_mgmfrm_samples(fit)
+    return _mgmfrm_correlated_2d_artifact_payload(fit, checked; kwargs...)
+end
+
+function _mgmfrm_correlated_2d_artifact_payload(fit::_RecordedMGMFRMFit, checked;
         include_draws::Bool, include_log_posterior::Bool, include_sampler_stats::Bool,
         include_environment::Bool, include_packages::Bool, kwargs...)
-    metadata = fit_metadata(fit)
-    diagnostic = diagnostics(fit; kwargs...)
+    metadata = _recorded_mgmfrm_metadata(fit, checked)
+    diagnostic = _recorded_mgmfrm_diagnostics(checked; kwargs...)
     record, run = fit.record, fit.record.run
     policy = (; draws = _artifact_inclusion_flag(include_draws),
         log_posterior = _artifact_inclusion_flag(include_log_posterior),
@@ -308,8 +351,10 @@ function _mgmfrm_correlated_2d_artifact_payload(fit::_RecordedMGMFRMFit;
         object = :fit_artifact, family = :mgmfrm, model = metadata.model, status = :experimental,
         manifest = (; object = :fit, family = :mgmfrm, model = metadata.target_contract,
             fit = metadata, diagnostics = diagnostic.summary),
-        diagnostics = diagnostic, posterior_summary = posterior_summary(fit),
-        direct_posterior_summary = direct_posterior_summary(fit),
+        diagnostics = diagnostic, posterior_summary = _recorded_mgmfrm_posterior_summary(
+            _recorded_mgmfrm_summary_input(checked, :raw_unconstrained)),
+        direct_posterior_summary = _recorded_mgmfrm_posterior_summary(
+            _recorded_mgmfrm_summary_input(checked, :direct_constrained)),
         reproducibility = (; data_signature = metadata.data_signature,
             target_identity = record.target_identity, source_sample_schema = record.schema,
             source_sample_content_hash = record.content_hash, prior = metadata.prior,
@@ -390,7 +435,7 @@ Base.@nospecializeinfer function _check_mgmfrm_correlated_2d_cache_record(@nospe
         throw(ArgumentError("invalid MGMFRM artifact policy at $path"))
     (policy.environment === :included ? artifact.environment isa AbstractDict : artifact.environment === nothing) ||
         throw(ArgumentError("MGMFRM artifact environment policy mismatch at $path"))
-    expected = _mgmfrm_correlated_2d_artifact_payload(record.fit;
+    expected = _mgmfrm_correlated_2d_artifact_payload(record.fit, checked;
         include_draws = policy.draws === :included, include_log_posterior = policy.log_posterior === :included,
         include_sampler_stats = policy.sampler_stats === :included, include_environment = policy.environment === :included,
         include_packages = policy.package_status === :included)

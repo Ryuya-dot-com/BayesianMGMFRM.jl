@@ -28,8 +28,8 @@ The six groups are `core`, `fitting_core`, `fitting_reports`,
 `all` remains the default. Full ordinary integration is appropriate for a
 substantial combined candidate, shared numerical/dependency changes and release
 verification. Avoid repeatedly running it between prose edits or already-covered
-commits. The October 2 candidate has completed all six Julia 1.12.6 groups and the
-Julia 1.10.8 all run; see the [current evidence and limits](../ROADMAP.md#execution-priorities-after-local-integration).
+commits. Report the source revision, environment and actual checks run;
+see [Contributing](../docs/src/contributing.md).
 
 This is the local selection policy. Hosted CI still runs its existing ordinary
 matrix for pull requests and main/master pushes. Changing that routing is separate
@@ -41,6 +41,23 @@ substitute. A no-fit test can still compile substantial Julia code.
 
 ## Focused MGMFRM checks without fitting
 
+In `recovery_execution_example.jl`, the deterministic
+`RecoveryExecutionExampleChecks.checks` checks stage reuse, failed actual-data validation, full-roster retention and
+overwrite/refit refusal with fixed inputs, without invoking generation or MCMC.
+Saved native-fit continuation needs a matching environment and is a separate
+integration check; these fixtures do not establish actual generation/fitting.
+`RecoveryExecutionExampleChecks.sbc_checks` uses fixed artificial coordinates,
+scores and native-cache matrices to check SBC continuation, rank exclusions,
+full-roster summary, missing/mismatched truth and terminal failures. It runs no
+RNG or fitter. Actual prior/response generation and SBC fitting remain separate
+integration checks; these artificial matrices are never posterior evidence.
+
+For the fixed-truth plan/ledger summary connection, run
+`RecoveryStudySummaryChecks.checks` in `recovery_study_summary.jl`. Its artificial
+records exercise binding errors, missing/changed artifacts, full denominators,
+numerical exclusions and the existing aggregation/plot-data connection; they
+are not generated datasets or posterior evidence.
+
 The deterministic foundation scale/acceptance worksheet has an additional
 standalone check (same Python dependencies; no Julia, saved fits or results needed):
 
@@ -51,8 +68,8 @@ python3 scripts/mgmfrm_foundation_acceptance_review.py /tmp/new-foundation-revie
 
 It checks conditional positive-acceptance count thresholds against exact finite
 outcome sums and simultaneous Gaussian prior widths against independent
-quadrature. It does not assess existing fits or change the frozen SBC cohort;
-see the [interpretation and design table](../docs/internal/mgmfrm-foundation-scale-acceptance.md).
+quadrature. These finite checks do not assess posterior fits or supply
+repeated calibration evidence.
 
 The exact-normal location-pivot classifier has a separate sampler-free check:
 
@@ -87,8 +104,9 @@ The separate `scripts/run_mgmfrm_normalized_location_comparison.jl` research
 runner performs **two full foundation pilot fits**, each with four chains and
 1,000 warmup plus 1,000 retained draws per chain. It is explicitly invoked with
 an existing foundation input JSON and a new output directory, and does not run
-as part of the tests above. Its protocol and interpretation are in the
-[foundation record](../docs/internal/mgmfrm-foundation-scale-acceptance.md).
+as part of the tests above. Reproducing the historical study requires its
+original source, protocol and saved inputs; they are not reconstructed by
+this test or supplied as part of the current package distribution.
 
 `scripts/mgmfrm_normalized_core_review.jl` and
 `scripts/mgmfrm_normalized_core_analysis.py` read existing normalized samples,
@@ -141,7 +159,7 @@ julia --startup-file=no --project=. test/mgmfrm_foundation_prediction_run.jl \
 python3 test/mgmfrm_foundation_prediction_study.py -v
 ```
 
-These passed 660 Julia assertions and nine Python tests. The Python checks cover
+The Python checks cover
 five-fold aggregation, missing/failed/numerically unresolved outcomes, separate
 MCMC and replication uncertainty, and pilot-based main-N selection. The replay
 uses a historical full-data fit; actual training-posterior evidence comes from
@@ -234,6 +252,18 @@ numbered axes, consistent category colors, legends, shared uncertainty scales,
 diagnostic captions and PNG/SVG saving; its optional argument is an output
 directory. It uses synthetic reporting objects and never fits a posterior.
 
+For saved design-precision displays, with CairoMakie available:
+
+```julia
+include("test/design_precision_plot.jl")
+mktempdir(DesignPrecisionPlotChecks.checks)
+```
+
+These deterministic records exercise conditional confidence intervals, all-failed
+scenarios, unresolved independence, external notes, save/reload and vector output.
+They are not generated datasets or SBC/calibration evidence. Arithmetic and
+input-rejection checks also run in `CommonRecoveryReplicationChecks`.
+
 The same CI job checks MGMFRM estimand invariance without fitting:
 
 ```sh
@@ -243,8 +273,7 @@ julia --startup-file=no --project=. test/mgmfrm_estimand_invariance.jl
 It compares all category probabilities under simultaneous location/positive-scale
 changes, reconstructs identifiable blocks from complete pure-Q probability
 tables, and retains counterexamples for raw item-difference ordering and
-constant-ability dimensions. The derivation and its assumptions are in
-[the estimand review](../docs/internal/mgmfrm-estimands-identification.md).
+constant-ability dimensions. See the [model and scale conventions](../docs/src/model-equations.md).
 These are algebra and implementation checks, not recovery or calibration fits.
 
 The same job runs `julia --startup-file=no --project=. test/mgmfrm_prior_measure.jl`.
@@ -253,7 +282,7 @@ normalization, scale conventions, binary zero-dimensional step blocks, and score
 reflection at K=2,3,4,6. Reversing scores reverses response probabilities; the raw
 step density need not remain unchanged, while the normalized references do. The
 optional CmdStan branch is off by default; the normal job does not compile Stan
-or sample a posterior. See [prior choice and scales](../docs/internal/mgmfrm-prior-choice.md).
+or sample a posterior. See [prior choice and scales](../docs/src/experimental.md#mgmfrm-prior-choice-and-comparable-scales).
 
 `test/mgmfrm_normalized_prior_predictive.jl` also runs in this job. It checks
 the normalized MGMFRM generator against the actual Gaussian density using
@@ -269,7 +298,7 @@ hash verification is disabled. This check runs no sampler; synthetic retained
 arrays are not posterior evidence. It also covers single-rater/binary and
 three-dimensional mixed-Q reporting boundaries.
 
-The fixed, exploratory [prior-response study](../docs/internal/mgmfrm-prior-responses.md)
+The fixed, exploratory [prior-response calculation](../scripts/mgmfrm_prior_response_review.py)
 has a separate reproducible calculation and production check:
 
 ```sh

@@ -8,6 +8,12 @@ ids(n) = ["rating-$i" for i in 1:n]
 bytes(x) = (io=IOBuffer(); serialize(io,x); take!(io))
 bundle(fit,n) = extract(fit; dataset_id="synthetic-api-check", observation_ids=ids(n), include_probabilities=false)
 
+function _comparison_test_passes(checks)
+    counts = Test.get_test_counts(checks)
+    # Julia 1.10 returns a positional tuple; later Test versions use named fields.
+    return counts isa Tuple ? counts[1] + counts[5] : counts.passes + counts.cumulative_passes
+end
+
 function common_prediction_comparison_checks(output=nothing)
 started = time()
 checks = @testset "Common prediction comparison candidate (no MCMC)" begin
@@ -21,7 +27,7 @@ checks = @testset "Common prediction comparison candidate (no MCMC)" begin
     delta = [.05,-.02,.01,-.03,.02,.01]
     x = merge(a,(; pointwise_loglikelihood=repeat(ll';outer=(40,1))))
     y = merge(a,(; pointwise_loglikelihood=repeat((ll.+delta)';outer=(40,1))))
-    for criterion in (:waic,:raw_loo,:hill_smoothed_loo)
+    for criterion in (:waic,:raw_loo,:hill_smoothed_loo,:psis_loo)
         result = compare("base"=>x,"other"=>y; comparison_axis=:model,criterion,se_unit=:observation)
         @test result.schema == "bayesianmgmfrm.prediction_comparison.v1"
         @test result.rows[1].elpd ≈ sum(ll)
@@ -31,7 +37,7 @@ checks = @testset "Common prediction comparison candidate (no MCMC)" begin
         @test result.rows[2].pointwise_difference ≈ delta atol=1e-13
         @test result.model_selection === :not_performed
         @test result.scientific_acceptance === :not_established
-        @test result.reference_psis_validation === :not_established
+        @test result.reference_psis_validation === (criterion === :psis_loo ? :finite_reference_checks : :not_established)
         @test result.prediction_target === :training_rows_existing_levels
         @test result.conditioning === :joint_posterior_existing_levels
         @test result.rows[2].sampling_warning
@@ -53,7 +59,7 @@ checks = @testset "Common prediction comparison candidate (no MCMC)" begin
     lone = B._prediction_difference_se([.2],[(;person="only")],:person)
     @test lone.status === :insufficient_units && ismissing(lone.value)
 
-    for extra in ((;baseline="absent"),(;criterion=:psis_loo),(;criterion=:loo),
+    for extra in ((;baseline="absent"),(;criterion=:loo),
                   (;se_unit=:rater),(;dataset_id="redundant"),(;observation_ids=ids(6)))
         @test_throws ArgumentError compare("a"=>x,"b"=>y; comparison_axis=:model,extra...)
     end
@@ -93,6 +99,14 @@ checks = @testset "Common prediction comparison candidate (no MCMC)" begin
     @test across.rows[2].pointwise_elpd ≈ B.waic(pointwise_loglikelihood_matrix(gmfrm)).pointwise.elpd_waic
     legacy = compare_models("MFRM"=>mfrm,"GMFRM"=>gmfrm)
     @test legacy !== nothing
+    sens = sensitivity_comparison(:base=>mfrm,:same=>mfrm; axis=:sampler,
+        baseline=:base,criterion=:psis_loo)
+    @test all(r->r.pareto_k_estimator===:zhang_stephens,sens)
+    @test all(r->r.elpd_difference_from_baseline==0,sens)
+    constant_psis = psis_loo(x.pointwise_loglikelihood;chain_ids=x.chain_ids)
+    refits = loo_refit_plan(mfrm.design,constant_psis)
+    @test refits.n_refits == 6
+    @test refits.heldout_observation_indices == [[i] for i in 1:6]
     @test_throws ArgumentError compare_models("MFRM"=>mfrm,"MGMFRM"=>mgmfrm)
     @test all(name->name ∉ names(B),(:prediction_observations,:prediction_criteria,:compare_predictions,:observation_alignment))
     @test B._root_api_contract() !== nothing
@@ -158,10 +172,9 @@ checks = @testset "Common prediction comparison candidate (no MCMC)" begin
     @test_throws ArgumentError compare("a"=>original,"b"=>reordered;comparison_axis=:model,
         dataset_id="permutation",observation_ids=Dict("a"=>ids(6)))
 end
-counts = Test.get_test_counts(checks)
 if output !== nothing
     open(output,"w") do io
-        TOML.print(io,Dict("status"=>"passed","passed"=>counts.passes+counts.cumulative_passes,
+        TOML.print(io,Dict("status"=>"passed","passed"=>_comparison_test_passes(checks),
             "seconds"=>time()-started,"new_posterior_fits"=>0,
             "candidate_source"=>pathof(B),"scope"=>"synthetic API/analytic score/saved-cache checks; not statistical acceptance"))
     end

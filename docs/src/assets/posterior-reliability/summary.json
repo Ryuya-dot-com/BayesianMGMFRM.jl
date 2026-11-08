@@ -10,7 +10,6 @@
     "sha256": "df7811201a7e96e361968e4ce6c01a3f96a556e6dfd2b82d2c08affee61c63fb",
     "new_independent_replications": 0,
     "sample_content_hash": "7004183f94a5b7b0d3f01beb6dd30bc79783517d9a4b2a19b062cf2a79a9af7f",
-    "path": "results/workflows/20261004-foundation-fixed-facet-assessment-01/attempts/B01-R1-050/samples.jls",
     "new_fits": 0
   },
   "rows": [
@@ -147,5 +146,8 @@
       "result_content_hash": "c36bfe00161b85c2aae8860cfeae7b5d6cb084b7a65e4ff5b39dced1ada8d788"
     }
   ],
-  "interpretation": "Finite-cohort descriptive posterior functionals, not CrIs, calibrated design reliability, or rater agreement."
+  "interpretation": "Finite-cohort descriptive posterior functionals, not CrIs, calibrated design reliability, or rater agreement.",
+  "source_summary_sha256": "f9ab4463a9035ab50761d903a9703f7849fcae3a31274cd2477a677bc359acf4",
+  "summary_kind": "documentation_summary",
+  "provenance_note": "Working-directory paths omitted; source identifiers and numerical results retained. This JSON is not a native fit cache."
 }

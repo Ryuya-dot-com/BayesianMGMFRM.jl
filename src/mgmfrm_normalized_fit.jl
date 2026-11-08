@@ -53,6 +53,10 @@ _recorded_mgmfrm_schemas(::_NormalizedMGMFRMFit) = (;
 function fit_metadata(fit::_NormalizedMGMFRMFit; view::Symbol=:full)
     view in (:full, :public) || throw(ArgumentError("view must be :full or :public"))
     checked = _recorded_mgmfrm_samples(fit)
+    return _recorded_mgmfrm_metadata(fit, checked; view)
+end
+
+function _recorded_mgmfrm_metadata(fit::_NormalizedMGMFRMFit, checked; view::Symbol=:full)
     record, run = checked.record, checked.record.run
     spec, data = record.spec, record.spec.data
     prior_metadata = checked.prior_metadata
@@ -116,7 +120,7 @@ function _mgmfrm_correlated_2d_report_context(fit::_NormalizedMGMFRMFit)
     checked = _recorded_mgmfrm_samples(fit)
     target = _normalized_mgmfrm_target(fit)
     return (; fit, checked, target, direct=checked.diagnostics.direct_values.direct_draws,
-        diagnostics=diagnostics(fit))
+        diagnostics=_recorded_mgmfrm_diagnostics(checked))
 end
 
 function _normalized_mgmfrm_report_prior_policy(target)

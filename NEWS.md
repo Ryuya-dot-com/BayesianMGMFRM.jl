@@ -2,6 +2,721 @@
 
 ## 0.1.2 (unreleased)
 
+### Documentation and entry-point organization
+
+- Organize `README.md` and the 38-page manual into six reader-oriented sidebar
+  sections with a self-contained Quick Start output preview, a verified
+  bring-your-own-table snippet, a software comparison table (`FACETS`,
+  `ACER ConQuest`, `R (TAM / mirt)`, `brms / CmdStan`), a 5-minute Julia
+  beginner's guide, an embedded 2×2 visualization gallery covering all 12
+  `BayesianMGMFRM.plot(x; kind = ...)` modes, a Glass-Box API summary, and a
+  manuscript reporting checklist with an illustrative Methods and Results
+  template. No model, prior, sampler or saved-result schema changes.
+
+### Local development: joint A–C fitted and predictive lifecycle
+
+- The experimental Plackett association uses the shared fitting, summaries,
+  marginal reporting and save/reopen workflow, including the unchanged association
+  coordinate under `pair_132`. Its explicit Normal prior on log(psi) is retained.
+- Prior and posterior checks generate the ordinal pair jointly. Predictive v3
+  records the replication law; prior v2 and posterior v1/v2 independent-model
+  reports remain readable. Unqualified-fit and unresolved-precision warnings persist.
+- High-precision association fallbacks share a lock across threaded chains;
+  no empirical adequacy, calibrated detection or universal speed claim is made.
+
+### Local development: concurrent numerical priors
+
+- The experimental concurrent 9/9/2 route accepts `ConcurrentPrior(preset; ...)`
+  through its existing `getdesign` lifecycle. Gaussian/half-normal/LKJ numerical
+  settings propagate to gradients, prior prediction, fitting and saved records.
+- Portable model v2 retains complete custom settings and reads legacy preset v1;
+  native plan v3 still requires its original source/environment. A full-interaction
+  Stan data/reference adapter supports finite independent equation checks.
+
+- Concurrent fits publish validated chain bytes without saving a second full copy.
+  Failed validation or publication retains the returned record for diagnosis;
+  completed-file names, native format and fitted results are unchanged.
+
+- Concurrent targets now support `prior_predictive_check` and the shared
+  `predictive_check(target; ndraws, seed)` entry. Independent joint-prior draws,
+  replicated counts, explicit prior provenance, independent-draw precision and
+  checksum report persistence are separate from fitted posterior checks.
+- Concurrent prior/posterior predictive v2 reports preserve exact RNG seeds as
+  decimal strings. Posterior v1 reports remain readable, with possible rounding
+  of their stored large stream seeds; their original numerical results are retained.
+
+
+- Concurrent fitted 9/9/2 results now support `predictive_check` and the existing
+  `posterior_predictive_check` entry point. These generate **posterior** predictive
+  responses from retained joint states, preserving original warnings, observed
+  panels and chain identities. Reports explicitly label posterior versus prior
+  parameter provenance, retain discrete CDF precision limitations, and use shared
+  portable save/load operations. Prior predictive and new-level generation for
+  this concurrent target remain unsupported; no native migration is supplied.
+
+- `prior_sensitivity` accepts scientific factor powers for saved independent
+  D1 fixed-one PCM `MeanProfilePrior` fits. `logprior` exposes normalized judge
+  and all-owner step factors; units, original chain IDs, failed weights and
+  matching supplied alternative fits remain explicit. Mean/paired-shift MCSE
+  is a chain-aware plug-in approximation; quantile/decision precision remains
+  uncomputed. Shared `save_report`/`load_report` preserve computed results with
+  a separate checksum receipt. No automatic refit or native-cache migration.
+
+- Star `prior_sensitivity` now recognizes an exactly unchanged resolved prior
+  and returns `:unchanged_prior` instead of requesting a refit. Its PSIS diagnostics
+  are `nothing` (JSON `null`); baseline sampling warnings and uncertainty remain.
+  Different priors with constant observed weights still retain PSIS failure diagnostics.
+  Existing saved reports are preserved; native fits remain bound to their producer
+  source and environment.
+
+- Common `criteria`, `compare_models` and `psis_loo` now select standard PSIS
+  with chain-based relative efficiency, rather than the earlier Hill approximation.
+  Choose `:hill_smoothed_loo` explicitly to retain historical arithmetic. Existing
+  saved results, raw IS-LOO reports, WAIC and specialized-model kernels are unchanged.
+  Fitted PSIS rejects draw subsets; matrix inputs without chain IDs or `r_eff`
+  return an independence-assumption warning. Custom Hill tail controls are refused
+  for standard PSIS. Constant tails and unavailable efficiency remain warnings.
+  Finite reference agreement does not establish model-selection accuracy or
+  calibrated uncertainty; the common comparison still does not compute MCMC MCSE.
+
+- The concurrent three-outcome `prepare_fit`/`fit` route accepts `chain_execution=:threads`
+and `max_parallel_chains`, retaining serial execution by default. Prepared chain seeds
+remain identical across schedules. Plans, controls and computed reports expose the
+effective worker count; progress covers all chains, and failures join active workers
+while preserving completed files. Parallel workspace and elapsed speedup depend on
+the machine and target. No model, prior, adaptation rule or qualification gate changes.
+
+- Parameter diagnostics no longer allocate a full split-chain array solely to
+  determine its dimensions. Per-parameter calculations, diagnostic fields,
+  thresholds and retained draws are unchanged; other dense workspaces remain.
+
+- Concurrent three-indicator targets now use shared preparation/fitting, diagnostics,
+  joint posterior contrasts/probabilities, MCSE and native/portable persistence.
+  Completed chains and failures are retained; incomplete or numerically unsuitable
+  results retain their warnings. This does not establish empirical qualification.
+- Concurrent three-indicator targets now share `event_probabilities`, `contrast`,
+  `save_report` and `load_report`: observed events, eight preliminary contrasts
+  and an explicit ENG reference panel at fixed points, with retained weights,
+  extrapolation warnings and checked portable results. Concurrent model JSON
+  also reloads through `load_report`. Fixed-point reports contain no posterior
+  uncertainty; use the concurrent fitted workflow above for joint-draw reporting.
+- `Experimental.ThreeIndicator.ConcurrentInput` adds a separate concurrent
+  9/9/2 mathematical target with optional diagonal/full listener×word covariance.
+  Shared `getdesign`, density/gradient, coordinate and model-specification saving
+  operations preserve the original hierarchical priors by exact Gaussian
+  convolution. This does not extend the preliminary-only fitting/reporting route
+  or provide empirical acceptance of the concurrent model.
+
+- A table overload of `mfrm_spec` accepts arbitrary user-named additive facets
+  and explicit global/facet-owned steps. It provides sparse design inspection,
+  normalized density and analytic gradient, coordinate/prior inspection,
+  fixed-coordinate probabilities and seeded prior generation. The shared fitted
+  lifecycle now includes analytic NUTS, named joint summaries/MCSE and contrasts,
+  known-level posterior probabilities, numerical qualification and native/portable
+  saving. Unknown levels and rank-deficient fits are refused. Existing
+  `FacetData` construction, fitting and prior meanings remain unchanged.
+
+- Criterion-collapse results now support explicit performance/rater-profile LOO
+  through `criteria(...; unit=:performance_rater)` and predictive comparison
+  through `compare_models(...; criterion=:loo, unit=:performance_rater)`.
+  Conditional density/proposal-ratio inspection, PSIS diagnostics, approximate
+  paired chain-aware delta MCSE and portable reports preserve the original
+  finite-panel prior. No WAIC, iid comparison SE or new-level claim is added.
+- Generalized summaries accept `scale=:model` or `:raw`, retaining the historical
+  default and `direct_posterior_summary` spelling. For scalar/fixed-Q GMFRM/MGMFRM
+  and normalized/correlated-2D MGMFRM, `posterior_summary` and `posterior_mcse`
+  accept `estimand=:adjacent_logit_slope`. The optional `fit_report` section
+  `include_effective_slopes=true` retains joint-draw products, literal multipliers,
+  fixed/Q-zero status, credible intervals and MCSE through portable reports.
+  No likelihood, prior, sampler, saved draws or default report sections change.
+
+- CriterionCollapse now supports shared `compare_models(result)` for induced
+  all-ordinary versus at-least-one-collapse model evidence, and
+  `predictive_check(result; category, ...)` for exact same-design joint count
+  predictions. Persistent classes, posterior conditioning, chain-aware MCSE,
+  diagnostic warnings and portable save/reopen are retained. These operations
+  do not provide held-out WAIC/LOO or calibrated mechanism classification.
+
+- `compare_models` accepts observation-bound common-model comparisons through
+  an explicit `comparison_axis`, retaining the existing `compare_predictions`
+  checks. Star comparisons preserve named inputs, align event IDs and verify
+  actual outcomes/supports; older criteria lacking observation bindings cannot
+  be compared. Existing estimators, SE conventions and legacy ranking remain,
+  with their differences documented explicitly.
+
+- Unified persistence: `save_report(path, result)` now summarizes Star and the
+  supported experimental sample records, and `return_receipt=true` provides a
+  common path/SHA-256 receipt. Native directories and portable reports dispatch
+  by stored schema; reader/writer controls are forwarded or rejected, never
+  ignored. Required checksums, model checks and legacy return values remain.
+
+- Experimental `qualify` now applies caller thresholds to raw, transformed and
+  conditional diagnostics instead of returning an old qualification decision.
+  Original diagnostics/warnings and existing chain requirements are retained;
+  missing telemetry cannot qualify. Rater-group diagnostic delegation is repaired,
+  and unsupported diagnostic keywords are rejected.
+- Clarify the scalar Glass-Box ForwardDiff route and distinguish exact star-model
+  transformations from clipped reference-information/routing approximations.
+  Default initial step-size search no longer adds a hidden floor/cap or silently
+  replaces a failed search; the explicit clamped pilot option retains its bounds.
+  No likelihood, scientific prior, saved-fit schema or model support is changed.
+
+
+- Add opt-in `Experimental.Correlated3D` generation, centered NUTS, named marginal/partial correlation and conditional row-probability summaries, and source-bound native persistence. The restricted fixed-Q domain remains Experimental; scientific calibration and broader composition are not established.
+
+- Added the opt-in Experimental `JointRatings.OrdinalAssociation` workflow for
+  explicit criterion means, estimated person scales and within-event ordinal
+  association. It requires explicit priors and preserves joint raw draws plus
+  conditional-location uncertainty through native save/reopen, named reporting
+  and contrasts. Independent finite target checks and saved-result transfer do
+  not establish scientific prior choice, adequate fit or posterior agreement
+  with another engine. Existing JointRatings behavior is unchanged.
+
+- Clarified the development outcomes and their dependencies: bounded foundation
+  preparation, independent acceptance, matching delivery and separate capability
+  branches. Distinguished remaining development work from conditions users must
+  check in each analysis. Model, API and support statuses are unchanged.
+
+- Added a worked native ConQuest category-use comparison to the interpretation
+  guide. It explains fitted count matching through score equations, the limits
+  of in-sample fit and the difference between fixed-MML and joint-posterior
+  predictive uncertainty. Updated the roadmap to retain the bounded result;
+  no model, prior, sampler, API or support status changes.
+
+- Clarified the development roadmap and external-software comparison guide:
+  common-posterior verification and competing-analysis evaluation have different
+  requirements. Criterion collapse remains distinct from signed halo/horns and
+  general impressions. The manual now exposes the roadmap and model-evidence
+  pages. No model, prior, sampler, API or support status changes.
+
+- Added optional CriterionCollapse class/category figures with separate MCSE
+  scales, full diagnostic/prior notes and explicit unavailable precision.
+  `CriterionCollapse.load_report` verifies computed JSON against a retained
+  SHA-256; figures can use these stored summaries without native samples or
+  refitting. No classification cutoff, credible interval for the class
+  probability, predictive fit test or scientific acceptance is introduced.
+
+- Added `Experimental.CriterionCollapse` for the bounded scalar rater-level
+  criterion-collapse mixture: explicit exchangeable priors and allocation
+  checks, NUTS with progress/bounded threads, class-probability and conditional
+  category means/MCSE, global warnings, and native/report persistence. The
+  example uses fixed saved simulated data. No automatic class cutoff, calibrated
+  detection, signed halo/horns, general composition or scientific default is
+  implied.
+
+- Added Experimental observed-group rater severity fitting with explicit cohort
+  means, allocation identification checks, analytic gradients, bounded parallel
+  chains, paired posterior contrasts, diagnostics and native save/reload. See
+  the group-effects guide; existing residual DFF screening is unchanged.
+
+- Existing MFRM/GMFRM/MGMFRM fit artifacts now retain chain/iteration row indices
+  when draws are requested; scalar columns have explicit names and public
+  artifacts preserve actual prior/settings metadata. A saved scalar-fit example
+  carries joint draws, reference/prior context and diagnostics into JSON for
+  independent calculations. Priors, inference and native fit types are unchanged.
+
+- Qualification now uses shared `max_rhat`, `min_ess`, `min_bfmi` controls for Star
+  results, retaining the original aliases. Omitted transformed diagnostics or
+  incomplete/misaligned telemetry cannot pass its whole-fit gate; invalid
+  thresholds are rejected. Reports declare the exact focal-precision scope.
+- Common-fit qualification explicitly leaves focal MCSE unassessed. Probability
+  help distinguishes draw arrays, interval reports, joint/marginal targets and
+  probability uncertainty from future-score variation.
+- Repair the fixed-Q multidimensional MFRM probability/PPC delegation, including
+  correlated abilities and exchangeable raters. `event_probabilities` and
+  `predictive_check` reuse the existing verified reconstruction and conditional
+  replication kernels; probability arrays and legacy seed-based reports remain.
+
+- Concurrent fitted plans expose effective adaptation windows and warn when a
+  requested diagonal metric will remain at its initial identity. Fitted controls
+  and reports preserve actual metric changes and final inverse mass; sampler
+  settings and inference algorithms are unchanged.
+
+### Unified workflow corrections
+
+- Unified report loading forwards completeness, record and checksum controls to
+  the owning reader; unsupported controls are rejected by that reader.
+
+- Qualification rejects degenerate/undiagnosable free coordinates and incomplete
+  NUTS telemetry, while retaining missing event counts and stored warnings.
+- Common-fit `criteria` honors criterion/LOO controls and keeps the same estimator
+  with observation IDs. Draw subsetting and unknown options are rejected.
+- Raw parameter names match the sampled columns for normalized, correlated and
+  fixed-Q fits.
+- Star posterior, diagnostic and predictive figures consume the actual report
+  contracts. Predictive figures show category proportions and 95% replicated intervals.
+- A complete Star example supplies explicit priors and valid event IDs; model
+  support documentation distinguishes the restricted 3D and Star routes.
+
+
+- Fix shared posterior MCSE estimation to consider all available split-chain
+  autocorrelation lags instead of the dependency's default cap of 250. This
+  prevents truncation of persistent autocorrelation from understating precision
+  error. Apply the same rule to RW1 conditional-bridge MCSE and ESS. Posterior
+  draws, model, prior and sampling are unchanged; existing
+  computed reports retain the results of their producing version.
+
+- Add `Experimental.RaterGroupEffects.category_predictive_check` for one declared
+  rater/group category count. Exact conditional Poisson-binomial integration
+  uses all joint draws without response simulation, retains mean MCSE and global
+  warnings, and bounds recurrence work explicitly. Inclusive predictive tails
+  are exploratory, with no automatic misfit, mechanism or fairness decision.
+
+- Correct the overview and reporting table to identify the separate fitted
+  rater-item/group severity routes while retaining validation-only common bias
+  terms. Connect numerical precision, prediction, prior sensitivity, halo/drift
+  mechanisms and substantive fairness in the existing interpretation guides.
+  This documentation change adds no fitted model or reporting API.
+
+- Added `Experimental.RaterGroupEffects.category_report` for observed-versus-
+  expected category use and mean scores overall and within rater/group and
+  item/group cells. It preserves missing cells, declared categories, joint-draw
+  intervals, MCSE and whole-fit warnings, with a bounded aggregation workspace.
+  Expected-value intervals are descriptive, not predictive fit tests. The
+  saved-result example writes this report without new inference or simulation.
+
+- The observed-group rater example now separates within-group gaps, group changes,
+  whole-fit diagnostics and focal precision, retaining explicit failed or
+  unavailable checks in a labelled saved assessment. The fitted model and
+  sampler are unchanged.
+
+- Make Turing an optional backend extension. Core input, AdvancedHMC and saved
+  results use explicitly declared mathematical dependencies. To select Turing,
+  add it to the analysis environment and run `import Turing` before fitting.
+  The Turing target, adaptation schedule, defaults and saved result types remain
+  unchanged; cache-key validation and saved Turing results do not require loading
+  the sampler. No installation-time or sampling-speed guarantee is implied.
+
+- Copy exact JSON tokens into fresh byte storage without source-alias checks,
+  avoiding repeated hashing of the complete source string when loading large
+  reports. Preserve exact integer tokens, signed zero, schemas and payload hashes.
+
+- Split only the requested parameter's chains when calculating classical
+  compatibility diagnostics. Avoid repeatedly copying the entire parameter
+  cube during normalized-fit restoration and reporting; diagnostic definitions
+  and thresholds are unchanged. Stop unused classical autocorrelation work at
+  the original positive-pair cutoff, and reuse item thresholds within each
+  pointwise likelihood evaluation without omitting validation.
+
+- Accumulate `category_report` expected use by facet level without allocating
+  the full draws-by-observations-by-categories tensor. Retain all draws, categories,
+  conditioning, warnings and report fields. `max_prediction_cells` now bounds
+  aggregation/logit workspace; it does not bound source-fit or MCSE memory.
+  Summation order and resulting content hashes may differ from dense prediction.
+
+- Add explicit bounded chain concurrency to scalar/shared independent
+  AdvancedHMC fitting with `chain_execution=:threads` and `max_parallel_chains`.
+  Preserve legacy serial streams by default; record independent per-chain seeds,
+  isolate working state, retain chain order and diagnostics, join workers on
+  failure, and aggregate progress across chains. Automatic caches distinguish
+  the threaded RNG strategy; manual saved types and posterior targets are unchanged.
+
+- Evaluate the existing normalized D1 slope-restricted Gaussian prior by active
+  parameter blocks, avoiding full-vector copies and repeated block searches.
+  Preserve zero-sum normalizers, mean profiles, finite-input validation, model
+  identity and saved types. Likelihood, analytic score and sampler are unchanged.
+
+- Reuse checked sample records inside normalized and correlated MGMFRM report
+  contexts and report composition. Preserve posterior summaries, diagnostics,
+  ranking warnings, source checks and saved formats; subsequent public calls
+  still revalidate mutable inputs. No inference or prior changes.
+
+- Show ordinary scalar MFRM's default zero references before fitting and explain
+  their free-coordinate prior meaning in saved reports. References follow stored
+  label order, not input row order; changing them without transporting the joint
+  prior can change the model. Preserve hard-anchor and numerical warnings.
+  Clarify reference invariance, fit-statistic comparability and decision sensitivity
+  in the existing guide. Priors, likelihoods, samplers and saved fit types are unchanged.
+
+- Accept explicit `rater=nothing` in `FacetData` for scalar unit-slope
+  Rasch/1PL, PCM and RSM responses without a rater column. Preserve the absent
+  facet in specification displays, subset preparation and saved data metadata.
+  Rater anchors/bias terms and generalized or multidimensional specifications
+  are rejected for this entry. Existing priors, kernels, samplers and saved
+  object types are unchanged. Add an ordinary binary IRT worked example.
+  Missing named-tuple columns now raise the same descriptive `ArgumentError`
+  as other missing-column inputs.
+
+- Add qualified `BayesianMGMFRM.load_conquest_reference_parameters` for the
+  existing ConQuest 5.47.5 three-category RSM/PCM bridge. Validated point
+  estimates map to first-reference item/rater coordinates with an explicit
+  ability translation and unchanged centered steps. Source provenance remains
+  available; joint uncertainty, priors, person estimates and estimator agreement
+  are not inferred. Existing source-gauge loading and inference are unchanged.
+
+- Add qualified `BayesianMGMFRM.score_information_report` for ordinary scalar
+  MFRM: conditional expected-score and Fisher-information curves, explicit
+  integer-replicated rating designs, joint-draw totals and chain-aware MCSE.
+  Optional `fit_report(...; reporting=(; score_information=(...), ...))` connects
+  the same results to public tables and saved bundles. Prediction cubes, new
+  fits and outcome simulations are not required. Generalized/multidimensional
+  fits and marginal information are outside this initial scope.
+
+- Preserve rating counts, selected draw counts, posterior medians and interval
+  probabilities in `calibration_plot_data`. Existing plot fields are unchanged;
+  older reduced rows return `missing` for unavailable metadata. Clarify that
+  bins group observed rows by their mean prediction and that the intervals
+  describe expected values, not replicated ratings or a calibrated fit test.
+  Prediction calculations, flags and saved fit/report formats are unchanged.
+
+- Correct unsupported-operation guidance for fixed-coefficient multidimensional
+  MFRM. Design inspection points to `getdesign(spec; preview=true)`; automatic
+  cache requests point to `Experimental.fit` followed by manual save/load.
+  These errors no longer recommend the scalar MFRM fitting entry. Supported
+  operations, priors, likelihoods, samplers and saved formats are unchanged.
+
+- D1 slope-restricted MGMFRM fitting, diagnostics and cache restoration now
+  accumulate observation-level likelihood checks one draw at a time, avoiding
+  an obligatory draw-by-observation matrix. Per-draw totals, finite-value
+  counts, diagnostic warnings, sample validation and saved formats are unchanged.
+  Explicit pointwise prediction results still include their requested arrays.
+
+- Single-item location-design validation now uses the exact person-rater
+  incidence rank, avoiding a dense observation-by-parameter matrix. Disconnected
+  person-rater groups remain rank-deficient even when the shared item connects
+  the three-facet graph. Multi-item validation, warnings, targets and saved
+  formats retain their existing behavior.
+
+- Correlated two-dimensional pure-Q MGMFRM now provides an exact gradient for
+  estimated positive item loadings, product-one rater consistency and the
+  normalized correlation prior. Public Julia fitting selects it with the
+  default `ad_backend=:auto`; explicit AD choices remain available and the
+  actual selection is saved. Likelihood, prior, coordinates and cache schemas
+  are unchanged. Other multidimensional compositions keep their own scope.
+
+- JointRatings now selects an exact analytic gradient for Julia sampling by
+  default (`ad_backend=:auto`), retaining explicit AD overrides and recording
+  the selected backend. Julia fits accept `SamplingProgress`. The likelihood,
+  prior measure, coordinates and saved-result schema are unchanged.
+
+- Add Experimental.RaterDrift input/design checks and saved computed-report review,
+  with baseline-relative intervals, MCSE, whole-report warnings, optional figures
+  and portable re-saving. Add explicit four-chain RW1 fitting, retained failure
+  records and same-environment native restoration. Computed reports preserve
+  joint-draw results when conditional integration is unavailable. Statistical
+  acceptance remains open. Add a matched static target and descriptive static/RW1
+  comparison with performance/severity location intervals, MCSE and warnings.
+  Comparisons preserve structural zeros, reject mismatched inputs/settings and
+  reopen from both exact source reports; no model-selection claim is made.
+
+### Analysis
+
+- Reuse checked samples within normalized/correlated MGMFRM artifact composition
+  and cache verification. Avoid repeating full draw validation and diagnostics
+  for each metadata/summary section. Every public operation still validates its
+  source; no persistent memoization, hash change or integrity-check removal.
+
+- Prefer an exact gradient automatically (`ad_backend=:auto`, selecting
+  `:analytic`) for the D1
+  `Experimental.slope_restriction` route, including fixed mean profiles and
+  estimated-positive item slopes. Preserve the original likelihood, prior
+  normalizers, last-reconstructed coordinates and saved model identity.
+  Report the selected gradient in `surface_contract` and saved sampler controls;
+  explicit ForwardDiff/analytic choices remain available. Other model defaults
+  are unchanged, and numerical failures do not trigger silent fallback.
+
+- Add `SamplingProgress` and `progress_snapshot` for the scalar and shared
+  experimental AdvancedHMC fitting routes. Display a compact overall bar,
+  distinguish warmup from retained sampling, and optionally publish atomic JSON
+  snapshots. Boolean progress and fit cache keys remain unchanged; progress is
+  transition completion, not convergence or save completion.
+
+- Clarify the mathematical help for scalar versus fixed-Q prior conventions,
+  declared but unobserved score categories, normalized zero-sum densities,
+  fixed-one scale conversion and the two-dimensional LKJ Jacobian. Distinguish
+  reference-rater predictions from panel averages. Runtime models, priors,
+  samplers and saved formats are unchanged.
+
+- Correct the Chopin stage-1 input adapter's response metadata to identify the
+  performance shared by judges, while retaining each rating's observation ID.
+  Common-response overlap now agrees with performance overlap. The input scores,
+  model, prior and likelihood are unchanged; original saved artifacts are preserved.
+
+- Display a `FacetSpec` at the Julia prompt to inspect slopes, category-step
+  ownership, Q dimensions, validation-only terms, fitting availability and
+  warning counts. Preserve compact printing, constructor meanings, model
+  identities and saved formats; no new fitting or model options are introduced.
+
+- Prior-sensitivity figures label dimensionless coefficients and the fixed-one
+  D1 profile location conversion to unit logits. External notes now pair each
+  row with mean/quantile MCSE, its declared limit and screen, sampling warnings
+  and cutoff decisions. Numerical results and saved formats are unchanged.
+
+- The first MFRM example now saves and prints its MCSE limits and separates
+  retained-draw sampler diagnostics from warmup history. Missing history stays
+  unavailable; the numerical criteria, fitting and native cache format are unchanged.
+
+- Save and announce the first MFRM example's native fit before summarizing it,
+  so a later reporting error retains the completed draws. The existing
+  `--saved-fit` mode regenerates the answer without fitting again.
+
+- Extend the mean-profile guide with a saved-fit severity contrast, explicit
+  model-to-unit-logit conversion and a recorded endpoint-MCSE failure despite
+  passing global diagnostics. The recipe reuses draws; runtime and APIs are
+  unchanged, and the illustrative tolerances are not package defaults.
+
+- Write fit reports with export envelope v2 and an exact-integer JSON-payload
+  checksum, including the report inside a bundle. Changed large integer IDs are
+  now detected. V1 exports remain readable with their original checksum rules;
+  old readers cannot open v2 exports. Native caches, report payloads and separate
+  table/dossier checksum formats are unchanged.
+
+- Preserve integer tokens exactly when reading report JSON, including UInt64
+  input signatures and integers in mixed numeric arrays. Retain signed zeros,
+  existing exports and hash policies. This corrects reading without refitting;
+  values already rounded by another export cannot be recovered from that copy.
+
+- Compute `probability_equal` directly from tied draws, avoiding negative or
+  spurious residual probabilities from subtraction. Historical caches retain
+  their original fields and hashes; readers accept only the exact former
+  complement formula when comparing regenerated summaries. Newly computed
+  summaries use the corrected count. Other probability and interval fields,
+  fitting, priors and native schemas are unchanged.
+
+- Add `Experimental.JointRatings.contrast` for named person or rater differences
+  within one criterion. Retain joint-draw intervals, MCSE, raw-score direction,
+  source diagnostics and portable computed reports. No fitting, prior or native
+  sample format changes; the experimental scope and acceptance limits remain.
+  Avoid unused marginal summaries and MCSE when computing these contrasts;
+  retain complete source validation and all source diagnostics.
+
+- Extend named `posterior_contrast` to scalar `MFRMFit` for RSM/PCM person
+  and severity differences. Reuse joint draws, reconstructed references/anchors,
+  intervals, MCSE and whole-fit warnings; differences use unit logits and exclude
+  external anchor uncertainty. Fitting, priors and native fit formats are unchanged.
+
+- Fix one-dimensional MGMFRM category profiles to retain item loadings and the
+  literal 1.7 rater-consistency scale, including fixed-one mean-profile fits.
+  Correct free-loading adjacent-category crossings. Regenerate affected curves
+  and crossings from original fit caches; no refit is needed. Previously saved
+  computed reports are not rewritten. Existing-row expected category use,
+  centered steps, scalar MFRM/GMFRM and multidimensional curves are unchanged.
+
+- Add opt-in `vary=:mean_profile` to saved prior sensitivity comparisons for
+  independent D1 fixed-one PCM fits with `MeanProfilePrior`. Compare item/step
+  means and their residual SDs while retaining other priors, data, labels and
+  coefficient policies. Preserve failed/missing alternatives, paired within-fit
+  contrasts, MCSE, warnings and source identities. The default loading-SD route,
+  fitting and prior-predictive comparison scope are unchanged.
+
+- Add explicit `:reference`, `:steps` and `:combined` prior choices to
+  experimental three-outcome preparation and fitting. Preserve the original
+  reference and record the selected prior's numerical settings in preparation,
+  computed reports and native archives. Older recognized reports retain their
+  reference-only provenance and exact source bytes. These choices are not
+  general empirical recommendations or statistical acceptance.
+
+- Show observed listener/L1 position ranges and extrapolation warnings when
+  preparing and reporting experimental three-outcome contrasts. Inspect a plan
+  with `report(plan)` before fitting. Preserve the context in new portable reports;
+  historical summaries without it explicitly report unavailable support.
+  Range checks do not establish joint overlap or identification and do not
+  change the requested contrast, interval or numerical qualification.
+
+- Add experimental no-state three-outcome `prepare`, `fit`, `load_fit` and
+  `summarize` with an explicitly selected fixed reference prior. Preserve input
+  validation, four-chain settings, complete native records and failures,
+  diagnostics, interval MCSE and portable report provenance. Native loading
+  requires the producing source/environment; historical migration and scientific
+  acceptance are not supplied. The installed example prepares without fitting.
+
+- Extend the experimental three-outcome report reader to the Julia producer
+  with mandatory input validation. Check model/producer combinations together,
+  preserve original Julia/Stan exports and refuse unknown combinations.
+  Fitting and native-chain import remain outside this interface.
+
+- Add experimental `ThreeIndicator.inspect_input` for labelled no-state 9/9/2
+  inputs. Check IDs, recording ownership, scoring, fixed rank and consistency
+  between stimulus conditions and current/previous indicator columns. Preserve
+  block-reset history separately from trial links, labels, units and unobserved
+  categories. Include an existing synthetic input and a package-only example;
+  no fitting or scientific acceptance is implied.
+
+- Add experimental `ThreeIndicator.load_report`, `report` and `save_report` for
+  supported three-outcome computed JSON reports. Preserve fixed-panel and
+  contrast definitions, outcome directions, intervals, MCSE, whole-report and
+  warmup warnings, and an optional saved Julia/Stan comparison. Portable copies
+  retain source bytes and checksums; the package-only example checks supplied
+  receipts and refuses existing outputs. No fitting, native chain restoration
+  or scientific acceptance is supplied by this interface.
+
+- Add qualified `posterior_contrast` for independent MGMFRM and normalized-prior
+  MGMFRM saved fits. Compute same-dimension ability differences, severity
+  differences and log consistency ratios from paired model-coordinate draws,
+  preserving chain order, intervals, MCSE, contrast diagnostics and whole-fit
+  warnings. The saved-contrast example now uses this shared calculation and
+  accepts both types. Model-support status and fitting behavior are unchanged.
+
+- Make the saved prior-sensitivity example accept labelled user fit caches,
+  explicit planned priors and scientific contrasts. It preserves
+  failed/missing variants and warnings,
+  refuses existing output directories and verifies the saved comparison.
+
+- Fix installed-project imports in the prior-sensitivity, JointRatings, saved
+  contrast and saved MGMFRM review examples. They reuse the package's JSON and
+  diagnostic dependencies; no separate JSON3 or MCMCDiagnosticTools installation
+  is needed. CairoMakie remains an explicit dependency for figures.
+
+- Add `examples/run_mfrm_recovery.jl` for explicit single-dataset fixed-truth
+  or joint-prior SBC PCM execution through a chosen stage. SBC preserves the
+  realized full truth before responses, uses the parent study ledger, checks
+  saved truth/observation binding and retains rank/dependence exclusions.
+  Register observations alone as the SBC generation artifact and keep the
+  dataset plan separately; guide/help now match the saved-summary format.
+  Reuse completed stages, retain failed
+  and unfinished work, save checkpoints and wall-time/artifact costs, and
+  refuse retries or existing output directories. Merely including the example
+  does not draw parameters, generate responses or fit models. Model-support
+  status is unchanged; execution and artificial checks do not establish calibration.
+
+- Add `Experimental.RecoveryPlanning.summarize_recovery` to aggregate saved
+  fixed-truth PCM reviews directly from a plan and full stage ledger. Preserve
+  failures, unattempted/unfinished work, artifact problems and per-quantity
+  numerical exclusions; apply the plan's MCSE limits and existing optional
+  width-target uncertainty. Validate saved bindings without loading native fits,
+  generating data or repeating estimation. Support status is unchanged.
+
+- Add optional `width_confidence_level` to `recovery_replications` and
+  `design_precision_plot_data` / `plot_design_precision` for saved width-target
+  studies. Conditional Clopper-Pearson intervals retain uncertainty for small
+  samples and all-success/all-failure results. The two-panel plot distinguishes
+  these intervals from full-planned unresolved-outcome bounds, including failed
+  or missing scenarios. Unresolved independence suppresses intervals. Existing
+  aggregation output is unchanged when the new keyword is omitted; no sampling,
+  automatic design selection or change of model-support status occurs.
+
+- Fix the first MFRM tutorial in projects that install only BayesianMGMFRM.
+  Reuse the package's JSON dependency when saving the answer; no separate
+  JSON3 installation is needed. Model, prior and sampling settings are unchanged.
+
+- Add `Experimental.RecoveryPlanning.summarize_sbc` to combine saved rank reviews
+  with every planned dataset in the study ledger. Preserve failures, missing or
+  changed artifacts and exclusions; bind observations, fits and rank records.
+  Report missing-rank CDF bounds and, only with a declared across-dataset
+  independence assessment, a conditional family-adjusted DKW screen. No departure
+  is not calibration acceptance; no generation, fitting or tie breaking occurs.
+
+- Add `Experimental.RecoveryPlanning.review_sbc_fit` for saved scalar PCM
+  results with predeclared rank iterations. Verify the parent study, realized
+  truth and native cache; report focal-parameter and joint-log-likelihood ranks,
+  exact tie ranges, all-retained-draw diagnostics and unresolved dependence.
+  Preserve exclusions without generating draws or breaking ties automatically.
+  This does not provide study-wide uniformity assessment or establish calibration.
+
+- Add joint-prior SBC input preparation to `Experimental.RecoveryPlanning`.
+  Declare separate parameter/response/fit seeds, require matching generating and
+  analysis priors, and bind all free coordinates with reconstructed reference
+  values and final item steps. Reuse generation inputs and saved-study accounting.
+  Preparation draws no parameters or data; SBC ranks and calibration assessment
+  remain separate from these operations.
+
+- Add `Experimental.RecoveryPlanning.relocate_ledger` for a saved study folder
+  that has been copied or moved. Check every destination artifact against its
+  recorded hash, preserve failures and unfinished stages, and retain relocation
+  history through later stage updates. No files are moved or fits reopened by
+  this operation; mismatched or missing destination files are rejected.
+
+- Integrate score-free fixed-truth PCM planning and saved-fit review as
+  `Experimental.RecoveryPlanning`. Reuse existing preparation, actual-score
+  binding and outcome-accounting operations without starting generation or
+  fitting. Preserve legacy v2 plan/v1 result schemas. Add a two-allocation
+  teaching example, searchable guide and Julia help; SBC and automatic
+  study execution are separate capabilities.
+
+- Add optional `max_interval_widths` to `BayesianMGMFRM.recovery_replications`.
+  With explicit MCSE limits, report width-target counts and conditional frequency,
+  replication SE where applicable, and unresolved-outcome bounds over the full
+  planned roster. Preserve failures and numerical exclusions; no automatic
+  design choice, assurance claim, generation or fitting is introduced.
+
+### Documentation
+
+- Connect the existing rating-data, specification, fitting, diagnostic,
+  interpretation and save/reopen APIs in the Bayesian Workflow guide. The
+  walkthrough reuses the first MFRM example and distinguishes posterior fitting,
+  predictive generation and saved-result reading. README and task help link to
+  it without introducing another public API or changing runtime behavior.
+
+- Reconcile the local manual's compatibility table with the staged scalar MFRM
+  and normalized D2 fitting/restoration checks, installation/startup checks and
+  current saved-fit replay. Distinguish the local source from the published
+  preview, retain platform and scientific limits, and explain why original
+  Julia launch options matter for exact diagnostic reconstruction.
+
+- Align citation metadata with the unreleased package version and omit the
+  previous version's release date. Explain citation of an exact development
+  source and check Project, citation and release-note version/date consistency
+  in the existing release-verification gate. Fitting and saved formats are unchanged.
+
+- Make troubleshooting, problem reports, version pinning and saved-result
+  migration available through the manual's navigation and search. Reuse the
+  existing contribution and versioning guides, with recovery links and a
+  version-information command that does not read ratings or fit a model.
+
+### Examples
+
+- Add a CSV-to-specification recipe that preserves text identifiers and the
+  declared category scale, rejects missing or invalid required values, and
+  assembles a two-dimensional Q matrix by item label. It uses optional CSV.jl
+  and existing public data/model APIs without fitting or changing package dependencies.
+- The normalized MGMFRM example now inspects its fixed teaching inputs when
+  run without arguments. `--help` and `-h` explain the modes without fitting
+  or writing results. To run the former short demonstration, pass `--demo`;
+  use `--demo --figures` for its plots. The explicit `--fit-example` and
+  `--saved-fit PATH` routes retain their fitting and reporting behavior.
+- Show person-level dimension support in the normalized MGMFRM input inspection.
+  The data guide now includes an executable item-labelled Q mapping and an
+  incomplete-assignment check that runs without sampling.
+
+### Fixed
+
+- Reject a negative report-bundle `max_rows` before creating or replacing
+  export files. Invalid preview options no longer leave a partial bundle or
+  replace JSON/tables while retaining an older Markdown file and manifest.
+
+### First analysis
+
+- Bundle fixed artificial data for the normalized MGMFRM example. Use
+  `--inspect-example` to check the allocation, Q matrix, prior and sampling
+  settings without fitting; `--fit-example` uses four chains with 1,000 warmup
+  and 1,000 retained draws each, then the existing interpretation/save route.
+  The data and explicit settings match an existing completed analysis. The
+  no-argument short demonstration and `--saved-fit` retain their previous roles.
+  The example now saves and prints the fit-cache path before building its
+  report, so a reporting failure can be investigated without repeating MCMC.
+- Extend the existing normalized MGMFRM example with `--saved-fit` to read a
+  trusted fit without fitting or random generation. It preserves the saved data,
+  prior and warnings, prints dimension-specific ability intervals, and saves a
+  readable answer, fit cache and portable report with MCSE. Including the example
+  now only defines functions; call `NormalizedMGMFRMExample.main(...)` to run it.
+- Add a complete teaching example for the R2−R1 severity contrast using 72 fixed
+  artificial ratings and explicit four-chain NUTS settings. It checks numerical
+  adequacy before interpreting the contrast and saves/reopens the fit and a
+  plain-text/JSON answer. A saved-fit mode requires matching data, model and prior.
+  Beginner navigation now leads to this example; the 50-draw `minimal.jl` remains
+  a separate short sampler demonstration.
+
+### Recovery precision
+
+- Add optional `mcse_limits` to `BayesianMGMFRM.recovery_replications`. Explicit
+  limits on the posterior mean and both central-interval endpoints add a
+  precision-qualified summary without removing global warnings, failures or
+  missing datasets. Existing default outputs are preserved. Computational
+  precision remains distinct from interval width, calibration and study-design
+  adequacy; no simulation or fitting is started by this operation.
+- Extend `examples/saved_recovery_replications.jl` with a saved-width review for
+  a user-supplied research target. It retains every planned dataset, distinguishes
+  numerical exclusions from observed width outcomes, and explains why a single
+  narrow interval or small MCSE cannot establish a preferred data-collection design.
+
+### Experimental shared-response ratings
+
+- Add `Experimental.JointRatings` for a bounded two-criterion model, trusted
+  saved results, parameter reports, marginal prediction and joint response
+  scoring. Explicit priors, original warnings and numerical integration limits
+  remain; no new scientific acceptance or release is implied.
+- Provide English help and a saved-result example without prototype includes.
+
 ### Development successor (not merged or released)
 
 - Align the existing version handoff with the development successor: distinguish
@@ -368,7 +1083,7 @@
 - Add threshold-free MGMFRM validation scorers for known-truth category
   probabilities, expected scores, proper log-score regret, pairwise ordering,
   and caller-defined classification stability.
-- Add `mgmfrm_validation_protocol()` as a non-executing Stage-A draft for the
+- Add `mgmfrm_validation_protocol()` as a non-executing draft study specification for the
   narrow fixed-Q promotion study. It records Uto source anchors, the
   between-item primary domain, boundary Q structures, estimands, interval and
   sampler policy, prior regimes, paired backend role, all-attempt failure
@@ -536,7 +1251,7 @@
   defers anchor-dose and broader model studies until their fitted contracts
   exist; and replaces routine SHA-oriented gates with resource-aware executable
   checks.
-- Refine the Stage-A contract with explicit estimand units, Q and sparse-design
+- Refine the validation study specification with explicit estimand units, Q and sparse-design
   scope, executable prior-refit sensitivity, `1.7`/`1.702` scale
   harmonization, a paired CmdStan comparison subset, layered decision rules,
   and five-category response-pattern stress scenarios.
@@ -614,14 +1329,14 @@
 
 ### Fixed
 
-- Correct the unexecuted LD1b1 pilot contract from the unsupported MFRM
+- Correct the unexecuted local-dependence pilot contract from the unsupported MFRM
   `ad_backend = :analytic` route to `:ForwardDiff`, and make protocol
   authorization check the MFRM sampler, algorithm, and gradient route in
   addition to downstream diagnostic capabilities. The plan check itself does
   not run the pilot or contribute a scientific outcome.
 - Preserve the full 660-job denominator across planned rejection, generation
   failure, fit failure, diagnostic failure, and completed outcomes.
-- Preserve native `UInt64` LD1b1 data signatures as canonical decimal strings
+- Preserve native `UInt64` local-dependence data signatures as canonical decimal strings
   before JSON hashing, require the same signature at every fit-artifact and
   calibration lineage path, and reject JSON numbers or noncanonical strings.
 - Make generalized numerical paths and diagnostic quality gates fail closed on

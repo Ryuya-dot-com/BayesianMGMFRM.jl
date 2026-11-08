@@ -12,6 +12,200 @@ the source checkout. After `Pkg.add`, locate a shipped example instead with
 after `using BayesianMGMFRM`; substitute the desired example filename. An
 example that accepts your own cache/output paths still needs those arguments.
 
+## Ordinary binary IRT without raters
+
+**Question: how difficult are items I02 and I03 relative to I01?** The ordinary
+Rasch/1PL example uses fixed artificial responses from 24 people to three items,
+with scores 0/1. It supplies no rater column and generates no new responses.
+Three items give limited information about each person's ability; this small
+example demonstrates the analysis steps, not a recommended test length or a
+parameter-recovery study.
+
+```julia
+using BayesianMGMFRM
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_irt_analysis.jl"))
+prepared = FirstIRTAnalysis.inputs()  # Inspect input and settings; no fit.
+prepared.spec
+analysis = FirstIRTAnalysis.main()    # Fit once and save.
+```
+
+The input operation is `FacetData(responses; person=:person, item=:item,
+score=:score, rater=nothing, category_levels=0:1)`. The existing `mfrm_spec` and
+`fit` APIs then use `P(correct) = logistic(ability - difficulty)`, with unit
+discrimination, no guessing parameter, and I01 fixed at difficulty zero.
+I01 is a reference convention, not an externally calibrated item. The prior
+is independent Normal(0, 1.5) for the 24 abilities and Normal(0, 1) for the two
+free difficulties. There are no free rater or step parameters. Changing the
+reference while simply reusing these independent priors can change the model.
+This is Bayesian joint estimation, not conditional maximum likelihood.
+
+Four chains each use 1,000 warmup and 4,000 retained draws. The script saves a
+native `fit.jls` before calculating its `answer.json`. It reports 95% intervals
+and Monte Carlo errors for P001's ability and the two free difficulties.
+Positive difficulty means harder than I01; an interval crossing zero leaves
+that direction unresolved. The numerical check requires the whole-fit diagnostic
+gate (R-hat at most 1.01 and bulk/tail ESS at least 400, with sampler checks),
+mean MCSE at most 0.01 and each focal interval-endpoint MCSE at most 0.03 logit.
+These are example computational tolerances, not scientific effect thresholds.
+Keep warnings and unqualified results; successful computation alone does not
+establish model fit, prior suitability or interval calibration.
+The qualification shown by this example concerns its three focal quantities.
+In the local reference run they all pass, while eight other person intervals
+miss the same endpoint tolerance. Inspect `posterior_mcse(fitted)` for every
+parameter; passing focal checks does not qualify every ability interval.
+
+Reopen a trusted saved fit in the same source/dependency environment:
+
+```julia
+cache = joinpath(analysis.directory, "fit.jls")
+fitted = load_fit_cache(cache)
+posterior_summary(fitted)
+posterior_mcse(fitted)
+review = FirstIRTAnalysis.main(["--saved-fit", cache])  # No refitting.
+```
+
+For your own data, preserve the explicit `rater=nothing` choice, use
+`validate_design` and `mfrm_spec`, select priors and sampler settings, then call
+`fit(spec; ...)`. The ordinary [score and information functions](score-information.md)
+also apply to this unit-slope model. Existing reference tables use one fixed-zero
+`no_rater` level internally; it does not represent an observed judge. This entry
+does not provide free-discrimination, guessing or multidimensional IRT.
+
+## First MFRM analysis
+
+**Question: is R2 more severe than R1 after accounting for the people and tasks
+they rated?** Follow this example before exploring the other model families.
+It uses 72 supplied artificial ratings from 12 people, four items and three
+raters, on categories 0–3. The ratings are fixed: running the example does not
+generate a new dataset. This is a teaching example, not a study of real raters.
+To run the same analysis one operation at a time, follow the
+[connected API walkthrough](bayesian-workflow.md#connected-analysis). Choose that
+route or the complete script below; there is no need to fit both.
+
+### Run the analysis
+
+After installing this checkout as described on the home page, run in Julia:
+
+```julia
+using BayesianMGMFRM
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_analysis.jl"))
+analysis = FirstMFRMAnalysis.main()
+```
+
+Including the file only defines the example's functions. The last line performs
+the fit and saves the result. From the source checkout, the equivalent command is
+`julia --project=. examples/first_analysis.jl`.
+
+The example checks the data and fits a one-dimensional partial-credit MFRM.
+Each item has its own category steps. R1 defines zero rater severity, so
+`rater[R2]` is the R2−R1 contrast: positive means R2 is more severe, negative
+means R2 is less severe. Scores and logits are different units; a difference of
+0.180 logit does not mean 0.180 score points.
+
+R1's zero is a reference convention, not a claim that R1 is unbiased or an
+external calibration. See [references and anchors](learning-guide.md#references-and-anchors)
+before replacing it with a fixed calibration value.
+
+Four Julia NUTS chains each use 1,000 warmup and 1,000 retained draws. The
+zero-centered normal prior scales are 1.5 for person coordinates and 1.0 for
+free rater, item and step coordinates. These are explicit settings for this
+artificial example, not universal defaults to copy into an applied study.
+The [model explanation](rating-model-theory.md) describes the probability model
+and constraints; [prior implications](bayesian-workflow.md#3.-Check-Prior-Implications)
+explains what to examine when choosing a prior for your own data.
+
+### Read the answer
+
+The reference calculation gives the following excerpt, rounded to three decimals:
+
+```text
+Is R2 more severe than R1?
+Artificial ratings: 72; people: 12; items: 4; raters: 3.
+Positive values mean that R2 is more severe than R1, after accounting for persons and items.
+Numerical checks: passed
+Posterior mean: 0.18 logit; 90% interval: [-0.511, 0.889].
+```
+
+The estimate leans toward greater severity for R2, but the interval includes
+both negative and positive differences. **These ratings do not clearly establish
+the direction of the difference under this model and prior.** They also do not
+show that R1 and R2 are equivalent. A useful analysis can reach an uncertain
+answer; successful computation does not guarantee a clear empirical distinction.
+
+The 90% central interval contains 90% of the computed posterior distribution.
+It describes uncertainty about the contrast conditional on the data and model.
+MCSE describes a different uncertainty: the numerical error from using finitely
+many posterior draws. In the reference result the mean MCSE is about 0.0069
+logit and the two endpoint MCSEs are about 0.0171 and 0.0156. Small MCSE does not
+make the interval narrower or establish repeated-sampling coverage.
+
+Before producing a substantive interpretation, the example requires the global
+diagnostic checks to pass, mean MCSE at most 0.01 and both endpoint MCSEs at most
+0.02 logit. These numerical tolerances resolve this displayed example; they are
+not a minimum scientifically important difference. If checks fail, the answer
+says to withhold interpretation and preserves the fit for diagnosis. It does
+not silently rerun the fit or substitute a more favorable result.
+
+The complete answer also prints the actual MCSEs and these illustrative limits,
+R-hat/ESS, and each chain's sampler diagnostics. It separates retained-draw
+divergences, maximum-depth hits, nonfinite log densities and E-BFMI from warmup
+events. Warmup records show recorded/expected iterations and whether history is
+available; unavailable counts are not zeros. Warmup events do not enter the
+retained-draw pass/fail rule. They remain visible even when that rule passes.
+Passing numerical checks does not establish model adequacy or interval calibration.
+`answer.json` preserves the full diagnostic summary and both sets of sampler
+rows, alongside the exact MCSE values, limits and their illustrative purpose.
+
+### Save and reopen without refitting
+
+The returned `analysis.directory` is a new folder under `results/first_analysis/`:
+
+| File | Use |
+| --- | --- |
+| `answer.txt` | Read the question, estimates, interpretation, MCSE limits and separate retained/warmup diagnostics. |
+| `answer.json` | Reuse the computed answer, prior settings, numerical criteria and complete diagnostic summary/sampler rows in other software. |
+| `fit.jls` | Recompute summaries or make figures from the saved posterior in the original environment. |
+
+The script reloads the fit and compares its answer with the original before
+finishing. In the same Julia session, inspect it yourself:
+
+```julia
+read(joinpath(analysis.directory, "answer.txt"), String)
+restored = load_fit_cache(joinpath(analysis.directory, "fit.jls"))
+FirstMFRMAnalysis.result(restored)
+```
+
+To regenerate the answer from that cache, without new MCMC, call:
+
+```julia
+reopened = FirstMFRMAnalysis.main([
+    "--saved-fit", joinpath(analysis.directory, "fit.jls")])
+```
+
+This writes a new output folder and rejects a cache from different ratings,
+model or prior. In a later session, retain the original analysis project and
+Julia/dependency environment and supply the saved path; see
+[reopening saved results](api-saved-reporting.md#saved-result-reproduction).
+JSON and text can be read without restoring a Julia fit. For optional figures,
+use the [plotting instructions](fitting.md#Posterior-interval-figures) with
+`restored`; figures need no refitting.
+
+The example saves `fit.jls` and prints its absolute path **before** computing
+the answer. If summarizing or writing the answer fails after that message, keep
+the cache and the error details. After resolving the reporting problem in the
+matching environment, use `FirstMFRMAnalysis.main(["--saved-fit", "the printed path"])
+to write the answer into a new folder without sampling again. A fitting or
+cache-writing failure before that message has no such saved-fit guarantee.
+This checkpoint preserves completed draws; it does not resume an interrupted sampler.
+
+### Move to your own question
+
+First decide which contrast matters and what its units mean. Then check your
+rating allocation, category use, model assumptions and prior implications.
+Use the [analysis workflow](bayesian-workflow.md) for that sequence. Moving to
+GMFRM, several dimensions or dependent ratings changes the model; it is not a
+required extra step in this one-dimensional example.
+
 ## Observed-score ICC without fitting
 
 The candidate's `examples/observed_icc.jl` compares four questions on the same
@@ -81,7 +275,9 @@ explains the prompts and how these examples differ from R's `example()`.
 ## Minimal MFRM Workflow
 
 [`examples/minimal.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/minimal.jl)
-runs a stable partial-credit MFRM analysis. From the repository root, after
+runs a short partial-credit MFRM sampler demonstration. For the complete first
+teaching analysis and its interpreted result, use [First MFRM analysis](#First-MFRM-analysis).
+From the repository root, after
 installing the project's dependencies:
 
 ```sh
@@ -277,14 +473,159 @@ model-weight claims are outside this fitting route. The
 
 ## Explicit normalized-prior MGMFRM workflow
 
-[`examples/normalized_mgmfrm.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/normalized_mgmfrm.jl)
-is a self-contained two-dimensional, fixed-Q example with estimated positive
-loadings and identity latent correlation:
+### Start with the bundled MGMFRM data
+
+**Question: what does a person's rating profile tell us about two separate
+abilities?** The bundled `examples/normalized_mgmfrm_ratings.jl` contains 1,000
+fixed artificial ratings from 50 people, five items and five raters. Categories
+are ordered 1–4. Two items measure the first dimension and three measure the
+second. Each item has an estimated positive loading on its assigned dimension;
+the other loading is fixed at zero. The dimension names `dim=1` and `dim=2`
+are deliberately generic because these are simulated teaching data, not a test
+with validated substantive constructs.
+
+First inspect the inputs without estimating a model or creating output files.
+This is the default when no mode is supplied:
 
 ```sh
 julia --project=. examples/normalized_mgmfrm.jl
+```
+
+Use `--help` to list the modes; `--inspect-example` explicitly selects the same
+inspection. Both inspection and help finish without sampling or writing results.
+
+| Mode | What happens |
+| --- | --- |
+| No arguments or `--inspect-example` | Read the fixed data and explain Q, dimension support, priors and proposed fit settings. |
+| `--help` or `-h` | Print the available commands. |
+| `--fit-example` | Run the four-chain teaching fit and save/report its results. |
+| `--saved-fit PATH` | Read a trusted fit in its original environment and write a new report without fitting. |
+| `--demo` | Run a tiny demonstration with random draws and chains too short for inference. |
+
+`--figures` can accompany `--fit-example`, `--saved-fit` or `--demo` when
+CairoMakie is installed. It cannot accompany help or input inspection.
+
+This prints the category order, item-to-dimension assignment, all six explicit
+prior scales and the proposed sampling settings. The table is incomplete:
+250 of the 1,250 person/item/rater combinations are unobserved. They must stay
+absent; do not fill them with zero or a category value. This example retains all
+known persons, items and raters. It does not establish performance for arbitrary
+sparse or disconnected designs.
+
+The model uses item-specific partial-credit steps, centered rater severities
+and positive rater consistencies whose product is one. Person dimensions have
+independent unit-SD priors; their population correlation is fixed at zero.
+The [explicit normalized prior](experimental.md) defines the scale of the
+remaining effects. Its supplied values reproduce this example, not a default
+choice for a new study; inspect the [scientific scope](scope.md#current-scientific-evidence)
+before interpreting numerical qualification as calibration.
+
+To estimate this fixed example, use the explicit fitting command:
+
+```sh
+julia --project=. examples/normalized_mgmfrm.jl --fit-example
+```
+
+It runs four Julia NUTS chains, each with 1,000 warmup and 1,000 retained draws,
+using seed `20261008110001`, then writes the answer and saved results described
+below. It does not generate a new dataset or predictive replications. These
+inputs, prior and controls match an existing completed four-chain analysis;
+changing the data, prior, environment or controls requires checking the new
+diagnostics and MCSE. A fixed iteration count is not an accuracy guarantee.
+
+In Julia, inspect or adapt the complete specification before fitting:
+
+```julia
+using BayesianMGMFRM
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "normalized_mgmfrm.jl"))
+prepared = NormalizedMGMFRMExample.example_inputs()  # no fitting
+prepared.spec.q_matrix
+prepared.prior
+prepared.controls
+# Execute only when you intend to run MCMC:
+# fitted = BayesianMGMFRM.Experimental.fit(prepared.spec;
+#     prior=prepared.prior, prepared.controls...)
+```
+
+Inspection also reports how many people have structural support for every
+ability direction and names those with missing dimensions. With your own data,
+start with [CSV import and your own specification](data-validation.md#import-csv).
+`example_inputs()` always reads the bundled data. Build Q by item label and
+inspect person-level support before fitting; the
+[worked incomplete-assignment check](data-validation.md#person-dimension-support)
+shows why overall data validation can pass while one ability remains unmeasured.
+
+The fixed ratings are shipped with the source; the previous posterior is not.
+Use your printed `fit.jls` path with `--saved-fit` for later reporting. The
+explicit `--demo` command below uses different, tiny data
+and deliberately short chains; it is not this teaching analysis.
+
+If the program prints `Saved fit before reporting:` and a later export fails,
+keep that cache and fix the reported problem. In the original environment, use
+`--saved-fit "the printed path/fit.jls"` to create a new output folder. Do not
+rerun `--fit-example` to recover a report. Preserve the failed output folder
+until the new bundle has been verified; a partly written report is not a
+verified bundle. See [export recovery](api-saved-reporting.md#If-reopening-fails).
+
+### Read an existing MGMFRM analysis
+
+**Question: what abilities does the fitted model estimate in each dimension?**
+Use your trusted normalized MGMFRM cache in the original Julia/dependency
+environment. This route reads the original model, data, prior and all retained
+chains; it performs no new fitting, prior simulation or predictive random draws.
+
+```julia
+using BayesianMGMFRM
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "normalized_mgmfrm.jl"))
+analysis = NormalizedMGMFRMExample.main(["--saved-fit", "path/to/fit.jls"])
+read(joinpath(analysis.directory, "answer.txt"), String)
+```
+
+From a source checkout, the equivalent command is
+`julia --project=. examples/normalized_mgmfrm.jl --saved-fit path/to/fit.jls`.
+The cache must be a `NormalizedMGMFRMFit` produced by the documented fit/save
+route; it is not a raw research sample file or a portable JSON report. See
+[saved-result reproduction](api-saved-reporting.md#saved-result-reproduction)
+for selecting the matching environment.
+
+The answer prints the observed sample sizes, retained draws, whole-fit numerical
+status and the first person's estimate and 95% central interval in each named
+dimension. The two values describe different abilities; they are not an overall
+ranking or evidence that one trait is intrinsically higher. Their scale comes
+from the saved model and prior. This model fixes latent correlations at zero;
+correlating the printed person estimates is not estimation of that population
+correlation.
+
+The new output folder contains `answer.txt`, a verified `fit.jls` copy and
+`report/` with readable Markdown, portable JSON and parameter tables. The report
+includes all people, the actual prior, and mean/interval-endpoint MCSE. A narrow
+interval and small MCSE answer different questions. Numerical warnings remain
+visible and the answer says to withhold interpretation when the whole-fit
+diagnostics fail. Passing diagnostics still requires judging numerical precision
+against the reported quantity and does not establish calibration or model adequacy.
+No WAIC/LOO comparison or new observation IDs are invented for the saved analysis.
+
+The saved route has also been exercised on a completed four-chain MGMFRM with
+1,000 retained draws per chain, using an existing simulated validation dataset:
+1,000 training ratings from 50 people, five items and five raters. The incomplete
+allocation retains known facet levels. That validation cache is not bundled with
+the package; supply your own trusted fit in the command above.
+This checks the existing-sample reporting route; it is not a new fit or evidence
+for extreme sparsity. The [scientific scope](scope.md#current-scientific-evidence),
+including prior sensitivity and undercoverage, still applies.
+
+### Short interface demonstration
+
+The bundled source file `examples/normalized_mgmfrm.jl`
+is a self-contained two-dimensional, fixed-Q example with estimated positive
+loadings and identity latent correlation. The following commands run a short
+interface demonstration, including prior/predictive random generation; they do
+not produce an analysis suitable for substantive interpretation:
+
+```sh
+julia --project=. examples/normalized_mgmfrm.jl --demo
 # With CairoMakie installed in the analysis environment:
-julia --project=. examples/normalized_mgmfrm.jl --figures
+julia --project=. examples/normalized_mgmfrm.jl --demo --figures
 ```
 
 It specifies all six normalized exchangeable-prior scales, inspects prior rating
@@ -296,7 +637,9 @@ model-scale summaries and Monte Carlo errors, saves to a new directory under
 reloading `fit.jls`.
 
 The optional person and loading-diagnostic figures use the reloaded fit and the
-named `reasoning` dimension. The report reader verifies the exported bundle;
+first named dimension and are saved under `figures/`. The `--figures` option can
+also accompany `--saved-fit`; it requires CairoMakie in that analysis environment.
+The report reader verifies the exported bundle;
 report completeness does not mean MCMC diagnostics passed. This workflow uses
 AdvancedHMC. See the [explicit prior contract](experimental.md) for the separate
 raw-coordinate CmdStan route and the meaning of the illustrative scales.
@@ -393,8 +736,8 @@ preserves the experimental model restrictions.
 
 [`review_saved_mgmfrm.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/review_saved_mgmfrm.jl)
 starts from an existing independent fixed-Q MGMFRM cache. Use the same Julia
-analysis environment that reads the cache, with CairoMakie and JSON3 available.
-JSON3 writes the diagnostic supplement. Find the
+analysis environment that reads the cache, with CairoMakie available.
+The script also saves a diagnostic supplement. Find the
 stored dimension labels with `fit_metadata(load_fit_cache("analysis-fit.jls");
 view = :public).dimension_labels`, then pass one of those labels:
 
@@ -444,6 +787,41 @@ dimension, script and Julia environment, writing to a new directory. Report
 completeness means that the requested sections were produced; diagnostic
 warnings remain visible, and a complete report is not scientific acceptance.
 
+### Compare persons or raters in a saved scalar MFRM fit
+
+For an ordinary one-dimensional `MFRMFit`, use the same named
+[`BayesianMGMFRM.posterior_contrast`](@ref) operation for person or rater
+differences. It supports RSM and item-owned PCM. With the first-analysis
+example's trusted cache in its original environment:
+
+```julia
+using BayesianMGMFRM, Serialization
+restored = load_fit_cache("analysis-fit.jls")
+BayesianMGMFRM.recovery_quantities(restored).rows # exact names and units
+ability = BayesianMGMFRM.posterior_contrast(restored;
+    left="person[P1]", right="person[P2]", interval=0.95)
+severity = BayesianMGMFRM.posterior_contrast(restored;
+    left="rater[R2]", right="rater[R1]", interval=0.95)
+ability.summary
+severity.summary.precision
+severity.whole_fit_diagnostics
+serialize("scalar-contrasts.jls", (; ability, severity))
+saved = deserialize("scalar-contrasts.jls") # trusted file, same environment
+```
+
+Each difference is calculated within the original joint draw, including the
+reference rater's fixed zero. Scalar MFRM differences use unit logits; do not
+apply the MGMFRM multiplier of 1.7. Positive severity means the left rater is
+more severe under this model, not less fair. A reference or hard-anchored rater can be
+one side of the comparison; two fixed coordinates are rejected because neither
+is estimated. External anchor uncertainty is excluded.
+
+Keep the native fit, the saved answers and their environment together. Inspect
+the whole-fit warning, contrast diagnostics and interval-endpoint MCSE before
+interpreting a result; a probability above zero is not an automatic practical
+decision. This scalar method provides differences, not consistency ratios,
+cross-model contrasts or fixed-Q multidimensional MFRM contrasts.
+
 ### Compare abilities or raters in a saved MGMFRM fit
 
 Use a joint posterior contrast to ask whether two fitted persons differ within
@@ -453,10 +831,32 @@ interval endpoints or independently shuffling the columns loses their posterior
 dependence. For example, the variance of a difference includes minus twice the
 covariance, even when the population ability prior has identity correlation.
 
+The qualified [`BayesianMGMFRM.posterior_contrast`](@ref) function accepts
+independent fixed-Q `MGMFRMFit` and `Experimental.NormalizedMGMFRMFit` caches.
+It uses the fitted model coordinates with all original chains and draws;
+no renderer or additional diagnostic dependency is needed:
+
+```julia
+using BayesianMGMFRM
+restored = load_fit_cache("analysis-fit.jls")
+BayesianMGMFRM.recovery_quantities(restored).rows # exact names and units
+answer = BayesianMGMFRM.posterior_contrast(restored;
+    left="person[P1,communication]", right="person[P2,communication]",
+    interval=0.95)
+answer.summary
+answer.whole_fit_diagnostics
+```
+
+Replace the exact names with those listed for your fit. For the normalized
+teaching example, the first dimension is named `dim=1`, so use
+`person[P1,dim=1]` and `person[P2,dim=1]`. Positive differences mean higher
+ability for P1 under the saved model and prior. The interval describes that
+joint difference; a positive mean alone does not resolve its direction.
+Inspect the whole-fit diagnostics, the contrast diagnostics and endpoint MCSE.
+
 [`saved_mgmfrm_contrasts.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/saved_mgmfrm_contrasts.jl)
-provides an includable example for independent fixed-Q MGMFRM caches from either
-backend. It uses Statistics and the package's existing MCMCDiagnosticTools
-dependency; no renderer is needed. From the repository root:
+provides a label-based wrapper over the same function for these two fit types.
+From the repository root:
 
 ```julia
 include("examples/saved_mgmfrm_contrasts.jl")
@@ -475,7 +875,28 @@ Replace the person/rater labels and dimension with those in your saved data.
 The example rejects unknown levels, a missing ability dimension, a dimension
 selector on rater parameters, self-comparisons, and altered chain ordering.
 It keeps all retained draws and the original fit's diagnostic assessment.
-These helpers are example code, not additional package fitting APIs.
+The wrapper remains example code; `posterior_contrast` is the qualified package
+entry point. Correlated MGMFRM and other fit families are outside this method.
+Within a slope-restricted normalized fit, abilities and severities remain
+available; a comparison of two consistencies fixed at one is rejected because
+it is not an estimated contrast. No new fitting support follows from this summary.
+
+Save the calculated answer alongside the fit and its original environment.
+This example creates a new directory and refuses an existing one:
+
+```julia
+using Serialization
+mkdir("contrast-results")
+serialize("contrast-results/ability.jls", answer)
+reopened = deserialize("contrast-results/ability.jls")
+@assert isequal(reopened, answer)
+```
+
+Load only trusted serialization files. This retains the computed answer and
+its source/coordinate metadata; it does not archive the fit or provide portable
+posterior draws. Reopen the native fit in its
+[recorded environment](api-saved-reporting.md#saved-result-reproduction) to
+calculate a different contrast. Existing caches are not changed by this operation.
 
 Positive contrasts mean that the left person has higher ability, the left
 rater is more severe, or the left rater has larger consistency. The consistency
@@ -575,8 +996,11 @@ foundation study's heldout, globally person/dimension-weighted scoring. The
 raw IS-LOO target omits one rating with fixed specification/level maps. Neither
 operation predicts a new person/rater or performs grouped K-fold refits. Returned
 pointwise score SE is not MCMC MCSE, a cluster-adjusted SE or an independent-study
-replication SE. `:hill_smoothed_loo` remains a separate experimental option;
-reference PSIS equivalence is unverified. This example performs no model ranking.
+replication SE. `:hill_smoothed_loo` remains the separate historical approximation.
+The package's common `criteria(..., criteria=(:psis_loo,))` route now supplies
+standard PSIS with chain relative efficiency; see the
+[comparison guide](common_prediction_comparison.md) for diagnostics and limits.
+This older prototype example performs no model ranking.
 
 The normalized-prior walkthrough above provides the earlier fit → diagnostics →
 save/reload → report/figure sequence. Its short run and prior values demonstrate
@@ -828,3 +1252,135 @@ Use an explicit existing-level split with `prediction_refit_plan` before fitting
 training subsets. A saved fit for a different mean profile is rejected when
 scoring a heldout request. Saving/reopening retains numerical warnings; a short
 workflow check is not evidence of convergence or model-selection performance.
+
+### Check a mean-profile contrast in the intended units
+
+After fitting, ask whether rater B is more severe than A. A positive B−A
+difference means B assigns lower scores at otherwise equal conditions.
+Load your saved `profile-fit.jls` in its original Julia/dependency environment.
+The following recipe only reads retained draws; it does not fit again.
+
+The `units=:unit_logit` argument used when preparing the prior specifies the
+input means. It does **not** change the units returned by `posterior_contrast`.
+For this independent D1 model with both coefficients fixed at one, multiply
+the model-coordinate severity difference, interval and MCSE by the likelihood
+constant 1.7 to express them in unit logits. This conversion is not a general
+rule for free coefficients or the ordinary scalar MFRM, which already uses
+unit logits.
+
+```julia
+using BayesianMGMFRM
+restored = load_fit_cache("profile-fit.jls")
+restored isa BayesianMGMFRM.Experimental.NormalizedMGMFRMFit ||
+    error("Use the normalized fixed-one mean-profile fit for this example.")
+meta = fit_metadata(restored)
+(meta.dimensions == 1 && meta.loading_policy === :fixed_one &&
+    meta.rater_consistency === :fixed_one) ||
+    error("This scale conversion requires the D1 fixed-one model.")
+contrast = BayesianMGMFRM.posterior_contrast(restored;
+    left="rater[B]", right="rater[A]", interval=0.95)
+s = contrast.summary
+p = s.precision
+d = s.contrast_diagnostics
+scale = meta.likelihood_scale
+unit_logit = (; mean=scale*s.mean, lower=scale*s.lower, upper=scale*s.upper,
+    mean_mcse=scale*p.mean_mcse,
+    endpoint_mcse=(scale*first(p.quantiles).mcse, scale*last(p.quantiles).mcse))
+
+# Illustrative limits, chosen before fitting; specify suitable limits for your study.
+limits = (; mean_mcse=0.01, endpoint_mcse=0.02) # both in unit logits
+valid = x -> x isa Real && !(x isa Bool) && isfinite(x) && x >= 0
+checks = (;
+    whole_fit=contrast.whole_fit_diagnostics.passed,
+    contrast_diagnostics=d.status === :available &&
+        all(valid, (d.rank_normalized_rhat, d.bulk_ess, d.tail_ess)) &&
+        d.rank_normalized_rhat <= 1.01 && d.bulk_ess >= 400 && d.tail_ess >= 400,
+    mean_mcse=p.mcse_status === :available && valid(unit_logit.mean_mcse) &&
+        unit_logit.mean_mcse <= limits.mean_mcse,
+    endpoint_mcse=p.mcse_status === :available && all(valid, unit_logit.endpoint_mcse) &&
+        all(x -> x <= limits.endpoint_mcse, unit_logit.endpoint_mcse))
+result = (; unit_logit, limits, checks, numerically_qualified=all(values(checks)),
+    warmup=diagnostics(restored).warmup_rows)
+result
+```
+
+One recorded run of the bundled 24-rating artificial example used four chains,
+each with 1,000 warmup and 1,000 retained draws. Its B−A summaries were:
+
+| Quantity | Model coordinates | Unit logits |
+| --- | ---: | ---: |
+| Posterior mean | 0.00337 | 0.00573 |
+| 95% equal-tailed interval | [−0.57811, 0.59519] | [−0.98278, 1.01183] |
+| Mean MCSE | 0.00368 | 0.00625 |
+| Lower-endpoint MCSE | 0.01986 | 0.03376 |
+| Upper-endpoint MCSE | 0.01340 | 0.02278 |
+
+Whole-fit and contrast R-hat/ESS checks passed, but both endpoint MCSEs exceeded
+the declared 0.02 **unit-logit** limit. Comparing the model-coordinate MCSEs
+directly with 0.02 would give the wrong decision. Equivalently, compare those
+MCSEs with `0.02 / 1.7` in model coordinates: both checks still fail. The limits
+are illustrative numerical tolerances, not package defaults or practical
+equivalence margins.
+
+The saved interval spans zero, but the requested endpoint precision was not
+attained. Retain that interval with its numerical limitation; this example
+does not establish a severity direction, rater equivalence or inadequate data
+collection. MCSE describes finite-chain computation, whereas the posterior
+interval describes uncertainty conditional on the data, model and prior.
+There were no retained divergences; all 17 warmup divergences remain in the
+record. This example was not extended to obtain a passing result. It supplies
+no high-category prior recommendation or repeated-study calibration evidence.
+Different recorded environments and controls need their own results; these
+numbers are an illustration, not an exact-output promise for every new run.
+
+## Review saved temporal severity
+
+`examples/fit_rater_drift.jl` also defines a fitting function for caller-supplied
+rows, model options and explicit inference settings. It retains native chains
+and a portable report. Including the example does not start inference;
+see [Rater Drift](rater-drift.md#Fit-and-retain-the-chains) for the full operation
+and original-environment restoration.
+
+`examples/review_saved_rater_drift.jl` accepts an existing RW1 computed JSON
+report, its separately retained SHA-256, a new output path and an optional judge
+ID. It prints reference-relative changes, MCSE and whole-report warnings, then
+saves a portable copy. It never samples or loads native posterior chains.
+See [Rater Drift](rater-drift.md) for input conventions, figures and interpretation.
+
+`examples/compare_saved_rater_drift.jl` compares matched static/RW1 computed
+reports using their separately retained SHA-256 receipts. It preserves both
+source reports, location/trajectory numerical warnings and the static
+structural-zero interpretation. No sampling or model selection is performed.
+
+## Read a saved three-outcome report
+
+For input inspection first, use `examples/three_indicator_input.jl` and the
+[labelled-input recipe](data-validation.md#three-outcome-input). The bundled
+165-event synthetic input illustrates the format and block-reset history;
+it does not establish adequate sample size or model validity.
+
+For an existing accentedness/comprehension/transcription report, follow
+[the saved-results recipe](api-saved-reporting.md#three-outcome-saved-reports).
+The package-only `examples/saved_three_indicator_report.jl` reads the named
+panel and contrasts, preserves numerical/comparison warnings and optionally
+saves a portable copy. Supply the original JSON files and their separately
+retained SHA-256 receipts. This example does not fit the three-outcome model.
+
+
+## Prepare a three-outcome fit
+
+[`three_indicator_fit.jl`](fitting.md#three-outcome-fitting) prepares the bundled
+artificial input with an explicit reference prior, settings and named focal
+quantities. It does not start inference on inclusion or preparation. Call
+`Experimental.ThreeIndicator.fit` explicitly to fit and preserve native results;
+follow the fitting guide for diagnostics, warnings and restoration limits.
+
+## Observed-group rater effects
+
+`examples/rater_group_effects.jl` fits one saved simulated allocation or reviews
+a saved fit. It prints within-group gaps and their between-group change
+separately, and writes `assessment.json` with explicit numerical limits, failures
+and unavailable precision. Follow [group effects](rater-group-effects.md) for the model, prior,
+contrast and limitations. The example is not evidence of population fairness.
+
+The [three-trait guide](correlated-3d.md) shows explicit generation and fitting. `examples/correlated_3d_saved.jl` reopens a trusted saved fit in its original environment without generating or fitting.

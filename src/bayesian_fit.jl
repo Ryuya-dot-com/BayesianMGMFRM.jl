@@ -10,7 +10,9 @@ import JSON3
 import LogDensityProblems
 import LogDensityProblemsAD
 import MCMCDiagnosticTools
-import Turing
+import Distributions
+import SpecialFunctions
+import QuadGK
 
 const LOG2PI_BAYES = log(2 * pi)
 
@@ -1283,6 +1285,10 @@ route and its model-specific priors and restrictions; see
 Fit a Bayesian MFRM with rating-scale or partial-credit thresholds using the selected
 backend. `backend = :julia` uses a random-walk Metropolis kernel,
 `backend = :advancedhmc` uses AdvancedHMC/NUTS directly, and
+The Turing backend is optional: install it in the analysis environment with
+`Pkg.add("Turing")`, then run `import Turing` before fitting. Core operations and
+saved result types do not require loading Turing.
+
 `backend = :turing` wraps the same `MFRMLogDensity` target in a Turing/NUTS
 model. `backend = :cmdstan` compiles the package-owned stable MFRM Stan model,
 runs CmdStan's NUTS command-line interface, and converts its retained draws and
@@ -1305,6 +1311,11 @@ Their CmdStan adapters sample the same raw-coordinate targets, apply the Julia
 direct-parameter transforms, and check generated pointwise log likelihoods
 against Julia at every retained draw. MGMFRM remains limited to its fixed-Q,
 identity-correlation confirmatory contract.
+
+For structured chain/phase counts and a compact overall bar, pass
+`progress = SamplingProgress()` to AdvancedHMC. Read [`progress_snapshot`](@ref)
+or select a new JSON path in the monitor. Completion counts transitions, not
+convergence or saving; Boolean progress retains the original backend display.
 
 The AdvancedHMC backend accepts `ad_backend = :ForwardDiff` by default.
 `ad_backend = :ReverseDiff` can be used when the corresponding AD package is
@@ -1332,6 +1343,11 @@ and `MFRMPrior` priors for generalized raw-coordinate fits are rejected before
 compilation or cache lookup. Guarded generalized fits accept
 `BayesianMGMFRM.Experimental.GeneralizedPrior`; its scales apply only to raw
 unconstrained coordinates.
+`chain_execution=:threads` enables bounded parallel chains for AdvancedHMC;
+`max_parallel_chains` defaults to `chains`. Threaded mode uses recorded independent
+chain seeds and preserves draws across worker caps in the same environment.
+Its RNG partition differs from the default `:serial` mode, whose stream is unchanged.
+Progress aggregates all chains. See the fitting guide for memory and backend limits.
 """
 function fit(design::FacetDesign;
         prior::MFRMPrior = MFRMPrior(),
@@ -1349,10 +1365,14 @@ function fit(design::FacetDesign;
         metric::Symbol = :diagonal,
         ad_backend::Symbol = :ForwardDiff,
         init_jitter::Real = 0.0,
-        progress::Bool = false,
+        progress::Union{Bool,SamplingProgress} = false,
+        chain_execution::Symbol = :serial,
+        max_parallel_chains::Int = chains,
         cmdstan_path::Union{Nothing,AbstractString} = nothing,
         cmdstan_cache_dir::Union{Nothing,AbstractString} = nothing,
         _on_enter = nothing)
+    _check_sampling_progress(progress, backend)
+    _check_chain_execution(chain_execution, max_parallel_chains, backend)
     # Private synchronous observation boundary; entry is not sampler startup.
     _reject_mfrm_fixed_q_fit(design.spec, "fit")
     _on_enter === nothing || _on_enter()
@@ -1380,7 +1400,7 @@ function fit(design::FacetDesign;
             metric,
             ad_backend,
             init_jitter,
-            progress)
+            progress, chain_execution, max_parallel_chains)
     elseif backend === :turing
         return _fit_turing(execution_design, prior, ndraws, warmup, chains,
             Float64(step_size), initial, fit_rng, rng_control;
@@ -1558,6 +1578,33 @@ function _advancedhmc_metric(metric::Symbol, nparams::Int)
     throw(ArgumentError("metric must be :diagonal, :unit, or :dense"))
 end
 
+# Inspect the same stock adaptor used by the generalized runner; do not infer
+# metric learning merely from a requested diagonal/dense metric or warmup > 0.
+_advancedhmc_adaptor(metric, integrator, target_accept, warmup) = warmup > 0 ?
+    AdvancedHMC.StanHMCAdaptor(AdvancedHMC.MassMatrixAdaptor(metric),
+        AdvancedHMC.StepSizeAdaptor(Float64(target_accept), integrator)) :
+    AdvancedHMC.NoAdaptation()
+
+function _advancedhmc_adaptation_plan(warmup::Int, metric::Symbol)
+    warmup >= 0 || throw(ArgumentError("warmup must be nonnegative"))
+    m = _advancedhmc_metric(metric, 1)
+    a = _advancedhmc_adaptor(m, AdvancedHMC.Leapfrog(.03), .8, warmup)
+    if warmup > 0
+        AdvancedHMC.Adaptation.initialize!(a, warmup)
+    end
+    updates = warmup > 0 && metric !== :unit ? copy(a.state.window_splits) : Int[]
+    warnings = metric !== :unit && isempty(updates) ?
+        ["No mass-matrix learning is scheduled; the initial identity metric is retained. A diagonal/dense request alone does not imply learned scales."] : String[]
+    (; backend=:advancedhmc, version=string(Base.pkgversion(AdvancedHMC)), metric,
+        warmup, step_size_adaptation=warmup>0, mass_matrix_adaptation=!isempty(updates),
+        initial_buffer=warmup>0 ? a.init_buffer : nothing,
+        terminal_buffer=warmup>0 ? a.term_buffer : nothing,
+        initial_window=warmup>0 ? a.window_size : nothing,
+        window_start=warmup>0 ? a.state.window_start : nothing,
+        window_end=warmup>0 ? a.state.window_end : nothing,
+        scheduled_metric_updates=updates, warnings)
+end
+
 function _advancedhmc_initial(initial::Vector{Float64},
         rng::AbstractRNG,
         init_jitter::Float64)
@@ -1701,13 +1748,6 @@ function _store_sampler_draw!(draws::Matrix{Float64}, logps::Vector{Float64},
     return nothing
 end
 
-Turing.@model function _turing_mfrm_logdensity_model(target::MFRMLogDensity,
-        nparams::Int)
-    params ~ Turing.filldist(Turing.Flat(), nparams)
-    Turing.@addlogprob! LogDensityProblems.logdensity(target, params)
-    return params
-end
-
 function _turing_metric_type(metric::Symbol)
     metric === :diagonal && return AdvancedHMC.DiagEuclideanMetric
     metric === :unit && return AdvancedHMC.UnitEuclideanMetric
@@ -1715,8 +1755,8 @@ function _turing_metric_type(metric::Symbol)
     throw(ArgumentError("metric must be :diagonal, :unit, or :dense"))
 end
 
-function _turing_adtype(ad_backend::Symbol)
-    ad_backend === :ForwardDiff && return Turing.AutoForwardDiff()
+function _check_turing_ad_backend(ad_backend::Symbol)
+    ad_backend === :ForwardDiff && return nothing
     ad_backend === :ReverseDiff &&
         throw(ArgumentError("ad_backend = :ReverseDiff is not supported for backend = :turing"))
     ad_backend === :analytic &&
@@ -1724,125 +1764,14 @@ function _turing_adtype(ad_backend::Symbol)
     throw(ArgumentError("ad_backend must be :ForwardDiff for backend = :turing"))
 end
 
-function _turing_params(transition, nparams::Int)
-    values = getproperty(transition, :params)[Turing.@varname(params)]
-    length(values) == nparams ||
-        throw(ArgumentError("Turing returned $(length(values)) parameter(s); expected $nparams"))
-    return values
-end
-
-# Turing returns the initial state before its first transition. Exclude it as
-# well as every adapting transition from the retained posterior draws.
+# Keep cache scheduling independent of whether the optional sampler is loaded.
 _turing_discard_initial(warmup::Int) = warmup + 1
 
-function _fit_turing(design::FacetDesign,
-        prior::MFRMPrior,
-        ndraws::Int,
-        warmup::Int,
-        chains::Int,
-        step::Float64,
-        initial::Vector{Float64},
-        rng::AbstractRNG,
-        rng_control::NamedTuple;
-        target_accept::Real,
-        max_depth::Int,
-        max_energy_error::Real,
-        metric::Symbol,
-        ad_backend::Symbol,
-        init_jitter::Real,
-        progress::Bool,
-        record_warmup::Bool = false)
-    target_accept, max_energy_error, init_jitter =
-        _check_nuts_controls(target_accept, max_depth, max_energy_error, init_jitter)
-
-    nparams = length(design.parameter_names)
-    nparams >= 1 || throw(ArgumentError("at least one parameter is required for Turing fitting"))
-    adtype = _turing_adtype(ad_backend)
-    metric_type = _turing_metric_type(metric)
-    total_draws = ndraws * chains
-    draws = Matrix{Float64}(undef, total_draws, nparams)
-    logps = Vector{Float64}(undef, total_draws)
-    chain_ids = Vector{Int}(undef, total_draws)
-    iterations = Vector{Int}(undef, total_draws)
-    chain_acceptance = Vector{Float64}(undef, chains)
-    sampler_stats = NamedTuple[]
-    warmup_stats = record_warmup ? NamedTuple[] : nothing
-    offset = record_warmup ? warmup : 0
-    target = MFRMLogDensity(design; prior)
-    model = _turing_mfrm_logdensity_model(target, nparams)
-    sampler = Turing.NUTS(warmup, Float64(target_accept), max_depth,
-        Float64(max_energy_error), step, metric_type; adtype)
-    discard_initial = _turing_discard_initial(warmup)
-    controls = (;
-        ndraws,
-        warmup,
-        chains,
-        step_size = step,
-        target_accept = Float64(target_accept),
-        max_depth,
-        max_energy_error = Float64(max_energy_error),
-        metric,
-        ad_backend,
-        gradient_backend = :ad,
-        rng = rng_control,
-        init_jitter = Float64(init_jitter),
-        turing_model = :mfrm_logdensity_flat_parameter_model,
-        chain_type = :raw_transitions,
-        nadapts = warmup,
-        discard_initial,
-    )
-
-    for chain in 1:chains
-        chain_initial = _with_sampler_context(:turing, chain, :initialization) do
-            values = _advancedhmc_initial(initial, rng, Float64(init_jitter))
-            current_lp = logposterior(design, values, prior)
-            isfinite(current_lp) || throw(ArgumentError("initial parameter vector has non-finite log posterior"))
-            values
-        end
-        transitions = _with_sampler_context(:turing, chain, :sampling) do
-            Turing.sample(
-                rng,
-                model,
-                sampler,
-                ndraws + offset;
-                num_warmup = warmup,
-                discard_initial = discard_initial - offset,
-                progress,
-                verbose = false,
-                initial_params = Turing.InitFromParams((params = copy(chain_initial),)),
-                chain_type = Any,
-            )
-        end
-        _with_sampler_context(:turing, chain, :output_validation) do
-            expected = ndraws + offset
-            length(transitions) == expected ||
-                throw(ArgumentError("Turing returned $(length(transitions)) draw(s); expected $expected"))
-            # Turing omits is_adapt from its statistics. NUTS(warmup, ...) makes
-            # these first transitions adapting; the initial state was discarded.
-            # ponytail: buffer warmup transitions per chain; stream them if memory becomes a measured limit.
-            for iteration in 1:offset
-                push!(warmup_stats, _warmup_stat_row(
-                    merge(transitions[iteration].stats, (; is_adapt = true)), chain, iteration))
-            end
-            chain_stats = NamedTuple[]
-            for iteration in 1:ndraws
-                row = (chain - 1) * ndraws + iteration
-                values = _turing_params(transitions[offset + iteration], nparams)
-                stat_row = _advancedhmc_stat_row(transitions[offset + iteration].stats, chain, iteration)
-                _store_sampler_draw!(draws, logps, values, stat_row, row)
-                chain_ids[row] = chain
-                iterations[row] = iteration
-                push!(chain_stats, stat_row)
-                push!(sampler_stats, stat_row)
-            end
-            chain_acceptance[chain] = _stat_mean(chain_stats, :acceptance_rate)
-        end
-    end
-
-    return MFRMFit(design, prior, draws, logps, _column_mean(chain_acceptance),
-        chain_ids, iterations, chain_acceptance, :turing, :nuts, warmup,
-        _stat_mean(sampler_stats, :step_size), sampler_stats,
-        _with_warmup_diagnostics(controls, warmup_stats, :turing))
+function _fit_turing(args...; kwargs...)
+    extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMTuringExt)
+    extension === nothing && throw(ArgumentError(
+        "backend = :turing requires `import Turing` before fitting. If needed, install the optional package with `Pkg.add(\"Turing\")` in your analysis environment."))
+    return extension.fit_turing(args...; kwargs...)
 end
 
 function _stat_mean(rows, field::Symbol)
@@ -1871,8 +1800,10 @@ function _fit_advancedhmc(design::FacetDesign,
         metric::Symbol,
         ad_backend::Symbol,
         init_jitter::Real,
-        progress::Bool,
-        record_warmup::Bool = false)
+        progress::Union{Bool,SamplingProgress},
+        record_warmup::Bool = false,
+        chain_execution::Symbol = :serial,
+        max_parallel_chains::Int = chains)
     target_accept, max_energy_error, init_jitter =
         _check_nuts_controls(target_accept, max_depth, max_energy_error, init_jitter)
     gradient_backend = _gradient_backend_kind(ad_backend)
@@ -1885,8 +1816,8 @@ function _fit_advancedhmc(design::FacetDesign,
     chain_ids = Vector{Int}(undef, total_draws)
     iterations = Vector{Int}(undef, total_draws)
     chain_acceptance = Vector{Float64}(undef, chains)
-    sampler_stats = NamedTuple[]
-    warmup_stats = record_warmup ? NamedTuple[] : nothing
+    stats_by_chain = [NamedTuple[] for _ in 1:chains]
+    warmup_by_chain = record_warmup ? [NamedTuple[] for _ in 1:chains] : nothing
     target = MFRMLogDensity(design; prior)
     controls = (;
         ndraws,
@@ -1903,70 +1834,81 @@ function _fit_advancedhmc(design::FacetDesign,
         init_jitter = Float64(init_jitter),
     )
 
-    for chain in 1:chains
-        chain_initial = _with_sampler_context(:advancedhmc, chain, :initialization) do
-            values = _advancedhmc_initial(initial, rng, Float64(init_jitter))
-            current_lp = logposterior(design, values, prior)
-            isfinite(current_lp) || throw(ArgumentError("initial parameter vector has non-finite log posterior"))
-            values
-        end
-        gradient_target = _with_sampler_context(:advancedhmc, chain, :initialization) do
-            _logdensity_gradient_target(target, chain_initial, ad_backend).target
-        end
-        metric_object = _advancedhmc_metric(metric, nparams)
-        hamiltonian = AdvancedHMC.Hamiltonian(
-            metric_object,
-            x -> LogDensityProblems.logdensity(gradient_target, x),
-            x -> LogDensityProblems.logdensity_and_gradient(gradient_target, x),
-        )
-        integrator = AdvancedHMC.Leapfrog(step)
-        kernel = AdvancedHMC.HMCKernel(AdvancedHMC.Trajectory{AdvancedHMC.MultinomialTS}(
-            integrator,
-            AdvancedHMC.GeneralisedNoUTurn(max_depth, Float64(max_energy_error)),
-        ))
-        adaptor = warmup > 0 ?
-            AdvancedHMC.StanHMCAdaptor(
-                AdvancedHMC.MassMatrixAdaptor(metric_object),
-                AdvancedHMC.StepSizeAdaptor(Float64(target_accept), integrator),
-            ) :
-            AdvancedHMC.NoAdaptation()
-        samples, stats = _with_sampler_context(:advancedhmc, chain, :sampling) do
-            AdvancedHMC.sample(
-                rng,
-                hamiltonian,
-                kernel,
-                chain_initial,
-                warmup + ndraws,
-                adaptor,
-                warmup;
-                drop_warmup = warmup > 0 && !record_warmup,
-                verbose = false,
-                progress,
+    schedule = _sampling_chain_schedule(rng, chains, chain_execution, max_parallel_chains)
+    controls = merge(controls, schedule.metadata)
+    progress = _threaded_progress(progress, chain_execution)
+    observer_guard = ReentrantLock()
+    _with_sampling_progress(progress, chains, warmup, ndraws) do
+        _foreach_sampling_chain(schedule, chains, rng) do chain, chain_rng, cancelled
+            chain_target = chain_execution === :threads ? deepcopy(target) : target
+            _progress_chain!(progress, chain, warmup, ndraws)
+            chain_initial = _with_sampler_context(:advancedhmc, chain, :initialization) do
+                values = _advancedhmc_initial(initial, chain_rng, Float64(init_jitter))
+                current_lp = logposterior(design, values, prior)
+                isfinite(current_lp) || throw(ArgumentError("initial parameter vector has non-finite log posterior"))
+                values
+            end
+            gradient_target = _with_sampler_context(:advancedhmc, chain, :initialization) do
+                _logdensity_gradient_target(chain_target, chain_initial, ad_backend).target
+            end
+            metric_object = _advancedhmc_metric(metric, nparams)
+            hamiltonian = AdvancedHMC.Hamiltonian(
+                metric_object,
+                x -> LogDensityProblems.logdensity(gradient_target, x),
+                x -> LogDensityProblems.logdensity_and_gradient(gradient_target, x),
             )
-        end
-        _with_sampler_context(:advancedhmc, chain, :output_validation) do
-            offset = record_warmup ? warmup : 0
-            expected = ndraws + offset
-            length(samples) == expected ||
-                throw(ArgumentError("chain $chain: AdvancedHMC returned $(length(samples)) draw(s); expected $expected"))
-            length(stats) == expected ||
-                throw(ArgumentError("chain $chain: AdvancedHMC returned $(length(stats)) sampler-stat row(s); expected $expected"))
-            for iteration in 1:offset
-                push!(warmup_stats, _warmup_stat_row(stats[iteration], chain, iteration))
+            integrator = AdvancedHMC.Leapfrog(step)
+            kernel = AdvancedHMC.HMCKernel(AdvancedHMC.Trajectory{AdvancedHMC.MultinomialTS}(
+                integrator,
+                AdvancedHMC.GeneralisedNoUTurn(max_depth, Float64(max_energy_error)),
+            ))
+            adaptor = warmup > 0 ?
+                AdvancedHMC.StanHMCAdaptor(
+                    AdvancedHMC.MassMatrixAdaptor(metric_object),
+                    AdvancedHMC.StepSizeAdaptor(Float64(target_accept), integrator),
+                ) :
+                AdvancedHMC.NoAdaptation()
+            samples, stats = _with_sampler_context(:advancedhmc, chain, :sampling) do
+                AdvancedHMC.sample(
+                    chain_rng,
+                    hamiltonian,
+                    kernel,
+                    chain_initial,
+                    warmup + ndraws,
+                    adaptor,
+                    warmup;
+                    drop_warmup = warmup > 0 && !record_warmup,
+                    verbose = false,
+                    _advancedhmc_progress_options(progress, chain, warmup, ndraws,
+                        _sampling_chain_observer(nothing, cancelled, observer_guard))...,
+                )
             end
-            chain_stats = NamedTuple[]
-            for iteration in 1:ndraws
-                row = (chain - 1) * ndraws + iteration
-                stat_row = _advancedhmc_stat_row(stats[offset + iteration], chain, iteration)
-                _store_sampler_draw!(draws, logps, samples[offset + iteration], stat_row, row)
-                chain_ids[row] = chain
-                iterations[row] = iteration
-                push!(chain_stats, stat_row)
-                push!(sampler_stats, stat_row)
+            _with_sampler_context(:advancedhmc, chain, :output_validation) do
+                offset = record_warmup ? warmup : 0
+                expected = ndraws + offset
+                length(samples) == expected ||
+                    throw(ArgumentError("chain $chain: AdvancedHMC returned $(length(samples)) draw(s); expected $expected"))
+                length(stats) == expected ||
+                    throw(ArgumentError("chain $chain: AdvancedHMC returned $(length(stats)) sampler-stat row(s); expected $expected"))
+                for iteration in 1:offset
+                    push!(warmup_by_chain[chain], _warmup_stat_row(stats[iteration], chain, iteration))
+                end
+                chain_stats = stats_by_chain[chain]
+                for iteration in 1:ndraws
+                    row = (chain - 1) * ndraws + iteration
+                    stat_row = _advancedhmc_stat_row(stats[offset + iteration], chain, iteration)
+                    _store_sampler_draw!(draws, logps, samples[offset + iteration], stat_row, row)
+                    chain_ids[row] = chain
+                    iterations[row] = iteration
+                    push!(chain_stats, stat_row)
+                end
+                chain_acceptance[chain] = _stat_mean(chain_stats, :acceptance_rate)
             end
-            chain_acceptance[chain] = _stat_mean(chain_stats, :acceptance_rate)
         end
     end
+
+    sampler_stats = reduce(vcat, stats_by_chain)
+    warmup_stats = record_warmup ? reduce(vcat, warmup_by_chain) : nothing
 
     return MFRMFit(design, prior, draws, logps, _column_mean(chain_acceptance),
         chain_ids, iterations, chain_acceptance, :advancedhmc, :nuts, warmup,
@@ -2099,9 +2041,9 @@ function _rhat_and_ess(values::Array{Float64,3}, param::Int)
 
     var_plus = ((niterations - 1) / niterations) * W + B / niterations
     rhat = sqrt(max(var_plus / W, 0.0))
-    autocorrelations = Float64[]
-    max_lag = niterations - 1
-    for lag in 1:max_lag
+    # Later lag pairs cannot contribute after the first nonpositive pair.
+    # Keep each covariance and pair sum in the original arithmetic order.
+    function autocorrelation(lag)
         autocov = 0.0
         for chain in 1:nchains
             mean_value = chain_means[chain]
@@ -2112,16 +2054,18 @@ function _rhat_and_ess(values::Array{Float64,3}, param::Int)
             end
             autocov += s / (niterations - 1)
         end
-        push!(autocorrelations, autocov / (nchains * W))
+        return autocov / (nchains * W)
     end
     positive_sum = 0.0
+    max_lag = niterations - 1
     lag = 1
-    while lag <= length(autocorrelations)
-        if lag == length(autocorrelations)
-            autocorrelations[lag] > 0 && (positive_sum += autocorrelations[lag])
+    while lag <= max_lag
+        first = autocorrelation(lag)
+        if lag == max_lag
+            first > 0 && (positive_sum += first)
             break
         end
-        pair_sum = autocorrelations[lag] + autocorrelations[lag + 1]
+        pair_sum = first + autocorrelation(lag + 1)
         pair_sum > 0 || break
         positive_sum += pair_sum
         lag += 2
@@ -2309,8 +2253,9 @@ function _mcmc_parameter_metrics(
     original_iterations, original_chains, _ = size(values)
     actual_split = split_chains && original_chains >= 2 &&
         original_iterations >= 4
-    classical_values = actual_split ? _split_chain_array(values) : values
-    classical = _rhat_and_ess(classical_values, param)
+    # Copy only this parameter; copying the entire cube here scales quadratically.
+    classical_values = actual_split ? _split_chain_array(values[:, :, param:param]) : values
+    classical = _rhat_and_ess(classical_values, actual_split ? 1 : param)
     modern = _rank_normalized_rhat_bulk_tail_ess(
         values,
         param;
@@ -2373,11 +2318,10 @@ function _candidate_mcmc_diagnostic_rows(draws::AbstractMatrix{<:Real},
     original_iterations, original_chains, nparams = size(values)
     length(parameter_names) == nparams ||
         throw(ArgumentError("parameter name count does not match draw columns"))
-    diagnostic_values = split_chains && original_chains >= 2 ?
-        _split_chain_array(values) :
-        values
-    diagnostic_iterations, diagnostic_chains, _ = size(diagnostic_values)
     actual_split = split_chains && original_chains >= 2 && original_iterations >= 4
+    # Metrics split one parameter at a time; only the full split's shape is needed here.
+    diagnostic_iterations = actual_split ? div(original_iterations, 2) : original_iterations
+    diagnostic_chains = actual_split ? 2 * original_chains : original_chains
     rows = NamedTuple[]
     for param in 1:nparams
         parameter = parameter_names[param]
@@ -2807,7 +2751,7 @@ end
 
 function _mgmfrm_guarded_local_fit_direct_draw_values(
         target::_MGMFRMGuardedLocalFitLogDensity,
-        raw_draws::AbstractMatrix{<:Real})
+        raw_draws::AbstractMatrix{<:Real}; store_pointwise::Bool = true)
     # Rebuild once per call so changes to the owned design are rechecked.
     blueprint = _mgmfrm_source_unconstrained_blueprint(target.design)
     loading_indices = _mgmfrm_source_loading_index_matrix(target.design)
@@ -2815,21 +2759,27 @@ function _mgmfrm_guarded_local_fit_direct_draw_values(
     n_direct = length(target.blueprint.constrained_parameter_names)
     n_observations = target.design.spec.data.n
     direct_draws = Matrix{Float64}(undef, n_draws, n_direct)
-    pointwise = Matrix{Float64}(undef, n_draws, n_observations)
+    pointwise = store_pointwise ? Matrix{Float64}(undef, n_draws, n_observations) : nothing
+    n_nonfinite_pointwise = 0
     loglikelihood = Vector{Float64}(undef, n_draws)
     for draw in 1:n_draws
         raw = collect(@view raw_draws[draw, :])
         direct = _mgmfrm_source_constrained_params_from_unconstrained(target.design, raw, blueprint)
         direct_pointwise = _mgmfrm_source_pointwise_loglikelihood(target.design, direct, loading_indices)
         direct_draws[draw, :] .= direct
-        pointwise[draw, :] .= direct_pointwise
+        if store_pointwise
+            pointwise[draw, :] .= direct_pointwise
+        else
+            n_nonfinite_pointwise += count(!isfinite, direct_pointwise)
+        end
         loglikelihood[draw] = sum(direct_pointwise; init = 0.0)
     end
-    return (;
+    values = (;
         direct_draws,
         pointwise_loglikelihood = pointwise,
         loglikelihood,
     )
+    return store_pointwise ? values : merge(values, (; n_nonfinite_pointwise))
 end
 
 function _mgmfrm_guarded_local_fit_direct_draw_constraint_rows(
@@ -3125,8 +3075,10 @@ function _run_generalized_candidate_advancedhmc(
         split_chains::Bool = true,
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400,
-        progress::Bool = false,
+        progress::Union{Bool,SamplingProgress} = false,
         record_warmup::Bool = false,
+        chain_execution::Symbol = :serial,
+        max_parallel_chains::Int = chains,
         _sampling_observer = nothing,
         _initial_transform = identity)
     _sampling_observer === nothing || _sampling_observer isa Function ||
@@ -3153,8 +3105,8 @@ function _run_generalized_candidate_advancedhmc(
     chain_ids = Vector{Int}(undef, total_draws)
     iterations = Vector{Int}(undef, total_draws)
     chain_acceptance = Vector{Float64}(undef, chains)
-    sampler_stats = NamedTuple[]
-    warmup_stats = record_warmup ? NamedTuple[] : nothing
+    stats_by_chain = [NamedTuple[] for _ in 1:chains]
+    warmup_by_chain = record_warmup ? [NamedTuple[] for _ in 1:chains] : nothing
     controls = (;
         ndraws,
         warmup,
@@ -3170,96 +3122,93 @@ function _run_generalized_candidate_advancedhmc(
         init_jitter = Float64(init_jitter),
     )
 
-    for chain in 1:chains
-        chain_raw_initial, chain_initial = _with_sampler_context(:advancedhmc, chain, :initialization) do
-            raw_values = _advancedhmc_initial(
-                initialization_coordinates, fit_rng, Float64(init_jitter))
-            values = _initial_transform(raw_values)
-            chain_logdensity = LogDensityProblems.logdensity(target, values)
-            isfinite(chain_logdensity) ||
-                throw(ArgumentError("chain $chain initial raw parameter vector has non-finite log density"))
-            (raw_values, values)
-        end
-        gradient_target = _with_sampler_context(:advancedhmc, chain, :initialization) do
-            _logdensity_gradient_target(target, chain_initial, ad_backend).target
-        end
-        metric_object = _advancedhmc_metric(metric, nparams)
-        hamiltonian = AdvancedHMC.Hamiltonian(
-            metric_object,
-            x -> LogDensityProblems.logdensity(gradient_target, x),
-            x -> LogDensityProblems.logdensity_and_gradient(gradient_target, x),
-        )
-        integrator = AdvancedHMC.Leapfrog(Float64(step_size))
-        kernel = AdvancedHMC.HMCKernel(
-            AdvancedHMC.Trajectory{AdvancedHMC.MultinomialTS}(
-                integrator,
-                AdvancedHMC.GeneralisedNoUTurn(
-                    max_depth,
-                    Float64(max_energy_error),
-                ),
-            ),
-        )
-        adaptor = warmup > 0 ?
-            AdvancedHMC.StanHMCAdaptor(
-                AdvancedHMC.MassMatrixAdaptor(metric_object),
-                AdvancedHMC.StepSizeAdaptor(Float64(target_accept), integrator),
-            ) :
-            AdvancedHMC.NoAdaptation()
-        samples, stats = _with_sampler_context(:advancedhmc, chain, :sampling) do
-            # Private observation hook: reuse AdvancedHMC's iteration notification,
-            # preserving its sampler/adaptation loop and the saved run schema.
-            options = if _sampling_observer === nothing
-                (; progress)
-            else
-                notify = function(pm, stat)
-                    _sampling_observer((; phase = :transition, chain, stat))
-                    progress && AdvancedHMC.pm_next!(pm, stat)
-                    return nothing
-                end
-                _sampling_observer((; phase = :sampling_start, chain,
-                    initial_raw = copy(chain_raw_initial),
-                    initial_sampling = copy(chain_initial),
-                    metric = deepcopy(metric_object), controls))
-                (; progress = true, pm_next! = notify)
+    schedule = _sampling_chain_schedule(fit_rng, chains, chain_execution, max_parallel_chains)
+    controls = merge(controls, schedule.metadata,
+        (; adaptation_plan=_advancedhmc_adaptation_plan(warmup, metric)))
+    progress = _threaded_progress(progress, chain_execution)
+    observer_guard = ReentrantLock()
+    _with_sampling_progress(progress, chains, warmup, ndraws) do
+        _foreach_sampling_chain(schedule, chains, fit_rng) do chain, chain_rng, cancelled
+            chain_target = chain_execution === :threads ? deepcopy(target) : target
+            _progress_chain!(progress, chain, warmup, ndraws)
+            chain_raw_initial, chain_initial = _with_sampler_context(:advancedhmc, chain, :initialization) do
+                raw_values = _advancedhmc_initial(
+                    initialization_coordinates, chain_rng, Float64(init_jitter))
+                values = _initial_transform(raw_values)
+                chain_logdensity = LogDensityProblems.logdensity(chain_target, values)
+                isfinite(chain_logdensity) ||
+                    throw(ArgumentError("chain $chain initial raw parameter vector has non-finite log density"))
+                (raw_values, values)
             end
-            result = AdvancedHMC.sample(
-                fit_rng,
-                hamiltonian,
-                kernel,
-                chain_initial,
-                warmup + ndraws,
-                adaptor,
-                warmup;
-                drop_warmup = warmup > 0 && !record_warmup,
-                verbose = false,
-                options...,
+            gradient_target = _with_sampler_context(:advancedhmc, chain, :initialization) do
+                _logdensity_gradient_target(chain_target, chain_initial, ad_backend).target
+            end
+            metric_object = _advancedhmc_metric(metric, nparams)
+            hamiltonian = AdvancedHMC.Hamiltonian(
+                metric_object,
+                x -> LogDensityProblems.logdensity(gradient_target, x),
+                x -> LogDensityProblems.logdensity_and_gradient(gradient_target, x),
             )
-            _sampling_observer === nothing || _sampling_observer((; phase = :sampling_end, chain))
-            result
-        end
-        _with_sampler_context(:advancedhmc, chain, :output_validation) do
-            offset = record_warmup ? warmup : 0
-            expected = ndraws + offset
-            length(samples) == expected ||
-                throw(ArgumentError("chain $chain: AdvancedHMC returned $(length(samples)) draw(s); expected $expected"))
-            length(stats) == expected ||
-                throw(ArgumentError("chain $chain: AdvancedHMC returned $(length(stats)) sampler-stat row(s); expected $expected"))
-            for iteration in 1:offset
-                push!(warmup_stats, _warmup_stat_row(stats[iteration], chain, iteration))
+            integrator = AdvancedHMC.Leapfrog(Float64(step_size))
+            kernel = AdvancedHMC.HMCKernel(
+                AdvancedHMC.Trajectory{AdvancedHMC.MultinomialTS}(
+                    integrator,
+                    AdvancedHMC.GeneralisedNoUTurn(
+                        max_depth,
+                        Float64(max_energy_error),
+                    ),
+                ),
+            )
+            adaptor = _advancedhmc_adaptor(metric_object, integrator, target_accept, warmup)
+            samples, stats = _with_sampler_context(:advancedhmc, chain, :sampling) do
+                # Private observation hook: reuse AdvancedHMC's iteration notification,
+                # preserving its sampler/adaptation loop and the saved run schema.
+                observer = _sampling_chain_observer(_sampling_observer, cancelled, observer_guard)
+                options = _advancedhmc_progress_options(progress, chain, warmup, ndraws, observer)
+                observer === nothing || observer((; phase = :sampling_start, chain,
+                    initial_raw = copy(chain_raw_initial), initial_sampling = copy(chain_initial),
+                    metric = deepcopy(metric_object), controls))
+                result = AdvancedHMC.sample(
+                    chain_rng,
+                    hamiltonian,
+                    kernel,
+                    chain_initial,
+                    warmup + ndraws,
+                    adaptor,
+                    warmup;
+                    drop_warmup = warmup > 0 && !record_warmup,
+                    verbose = false,
+                    options...,
+                )
+                observer === nothing || observer((; phase = :sampling_end, chain))
+                result
             end
-            chain_stats = NamedTuple[]
-            for iteration in 1:ndraws
-                row = (chain - 1) * ndraws + iteration
-                stat_row = _advancedhmc_stat_row(stats[offset + iteration], chain, iteration)
-                _store_sampler_draw!(draws, logdensities, samples[offset + iteration], stat_row, row)
-                chain_ids[row] = chain
-                iterations[row] = iteration
-                push!(chain_stats, stat_row)
-                push!(sampler_stats, stat_row)
+            _with_sampler_context(:advancedhmc, chain, :output_validation) do
+                offset = record_warmup ? warmup : 0
+                expected = ndraws + offset
+                length(samples) == expected ||
+                    throw(ArgumentError("chain $chain: AdvancedHMC returned $(length(samples)) draw(s); expected $expected"))
+                length(stats) == expected ||
+                    throw(ArgumentError("chain $chain: AdvancedHMC returned $(length(stats)) sampler-stat row(s); expected $expected"))
+                for iteration in 1:offset
+                    push!(warmup_by_chain[chain], _warmup_stat_row(stats[iteration], chain, iteration))
+                end
+                chain_stats = stats_by_chain[chain]
+                for iteration in 1:ndraws
+                    row = (chain - 1) * ndraws + iteration
+                    stat_row = _advancedhmc_stat_row(stats[offset + iteration], chain, iteration)
+                    _store_sampler_draw!(draws, logdensities, samples[offset + iteration], stat_row, row)
+                    chain_ids[row] = chain
+                    iterations[row] = iteration
+                    push!(chain_stats, stat_row)
+                end
+                chain_acceptance[chain] = _stat_mean(chain_stats, :acceptance_rate)
             end
-            chain_acceptance[chain] = _stat_mean(chain_stats, :acceptance_rate)
         end
     end
+
+    sampler_stats = reduce(vcat, stats_by_chain)
+    warmup_stats = record_warmup ? reduce(vcat, warmup_by_chain) : nothing
 
     sampler_rows = _generalized_candidate_sampler_rows(
         logdensities,
@@ -3323,7 +3272,8 @@ end
 
 # The caller supplies the complete coordinate layout, including any extra
 # population parameters. Reconstruction remains target-specific.
-function _generalized_candidate_diagnostic_tables(target, run::NamedTuple, blueprint)
+function _generalized_candidate_diagnostic_tables(target, run::NamedTuple, blueprint;
+        direct_values = nothing)
     checked = run.checked
     chains = run.controls.chains
     ndraws = run.controls.ndraws
@@ -3350,10 +3300,10 @@ function _generalized_candidate_diagnostic_tables(target, run::NamedTuple, bluep
         rhat_threshold = checked.rhat_threshold,
         ess_threshold = checked.ess_threshold,
     )
-    direct_values = _generalized_candidate_direct_draw_values(
+    direct_values === nothing && (direct_values = _generalized_candidate_direct_draw_values(
         target,
         run.draws,
-    )
+    ))
     direct_constraint_rows =
         _generalized_candidate_direct_draw_constraint_rows(
             target,
@@ -3399,7 +3349,9 @@ function _generalized_candidate_diagnostic_tables(target, run::NamedTuple, bluep
         sum(row.n_nonfinite_logdensity for row in run.sampler_rows)
     n_nonfinite_direct_loglikelihood =
         count(!isfinite, direct_values.loglikelihood) +
-        count(!isfinite, direct_values.pointwise_loglikelihood)
+        (direct_values.pointwise_loglikelihood === nothing ?
+            direct_values.n_nonfinite_pointwise :
+            count(!isfinite, direct_values.pointwise_loglikelihood))
     n_failed_direct_constraints =
         sum(row.n_failed for row in direct_constraint_rows)
     n_divergences =
@@ -3477,8 +3429,10 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         split_chains::Bool = true,
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400,
+        chain_execution::Symbol = :serial,
+        max_parallel_chains::Int = chains,
         record_warmup::Bool = false,
-        progress::Bool = false)
+        progress::Union{Bool,SamplingProgress} = false)
     run = _run_generalized_candidate_advancedhmc(
         target,
         raw_initial;
@@ -3497,6 +3451,7 @@ function _gmfrm_promotion_candidate_sampler_diagnostics(
         split_chains,
         rhat_threshold,
         ess_threshold,
+        chain_execution, max_parallel_chains,
         record_warmup,
         progress,
     )
@@ -3668,8 +3623,10 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         split_chains::Bool = true,
         rhat_threshold::Real = 1.01,
         ess_threshold::Real = 400,
+        chain_execution::Symbol = :serial,
+        max_parallel_chains::Int = chains,
         record_warmup::Bool = false,
-        progress::Bool = false,
+        progress::Union{Bool,SamplingProgress} = false,
         _sampling_observer = nothing,
         initial_source::Symbol = :sampler_raw_initial_argument)
     target.blueprint.family === :mgmfrm ||
@@ -3694,6 +3651,7 @@ function _mgmfrm_guarded_local_fit_sampler_diagnostics(
         split_chains,
         rhat_threshold,
         ess_threshold,
+        chain_execution, max_parallel_chains,
         record_warmup,
         progress,
         _sampling_observer,
@@ -4100,6 +4058,7 @@ end
 
 function _fit_guarded_generalized(spec::FacetSpec;
         sampling_coordinates::Symbol = :raw, kwargs...)
+    _check_sampling_progress(get(kwargs, :progress, false), get(kwargs, :backend, :advancedhmc))
     _check_mgmfrm_sampling_coordinates(spec, sampling_coordinates,
         get(kwargs, :backend, :advancedhmc), true)
     spec.family === :gmfrm && return _fit_experimental_gmfrm(spec; kwargs...)
@@ -5620,6 +5579,15 @@ path. Environment metadata omits machine-local paths by default;
 compatibility default `view = :full` retains the complete archive contract and
 is intended for private reproduction records. Use `view = :public` when sharing
 a reader-facing, path-free projection with its own verifiable content hash.
+For `MFRMFit`, `GMFRMFit` and `MGMFRMFit`, `include_draws = true` also
+includes `draw_index.chain_ids` and `draw_index.iterations`, aligned with every
+stored matrix row. MFRM columns follow `parameter_names`; generalized raw and
+direct columns follow their respective name vectors and share the row index.
+The public view retains generalized `direct_draws` only, and actual
+priors/settings in `fit_metadata`. Earlier
+artifacts may lack these additive fields; do not infer a missing row index.
+These additions do not apply to the separate recorded-result artifact types.
+
 Stored fixed-coefficient multidimensional MFRM results support both views and
 use their recorded diagnostic settings. Their artifact retains both free and
 reconstructed unit-logit summaries and the source sample identity. The public
@@ -5691,7 +5659,10 @@ function fit_artifact(fit::MFRMFit;
         posterior_summary = posterior_summary(fit),
         reproducibility,
         environment,
+        parameter_names = copy(fit.design.parameter_names),
         draws = include_draws ? copy(fit.draws) : nothing,
+        draw_index = include_draws ? (; chain_ids = copy(fit.chain_ids),
+            iterations = copy(fit.iterations)) : nothing,
         log_posterior = include_log_posterior ? copy(fit.log_posterior) : nothing,
         sampler_stats = include_sampler_stats ? copy(fit.sampler_stats) : nothing,
     ); label = :fit_artifact)
@@ -5822,6 +5793,8 @@ function fit_artifact(fit::GMFRMFit;
         reproducibility,
         environment,
         raw_draws = include_draws ? copy(fit.draws) : nothing,
+        draw_index = include_draws ? (; chain_ids = copy(fit.chain_ids),
+            iterations = copy(fit.iterations)) : nothing,
         direct_draws = include_draws ? copy(fit.direct_draws) : nothing,
         log_posterior = include_log_posterior ? copy(fit.log_posterior) : nothing,
         sampler_stats = include_sampler_stats ? copy(fit.sampler_stats) : nothing,
@@ -5967,6 +5940,8 @@ function fit_artifact(fit::MGMFRMFit;
         reproducibility,
         environment,
         raw_draws = include_draws ? copy(fit.draws) : nothing,
+        draw_index = include_draws ? (; chain_ids = copy(fit.chain_ids),
+            iterations = copy(fit.iterations)) : nothing,
         direct_draws = include_draws ? copy(fit.direct_draws) : nothing,
         log_posterior = include_log_posterior ? copy(fit.log_posterior) : nothing,
         sampler_stats = include_sampler_stats ? copy(fit.sampler_stats) : nothing,
@@ -6081,6 +6056,25 @@ function _fit_report_fixed_coordinates(fit::MFRMFit, manifest,
                 ),
             ),
         ]
+        prior_reference_rows = [row for row in reference_rows
+            if !isempty(fit.design.blocks[row.facet])]
+        if !isempty(prior_reference_rows)
+            push!(warning_rows, (;
+                code = :reference_zero_prior_coordinate_dependence,
+                severity = :warning,
+                n_coordinates = length(prior_reference_rows),
+                n_affected_rows = length(prior_reference_rows),
+                action = :preserve_reference_or_transport_joint_prior,
+                message = string(
+                    "Default zero references: ",
+                    join((row.parameter for row in prior_reference_rows), ", "),
+                    ". MFRMPrior assigns independent zero-centered priors to free coordinates. ",
+                    "Changing the reference through relabeling without transporting the joint prior ",
+                    "can change posterior predictions and decisions. Stored label order, not input ",
+                    "row order, selects these references; they are coding conventions, not external calibrations.",
+                ),
+            ))
+        end
         if !isempty(multi_anchor_facets)
             push!(warning_rows, (;
                 code = :multiple_hard_anchors_fix_within_facet_contrasts,
@@ -6299,6 +6293,7 @@ function _fit_report_direct_posterior(fit::Union{GMFRMFit,MGMFRMFit};
         (;
             rows,
             n_rows = length(rows),
+            interpretation = "Model coordinates after positive and identification transforms. The response multiplier is $(fit isa GMFRMFit ? 1.0 : 1.7); it is not absorbed into item discrimination or rater consistency. Use the optional effective_slopes section for their joint-draw adjacent-logit slopes.",
         )
     end
 end
@@ -6866,6 +6861,10 @@ output. Omitting it keeps previous report behavior. See the Saved-fit Reporting
 API guide for its request fields and uncertainty definitions. Completeness is
 execution status, not scientific or numerical acceptance. The alpha and ICC sections
 use observed ratings, not posterior draws, and supply no SE or interval.
+Generalized fits accept `include_effective_slopes=true` for a separate
+joint-draw adjacent-logit slope section with credible intervals and endpoint MCSE.
+It uses every retained draw, preserves whole-fit warnings and needs no predictive RNG.
+The default is false; no historical section or fitted prior is replaced.
 """
 function fit_report(fit::_ModelComparisonFit;
         view::Symbol = :full,
@@ -6897,6 +6896,7 @@ function fit_report(fit::_ModelComparisonFit;
         posterior_rope = nothing,
         posterior_rope_probability_threshold::Real = 0.95,
         include_direct_posterior::Bool = fit isa Union{GMFRMFit,MGMFRMFit},
+        include_effective_slopes::Bool = false,
         include_calibration::Bool = true,
         calibration_target::Symbol = :expected_score,
         calibration_category = nothing,
@@ -6960,6 +6960,8 @@ function fit_report(fit::_ModelComparisonFit;
     checked_dff_practical_probability_threshold =
         _dff_practical_probability_threshold(dff_practical_probability_threshold)
 
+    include_effective_slopes && !(fit isa Union{GMFRMFit,MGMFRMFit}) && throw(ArgumentError(
+        "include_effective_slopes requires a generalized GMFRM/MGMFRM fit"))
     posterior = _fit_report_section(checked_on_error) do
         rows = posterior_summary(fit;
             lower = posterior_lower,
@@ -7297,6 +7299,10 @@ function fit_report(fit::_ModelComparisonFit;
         dff,
         artifact,
     )
+    if include_effective_slopes
+        report = merge(report, (; effective_slopes=_generalized_slope_report(fit;
+            lower=posterior_lower, upper=posterior_upper, on_section_error=checked_on_error)))
+    end
     report = _with_saved_reporting(report, fit, reporting_request, checked_on_error)
     health = fit_report_health(report)
     report = merge(report, (;
@@ -7360,22 +7366,25 @@ function _json_export_value(value)
     return string(value)
 end
 
-function _json_hash_value(value)
+function _json_hash_value(value; exact_integers::Bool = false)
     if value isa NamedTuple
         return NamedTuple{keys(value)}(
-            Tuple(_json_hash_value(getproperty(value, name)) for name in keys(value)),
+            Tuple(_json_hash_value(getproperty(value, name); exact_integers) for name in keys(value)),
         )
     elseif value isa AbstractDict
         return Dict{Any,Any}(
-            key => _json_hash_value(item)
+            key => _json_hash_value(item; exact_integers)
             for (key, item) in value
         )
     elseif value isa Tuple
-        return map(_json_hash_value, value)
+        return map(item -> _json_hash_value(item; exact_integers), value)
     elseif value isa AbstractArray
-        return [_json_hash_value(item) for item in value]
+        return [_json_hash_value(item; exact_integers) for item in value]
     elseif value isa Bool
         return value
+    elseif exact_integers && value isa Integer
+        # JSON does not retain signedness or bit width; canonicalize to exact decimal.
+        return BigInt(value)
     elseif value isa Real
         return isfinite(value) ? Float64(value) : string(value)
     elseif value isa Number
@@ -7384,14 +7393,27 @@ function _json_hash_value(value)
     return value
 end
 
-function _fit_report_json_hash_record(payload)
-    hash_payload = _json_hash_value(_artifact_hash_payload(payload))
+const _FIT_REPORT_EXACT_JSON_CANONICALIZATION = :cache_stable_string_exact_integers_v1
+
+function _fit_report_export_canonicalization(schema)
+    schema == "bayesianmgmfrm.fit_report_export.v1" && return :cache_stable_string
+    schema == "bayesianmgmfrm.fit_report_export.v2" &&
+        return _FIT_REPORT_EXACT_JSON_CANONICALIZATION
+    throw(ArgumentError("unsupported fit report export schema: $schema"))
+end
+
+function _fit_report_json_hash_record(payload;
+        canonicalization::Symbol = :cache_stable_string)
+    canonicalization in (:cache_stable_string, _FIT_REPORT_EXACT_JSON_CANONICALIZATION) ||
+        throw(ArgumentError("unsupported fit report JSON hash canonicalization"))
+    hash_payload = _json_hash_value(_artifact_hash_payload(payload);
+        exact_integers = canonicalization === _FIT_REPORT_EXACT_JSON_CANONICALIZATION)
     canonical = _cache_stable_string(hash_payload)
     return (;
         algorithm = :sha256,
         value = bytes2hex(sha256(IOBuffer(canonical))),
         scope = :json_report_without_hash_metadata,
-        canonicalization = :cache_stable_string,
+        canonicalization,
         n_canonical_bytes = sizeof(canonical),
     )
 end
@@ -7405,7 +7427,7 @@ function _fit_report_export_record(report;
         source_path = String(source_path),
     )
     return merge((;
-        schema = "bayesianmgmfrm.fit_report_export.v1",
+        schema = "bayesianmgmfrm.fit_report_export.v2",
         object = :fit_report_export,
         created_at = string(now()),
         label = label === nothing ? missing : label,
@@ -7420,7 +7442,8 @@ function _fit_report_export_record(report;
         report_schema = _report_lookup(report, :schema, missing),
         report_object = _report_symbol_value(_report_lookup(report, :object, missing)),
         report_content_hash = _fit_report_content_hash_record(report),
-        json_content_hash = _fit_report_json_hash_record(json_report),
+        json_content_hash = _fit_report_json_hash_record(json_report;
+            canonicalization = _FIT_REPORT_EXACT_JSON_CANONICALIZATION),
         report = json_report,
     ))
 end
@@ -7436,6 +7459,9 @@ object first builds `fit_report(fit; kwargs...)`. The saved record includes the
 original report content hash and a JSON-payload hash that [`load_fit_report`](@ref)
 verifies by default. Set `require_complete = true` to reject a report containing
 any captured section error before writing.
+
+New exports use envelope v2 and preserve exact integers in the JSON-payload
+checksum. Older readers that accept only v1 cannot open these new exports.
 """
 function save_fit_report(path::AbstractString,
         report;
@@ -7472,18 +7498,18 @@ end
 function _check_fit_report_export_hash_record(record,
         field::AbstractString,
         path::AbstractString,
-        expected_scope::AbstractString)
+        expected_scope::AbstractString;
+        canonicalization::Symbol = :cache_stable_string)
     return _check_fit_report_hash_record(record, Symbol(field),
         "fit report export at $path";
         expected_scope = Symbol(expected_scope),
-        expected_canonicalization = :cache_stable_string)
+        expected_canonicalization = canonicalization)
 end
 
 function _check_fit_report_export_record(record, path)
     record isa AbstractDict ||
         throw(ArgumentError("fit report export at $path does not contain a JSON object"))
-    get(record, "schema", nothing) == "bayesianmgmfrm.fit_report_export.v1" ||
-        throw(ArgumentError("fit report export at $path has an unsupported schema"))
+    canonicalization = _fit_report_export_canonicalization(get(record, "schema", nothing))
     get(record, "object", nothing) == "fit_report_export" ||
         throw(ArgumentError("fit report export at $path has an unsupported object"))
     get(record, "report", nothing) isa AbstractDict ||
@@ -7504,7 +7530,7 @@ function _check_fit_report_export_record(record, path)
     _check_fit_report_export_hash_record(record, "report_content_hash", path,
         report_hash_scope)
     _check_fit_report_export_hash_record(record, "json_content_hash", path,
-        "json_report_without_hash_metadata")
+        "json_report_without_hash_metadata"; canonicalization)
     if report_schema == _FIT_REPORT_PUBLIC_SCHEMA
         _fit_report_hash_record_matches_actual(record, :report_content_hash,
             _public_fit_report_content_hash_record(report),
@@ -7516,11 +7542,12 @@ function _check_fit_report_export_record(record, path)
 end
 
 function _verify_fit_report_export_record(record, path)
+    canonicalization = _fit_report_export_canonicalization(record["schema"])
     _fit_report_hash_record_matches_actual(record, :json_content_hash,
-        _fit_report_json_hash_record(record["report"]),
+        _fit_report_json_hash_record(record["report"]; canonicalization),
         "fit report export at $path";
         expected_scope = :json_report_without_hash_metadata,
-        expected_canonicalization = :cache_stable_string)
+        expected_canonicalization = canonicalization)
     return record
 end
 
@@ -7533,6 +7560,9 @@ payload hash is verified by default, and the export/hash metadata shape is
 always checked. The report payload is returned as `Dict{String,Any}` /
 `Vector{Any}` data; set `return_record = true` to inspect the export metadata
 and hash records as well.
+
+Both v1 and v2 export envelopes are readable. V1 retains its original
+floating-point number normalization; v2 checks integer values exactly.
 
 Set `require_complete = true` to verify report completeness after the payload
 and hashes have been checked.
@@ -7560,6 +7590,7 @@ const _FIT_REPORT_SECTION_ORDER = (
     :category_functioning,
     :rater_homogeneity,
     :category_report,
+    :score_information,
     :posterior_reliability,
     :posterior_classification,
     :posterior_ranking,
@@ -7573,6 +7604,7 @@ const _FIT_REPORT_SECTION_ORDER = (
     :prior_predictive,
     :posterior,
     :direct_posterior,
+    :effective_slopes,
     :posterior_predictive,
     :calibration,
     :waic,
@@ -7733,6 +7765,7 @@ const _PUBLIC_FIT_REPORT_TOP_LEVEL_SECTIONS = (
     :category_functioning,
     :rater_homogeneity,
     :category_report,
+    :score_information,
     :posterior_reliability,
     :posterior_classification,
     :posterior_ranking,
@@ -7748,6 +7781,7 @@ const _PUBLIC_FIT_REPORT_TOP_LEVEL_SECTIONS = (
     :prior_predictive,
     :posterior,
     :direct_posterior,
+    :effective_slopes,
     :posterior_predictive,
     :calibration,
     :waic,
@@ -9403,6 +9437,8 @@ function _save_fit_report_bundle(directory::AbstractString,
         include_empty::Bool = false,
         require_complete::Bool = false,
         figure_bundle = nothing)
+    max_rows >= 0 ||
+        throw(ArgumentError("max_rows must be non-negative"))
     _check_fit_report_payload(report)
     require_complete &&
         _require_complete_fit_report(report, :save_fit_report_bundle)
@@ -9475,35 +9511,39 @@ function _fit_report_bundle_manifest_path(directory::AbstractString)
     return joinpath(directory, "manifest.json")
 end
 
+struct _ExactJSONValue
+    value::Any
+end
+
+JSON3.StructTypes.StructType(::Type{_ExactJSONValue}) = JSON3.RawType()
+function JSON3.StructTypes.construct(::Type{_ExactJSONValue}, raw::JSON3.RawValue)
+    # A fresh buffer cannot alias; avoid hashing the whole source String for each token.
+    token = strip(String(UInt8[raw.bytes[i] for i in raw.pos:(raw.pos + raw.len - 1)]))
+    value = if startswith(token, "{")
+        Dict{String,Any}(k => v.value for (k, v) in JSON3.read(token, Dict{String,_ExactJSONValue}))
+    elseif startswith(token, "[")
+        Any[v.value for v in JSON3.read(token, Vector{_ExactJSONValue})]
+    elseif occursin(r"^-?[0-9]+$", token)
+        signed = tryparse(Int64, token)
+        unsigned = signed === nothing ? tryparse(UInt64, token) : nothing
+        signed !== nothing ? signed : unsigned !== nothing ? unsigned : parse(BigInt, token)
+    else
+        # Float64 preserves decimal/exponent tokens, including signed zero;
+        # strings, booleans and null retain JSON3's ordinary validation.
+        JSON3.read(token; numbertype = Float64)
+    end
+    return _ExactJSONValue(value)
+end
+
 function _read_json_dict(path::AbstractString, label::AbstractString)
     isfile(path) ||
         throw(ArgumentError("$label does not exist at $path"))
     source = read(path, String)
-    # Parse first, then materialize string-keyed containers: the typed Any
-    # reader rounds integers through Float64, including facet IDs above 2^53.
-    value = _json_export_value(JSON3.read(source))
-    # JSON3's default number inference converts -0.0 to integer 0. Preserve the
-    # writer's signed zero so existing content hashes survive a JSON round-trip.
-    # Keep the original integer parsing (including large IDs/counts) everywhere else.
-    occursin("-0.0", source) &&
-        _restore_json_signed_zeros!(value, JSON3.read(source; numbertype = Float64))
+    # JSON3's inferred numbers fall back to Float64 beyond Int64. Parse integer
+    # tokens exactly so UInt64 data signatures and mixed arrays keep their bits.
+    value = JSON3.read(source, _ExactJSONValue).value
     value isa AbstractDict ||
         throw(ArgumentError("$label at $path does not contain a JSON object"))
-    return value
-end
-
-function _restore_json_signed_zeros!(value, exact)
-    if value isa AbstractDict
-        for key in keys(value)
-            value[key] = _restore_json_signed_zeros!(value[key], exact[key])
-        end
-    elseif value isa AbstractVector
-        # Preserve both signed zeros and exact integers in mixed numeric arrays.
-        return Any[_restore_json_signed_zeros!(value[i], exact[i]) for i in eachindex(value)]
-    elseif value isa Real && !(value isa Bool) && iszero(value) &&
-            exact isa AbstractFloat && iszero(exact) && signbit(exact)
-        return -0.0
-    end
     return value
 end
 
@@ -9620,13 +9660,17 @@ function _check_fit_report_bundle_manifest(manifest, path)
         expected_scope = report_hash_scope,
         expected_canonicalization = :cache_stable_string)
     for (role, scope, canonicalization) in (
-        (:report_json, :json_report_without_hash_metadata, :cache_stable_string),
+        (:report_json, :json_report_without_hash_metadata, nothing),
         (:table_manifest, :fit_report_table_export_without_hash_metadata,
             :cache_stable_string),
         (:markdown, :fit_report_markdown, :raw_markdown_string),
     )
         file_record = _fit_report_bundle_file_record(manifest, role,
             "fit report bundle manifest at $path")
+        if role === :report_json
+            canonicalization = _fit_report_export_canonicalization(
+                _report_lookup(file_record, :schema, nothing))
+        end
         _fit_report_hash_value(file_record, :content_hash,
             "fit report bundle $(String(role)) row at $path";
             expected_scope = scope,
@@ -9652,15 +9696,18 @@ function _verify_fit_report_bundle_manifest(manifest,
     report_record = load_fit_report(report_path;
         verify_hash = true,
         return_record = true)
+    isequal(_report_lookup(report_file, :schema, nothing), report_record["schema"]) ||
+        throw(ArgumentError("fit report bundle report_json row at $manifest_path has an inconsistent schema"))
+    canonicalization = _fit_report_export_canonicalization(report_record["schema"])
     actual_report_json_hash = _check_fit_report_hash_record(report_record,
         :json_content_hash, "fit report export at $report_path";
         expected_scope = :json_report_without_hash_metadata,
-        expected_canonicalization = :cache_stable_string)
+        expected_canonicalization = canonicalization)
     _fit_report_hash_record_matches_actual(report_file, :content_hash,
         actual_report_json_hash,
         "fit report bundle report_json row at $manifest_path";
         expected_scope = :json_report_without_hash_metadata,
-        expected_canonicalization = :cache_stable_string)
+        expected_canonicalization = canonicalization)
     report_hash_scope = _fit_report_content_hash_scope(
         _report_lookup(manifest, :report_schema, missing))
     actual_report_hash = _check_fit_report_hash_record(report_record,
@@ -10829,6 +10876,7 @@ function _public_fit_artifact_projection(artifact, fit::_ModelComparisonFit)
         family = fit.design.spec.family,
         stability = fit isa MFRMFit ? :stable : :experimental,
         model_manifest = model_manifest(fit.design; view = :public),
+        fit_metadata = fit_metadata(fit; view = :public),
     ))
     return merge(public_payload, (;
         content_hash = _artifact_content_hash_record(public_payload),
@@ -11339,7 +11387,7 @@ function _fit_cache_controls(backend::Symbol,
             init_jitter = Float64(init_jitter),
         )
     elseif backend === :turing
-        _turing_adtype(ad_backend)
+        _check_turing_ad_backend(ad_backend)
         _turing_metric_type(metric)
         return (;
             backend,
@@ -11427,7 +11475,11 @@ function _fit_cache_request(design::FacetDesign;
         ad_backend::Symbol = :ForwardDiff,
         init_jitter::Real = 0.0,
         sampling_coordinates::Symbol = :raw,
-        progress::Bool = false)
+        progress::Union{Bool,SamplingProgress} = false,
+        chain_execution::Symbol = :serial,
+        max_parallel_chains::Int = chains)
+    _check_sampling_progress(progress, backend)
+    _check_chain_execution(chain_execution, max_parallel_chains, backend)
     _require_canonical_design(design, "fit cache request")
     _reject_mfrm_fixed_q_fit(design.spec, "fit cache request")
     _check_mgmfrm_sampling_coordinates(design.spec, sampling_coordinates, backend, experimental)
@@ -11446,6 +11498,8 @@ function _fit_cache_request(design::FacetDesign;
         metric,
         ad_backend,
         init_jitter)
+    chain_execution === :serial || (controls = merge(controls,
+        (; chain_execution=:threads, rng_partition=:chain_seed_v1)))
     # Omit the default coordinate tag to preserve existing request bytes and keys.
     sampling_coordinates === :raw || (controls = merge(controls, (; sampling_coordinates)))
     return (;
@@ -11693,6 +11747,13 @@ function _fit_cache_summary_rows_equal(actual, expected)
     return all(zip(actual, expected)) do (a, b)
         a isa NamedTuple && keys(a) == keys(b) || return false
         isequal(a, b) && return true
+        # Old summaries used a floating-point complement instead of a tie count.
+        # Accept that exact formula only; never rewrite the archived row.
+        if all(k -> hasproperty(b, k), (:probability_positive, :probability_negative, :probability_equal)) &&
+                isequal(a.probability_equal, 1 - b.probability_positive - b.probability_negative)
+            a = merge(a, (; probability_equal = b.probability_equal))
+            isequal(a, b) && return true
+        end
         moments = (; mean = nothing, sd = nothing)
         isequal(Base.structdiff(a, moments), Base.structdiff(b, moments)) || return false
         # Recomputed reductions need not be bitwise identical. Scale by spread
@@ -11763,9 +11824,10 @@ artifact agreement and archive hashes are always verified, including when
 the saved environment metadata.
 Explicit correlated MGMFRM caches likewise always verify their sample,
 artifact and archive integrity, even with `verify_hash = false`.
-Recorded-fit readers allow only roundoff-sized differences in recomputed summary
-means/SDs. Saved payload hashes, other summary fields and metadata remain exact;
-loading never rewrites the stored summaries.
+Recorded-fit readers allow roundoff-sized differences in recomputed summary
+means/SDs and the exact historical complement formula for `probability_equal`.
+New summaries count ties directly. Saved payload hashes, other summary fields
+and metadata remain exact; loading never rewrites the stored summaries.
 """
 function load_fit_cache(path::AbstractString;
         expected_cache_key = nothing,
@@ -11831,7 +11893,9 @@ function cached_fit(design::FacetDesign;
         ad_backend::Symbol = :ForwardDiff,
         init_jitter::Real = 0.0,
         sampling_coordinates::Symbol = :raw,
-        progress::Bool = false,
+        progress::Union{Bool,SamplingProgress} = false,
+        chain_execution::Symbol = :serial,
+        max_parallel_chains::Int = chains,
         artifact_include_draws::Bool = false,
         artifact_include_log_posterior::Bool = artifact_include_draws,
         artifact_include_sampler_stats::Bool = false,
@@ -11860,7 +11924,7 @@ function cached_fit(design::FacetDesign;
         ad_backend,
         init_jitter,
         sampling_coordinates,
-        progress)
+        progress, chain_execution, max_parallel_chains)
     if isfile(path) && !refresh
         record = load_fit_cache(path; expected_cache_key = key, return_record = true)
         return return_record ? record : record.fit
@@ -11884,7 +11948,7 @@ function cached_fit(design::FacetDesign;
             ad_backend,
             init_jitter,
             sampling_coordinates,
-            progress)
+            progress, chain_execution, max_parallel_chains)
     else
         fit(design;
             prior = checked_prior,
@@ -11902,7 +11966,7 @@ function cached_fit(design::FacetDesign;
             metric,
             ad_backend,
             init_jitter,
-            progress)
+            progress, chain_execution, max_parallel_chains)
     end
     record = save_fit_cache(path, fit_result;
         cache_key = key,
@@ -12006,7 +12070,7 @@ function _posterior_direction_summary(values::AbstractVector{Float64},
     n = length(values)
     positive = count(>(reference), values) / n
     negative = count(<(reference), values) / n
-    equal = 1 - positive - negative
+    equal = count(==(reference), values) / n
     direction = positive == negative ? :undetermined :
         (positive > negative ? :positive : :negative)
     return (;
@@ -12160,6 +12224,25 @@ Summarize posterior draws for each parameter. Rows retain the legacy
 probability of direction relative to `reference`, and optional ROPE/practical
 equivalence probabilities. Pass `rope = r` for a symmetric `[-r, r]` ROPE or
 `rope = (lower, upper)` for an explicit interval.
+`probability_equal` is the fraction of retained draws exactly equal to `reference`;
+a zero count is not evidence against a point-null hypothesis.
+
+For `GMFRMFit`, `MGMFRMFit`, `Experimental.NormalizedMGMFRMFit` and
+`Experimental.CorrelatedMGMFRMFit`, use `scale=:model` for positive,
+constraint-restored model parameters, or `scale=:raw` for computation coordinates.
+Omitting `scale` preserves the historical raw-coordinate summary. The qualified
+`direct_posterior_summary` remains available with its original meaning.
+
+For these same result types, `estimand=:adjacent_logit_slope` summarizes
+`D*c_r*a_id` from each joint draw (D=1 for scalar GMFRM; D=1.7 for MGMFRM).
+It returns fitted item × rater × dimension rows, including structural Q zeros
+and fixed slopes. These are conditional adjacent-category log-odds changes per
+one ability unit, not cumulative-event odds, reliability or standardized effects.
+Other ability components are held fixed. Matching units does not align constructs
+or priors across models. This estimand rejects `scale=:raw`; `scale=:model` is
+optional. Use the same `estimand` in `posterior_mcse` for simulation precision.
+No samples are refitted, rescaled or reordered. Inspect whole-fit diagnostics.
+The separate Correlated3D record/report API is outside this selector's scope.
 """
 function posterior_summary(fit::MFRMFit;
         lower::Real = 0.025,
@@ -12181,12 +12264,18 @@ function posterior_summary(fit::MFRMFit;
 end
 
 function posterior_summary(fit::GMFRMFit;
+        scale=nothing, estimand::Symbol=:parameters,
         lower::Real = 0.025,
         upper::Real = 0.975,
         intervals = (0.66, 0.9, 0.95),
         reference::Real = 0.0,
         rope = nothing,
         rope_probability_threshold::Real = 0.95)
+    selected = _generalized_summary_selection(scale, estimand)
+    selected === :adjacent_logit_slope && return _generalized_slope_rows(fit;
+        lower, upper, intervals, reference, rope, rope_probability_threshold)
+    selected === :direct_constrained && return direct_posterior_summary(fit;
+        lower, upper, intervals, reference, rope, rope_probability_threshold)
     return _posterior_summary_rows(
         fit.draws,
         fit.diagnostic_surface.raw_parameter_names;
@@ -12208,6 +12297,7 @@ Summarize stored model-scale draws from an experimental `GMFRMFit` or
 `MGMFRMFit`. Call this qualified function for transformed parameters such as
 positive item discrimination and rater consistency. `posterior_summary(fit)`
 summarizes their raw computational coordinates instead.
+The shared spelling `posterior_summary(fit; scale=:model)` returns the same rows.
 
 Return a vector of named-tuple rows with parameter names, means, medians,
 standard deviations, central credible intervals, probability of direction
@@ -12244,12 +12334,18 @@ function direct_posterior_summary(fit::GMFRMFit;
 end
 
 function posterior_summary(fit::MGMFRMFit;
+        scale=nothing, estimand::Symbol=:parameters,
         lower::Real = 0.025,
         upper::Real = 0.975,
         intervals = (0.66, 0.9, 0.95),
         reference::Real = 0.0,
         rope = nothing,
         rope_probability_threshold::Real = 0.95)
+    selected = _generalized_summary_selection(scale, estimand)
+    selected === :adjacent_logit_slope && return _generalized_slope_rows(fit;
+        lower, upper, intervals, reference, rope, rope_probability_threshold)
+    selected === :direct_constrained && return direct_posterior_summary(fit;
+        lower, upper, intervals, reference, rope, rope_probability_threshold)
     return _posterior_summary_rows(
         fit.draws,
         fit.diagnostic_surface.raw_parameter_names;
@@ -12283,7 +12379,10 @@ end
 
 function _posterior_mcse_value(samples, kind)
     value = try
-        MCMCDiagnosticTools.mcse(samples; kind, split_chains = 2)
+        # Match the diagnostic lag range; the dependency's 250-lag default can
+        # truncate a still-positive autocorrelation sequence and understate MCSE.
+        MCMCDiagnosticTools.mcse(samples; kind, split_chains = 2,
+            maxlag = div(size(samples, 1), 2) - 4)
     catch err
         # The SD asymptotic variance can round below zero for balanced
         # two-point draws. Preserve unavailable precision instead of reporting
@@ -12433,6 +12532,17 @@ scientific decision is applied. Calls with fewer than two chains or fewer than
 short-chain MCSE as usable evidence.
 Numerically undefined standard-deviation MCSE is reported as `missing` with
 `:mcse_unavailable`; separately available mean and quantile MCSE are retained.
+Autocorrelation estimation considers all available split-chain lags, using the
+initial-positive/monotone-sequence stopping rule rather than a fixed 250-lag cap.
+MCSE remains a precision estimate conditional on adequate sampling; it does not
+make a nonconverged chain valid.
+
+For scalar/fixed-Q GMFRM/MGMFRM and normalized/correlated-2D MGMFRM results,
+`estimand=:adjacent_logit_slope` computes the same joint-draw quantities as
+`posterior_summary(fit; estimand=:adjacent_logit_slope)`. Use the default
+`parameter_space=:auto` or `:adjacent_logit_slope`. This retains stored chain
+order and estimates mean, SD and requested endpoint MCSE separately; constant
+estimated traces are not declared structurally fixed. Correlated3D is separate.
 """
 function posterior_mcse(fit::MFRMFit;
         probabilities = (0.025, 0.5, 0.975),
@@ -12452,7 +12562,10 @@ end
 
 function posterior_mcse(fit::Union{GMFRMFit,MGMFRMFit};
         probabilities = (0.025, 0.5, 0.975),
+        estimand::Symbol = :parameters,
         parameter_space::Symbol = :auto)
+    selected = _generalized_summary_selection(nothing, estimand; parameter_space)
+    selected === :adjacent_logit_slope && return _generalized_slope_rows(fit; operation=:mcse, probabilities)
     input = _posterior_mcse_generalized_input(fit, parameter_space)
     return _posterior_mcse_rows(
         input.draws,
@@ -12967,27 +13080,7 @@ function loo(fit::MGMFRMFit;
     return loo(fit.direct_pointwise_loglikelihood[indices, :]; kwargs...)
 end
 
-"""
-    psis_loo(fit::MFRMFit; ndraws = nothing, draw_indices = nothing,
-        rng = Random.default_rng(), pareto_k_threshold = 0.7,
-        tail_fraction = 0.2, min_tail_draws = 5)
-    psis_loo(design::FacetDesign, draws; kwargs...)
-    psis_loo(loglik::AbstractMatrix; kwargs...)
-
-Compute a Pareto-smoothed importance-sampling leave-one-out (PSIS-LOO)
-estimate from posterior pointwise log-likelihood draws. The log-likelihood
-matrix must have dimensions draws-by-observations. The returned named tuple
-uses the same LOO schema as [`loo`](@ref), with `method =
-:pareto_smoothed_importance_sampling` and `psis_smoothing = true`.
-
-The smoother replaces the largest raw importance ratios with Pareto expected
-order statistics using the package's Hill-estimated tail shape, then applies
-the usual finite-draw importance-ratio truncation. Observations whose
-`pareto_k` exceeds `pareto_k_threshold` should still be treated as unstable and
-followed by exact LOO, K-fold cross-validation, or model-specific review before
-strong comparison claims.
-"""
-function psis_loo(loglik::AbstractMatrix;
+function _hill_smoothed_loo(loglik::AbstractMatrix;
         pareto_k_threshold::Real = 0.7,
         tail_fraction::Real = 0.2,
         min_tail_draws::Int = 5)
@@ -13078,31 +13171,8 @@ function psis_loo(design::FacetDesign,
     return psis_loo(pointwise_loglikelihood_matrix(design, draws; parameter_space); kwargs...)
 end
 
-function psis_loo(fit::MFRMFit;
-        ndraws::Union{Nothing,Int} = nothing,
-        draw_indices = nothing,
-        rng::AbstractRNG = Random.default_rng(),
-        kwargs...)
-    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
-    return psis_loo(fit.design, fit.draws[indices, :]; kwargs...)
-end
-
-function psis_loo(fit::GMFRMFit;
-        ndraws::Union{Nothing,Int} = nothing,
-        draw_indices = nothing,
-        rng::AbstractRNG = Random.default_rng(),
-        kwargs...)
-    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
-    return psis_loo(fit.direct_pointwise_loglikelihood[indices, :]; kwargs...)
-end
-
-function psis_loo(fit::MGMFRMFit;
-        ndraws::Union{Nothing,Int} = nothing,
-        draw_indices = nothing,
-        rng::AbstractRNG = Random.default_rng(),
-        kwargs...)
-    indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
-    return psis_loo(fit.direct_pointwise_loglikelihood[indices, :]; kwargs...)
+for Fit in (MFRMFit, GMFRMFit, MGMFRMFit)
+    @eval psis_loo(fit::$Fit; kwargs...) = _common_fit_psis(fit; kwargs...)
 end
 
 function _check_kfold_loglik(loglik::AbstractMatrix, fold_index::Int)
@@ -13410,8 +13480,8 @@ function _loo_refit_plan_stat_observations(data::FacetData, stat;
     observations = Int[]
     for observation in 1:n_observations
         pareto_k = Float64(stat.pointwise.pareto_k[observation])
-        isfinite(pareto_k) ||
-            throw(ArgumentError("LOO summary pointwise Pareto-k values must be finite"))
+        (isfinite(pareto_k) || pareto_k == Inf) ||
+            throw(ArgumentError("LOO summary Pareto-k must be finite or a flagged positive infinity"))
         flag = _loo_diagnostic_flag(pareto_k, checked_threshold)
         (!only_flagged || flag !== :ok) && push!(observations, observation)
     end
@@ -13471,7 +13541,7 @@ function _loo_refit_training_data(data::FacetData, observations::AbstractVector{
     training = FacetData(
         table;
         person = :person,
-        rater = :rater,
+        rater = data.columns.rater === nothing ? nothing : :rater,
         item = :item,
         score = :score,
         category_levels = data.category_levels,
@@ -14670,10 +14740,11 @@ function loo_diagnostics(loglik::AbstractMatrix;
         only_flagged::Bool = false,
         tail_fraction::Real = 0.2,
         min_tail_draws::Int = 5,
-        psis_smoothing::Bool = false)
+        psis_smoothing::Bool = false,
+        chain_ids=nothing, r_eff=nothing)
     checked_threshold = _check_loo_threshold(threshold)
     stat = psis_smoothing ?
-        psis_loo(loglik;
+        psis_loo(loglik; chain_ids, r_eff,
             pareto_k_threshold = checked_threshold,
             tail_fraction,
             min_tail_draws) :
@@ -14694,10 +14765,10 @@ function loo_diagnostics(design::FacetDesign,
         tail_fraction::Real = 0.2,
         min_tail_draws::Int = 5,
         psis_smoothing::Bool = false,
-        parameter_space::Symbol = :direct)
+        parameter_space::Symbol = :direct, chain_ids=nothing, r_eff=nothing)
     checked_threshold = _check_loo_threshold(threshold)
     stat = psis_smoothing ?
-        psis_loo(design, draws;
+        psis_loo(design, draws; chain_ids, r_eff,
             pareto_k_threshold = checked_threshold,
             tail_fraction,
             min_tail_draws,
@@ -14726,7 +14797,7 @@ function loo_diagnostics(fit::MFRMFit;
     checked_threshold = _check_loo_threshold(threshold)
     indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
     stat = psis_smoothing ?
-        psis_loo(fit.design, fit.draws[indices, :];
+        psis_loo(fit; ndraws, draw_indices, rng,
             pareto_k_threshold = checked_threshold,
             tail_fraction,
             min_tail_draws) :
@@ -14753,7 +14824,7 @@ function loo_diagnostics(fit::GMFRMFit;
     checked_threshold = _check_loo_threshold(threshold)
     indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
     stat = psis_smoothing ?
-        psis_loo(fit.direct_pointwise_loglikelihood[indices, :];
+        psis_loo(fit; ndraws, draw_indices, rng,
             pareto_k_threshold = checked_threshold,
             tail_fraction,
             min_tail_draws) :
@@ -14780,7 +14851,7 @@ function loo_diagnostics(fit::MGMFRMFit;
     checked_threshold = _check_loo_threshold(threshold)
     indices = _posterior_draw_indices(fit, ndraws, draw_indices, rng)
     stat = psis_smoothing ?
-        psis_loo(fit.direct_pointwise_loglikelihood[indices, :];
+        psis_loo(fit; ndraws, draw_indices, rng,
             pareto_k_threshold = checked_threshold,
             tail_fraction,
             min_tail_draws) :
@@ -15139,6 +15210,8 @@ function _loo_comparison_rows(labels::AbstractVector{<:AbstractString}, stats,
             (;
                 method = stat.method,
                 psis_smoothing = stat.psis_smoothing,
+                pareto_k_estimator = stat.pareto_k_estimator,
+                relative_efficiency = get(stat,:relative_efficiency,:not_used),
                 elpd_loo = stat.elpd_loo,
                 elpd_difference = stat.elpd_loo - best.elpd_loo,
                 se_elpd_difference = _pointwise_se(pointwise_difference),
@@ -15230,13 +15303,27 @@ end
     compare_models(models::Pair...; criterion = :waic, ndraws = nothing,
         draw_indices = nothing, rng = Random.default_rng())
 
-Compare fitted models with WAIC (`criterion = :waic`), raw
-importance-sampling LOO (`criterion = :loo`), or PSIS-smoothed LOO
-(`criterion = :psis_loo`). MFRM, scalar GMFRM, and experimental MGMFRM fit
+For an observation-bound comparison across the eight common fit types, use
+named pairs with `comparison_axis=:model`, `:dimensions` or `:q_matrix`, plus
+`dataset_id` and `observation_ids`. This delegates to `compare_predictions`:
+all retained draws, explicit baseline (first input by default), optional
+`se_unit`, original input order and warnings. Its criteria are `:waic`,
+`:raw_loo`, `:psis_loo` and `:hill_smoothed_loo`. Prediction bundles already carry IDs.
+No RNG is used in this route. `rng`, `ndraws` and `draw_indices` are refused.
+
+For two Star results, named pairs or `names` preserve primary/baseline labels.
+Event IDs align automatically, observed outcomes/supports must match, and the
+returned differences are primary minus baseline. The Star report retains its
+own event-level estimator and SE contract; see its `compare_models` help.
+
+Without `comparison_axis`, the legacy common-fit route compares WAIC
+(`criterion=:waic`), raw importance-sampling LOO (`:loo`) or the native
+standard PSIS (`:psis_loo`) using retained chain efficiency.
+MFRM, scalar GMFRM, and experimental MGMFRM fit
 objects can be compared when they share the same observation data, row order,
 ordinal category levels, latent dimensionality, and fixed Q-matrix contract.
-PSIS-smoothed comparison rows keep `criterion = :loo` and are identified by
-`method = :pareto_smoothed_importance_sampling` and `psis_smoothing = true`.
+LOO comparison rows retain the explicit estimator and relative-efficiency metadata.
+PSIS requires all original draws; raw LOO and WAIC retain their existing controls.
 Rows are sorted by expected log predictive density in descending order.
 `elpd_difference` is relative to the best model and is therefore zero for the
 top row and non-positive for lower-ranked rows. `relative_weight` is a
@@ -15264,10 +15351,20 @@ function compare_models(fits::_ModelComparisonFit...;
 end
 
 function compare_models(models::Pair...;
+        comparison_axis::Union{Nothing,Symbol} = nothing,
         criterion::Symbol = :waic,
         ndraws::Union{Nothing,Int} = nothing,
         draw_indices = nothing,
-        rng::AbstractRNG = Random.default_rng())
+        rng::Union{Nothing,AbstractRNG} = nothing, kwargs...)
+    if comparison_axis !== nothing
+        ndraws===nothing && draw_indices===nothing || throw(ArgumentError(
+            "observation-bound comparison requires all retained draws"))
+        rng===nothing || throw(ArgumentError("observation-bound comparison is deterministic; omit rng"))
+        return compare_predictions(models...;comparison_axis,criterion,kwargs...)
+    end
+    isempty(kwargs) || throw(ArgumentError(
+        "observation IDs, baseline and SE controls require an explicit comparison_axis"))
+    rng = rng === nothing ? Random.default_rng() : rng
     checked_criterion = _compare_criterion(criterion)
     fits = _ModelComparisonFit[]
     labels = String[]
@@ -18601,6 +18698,21 @@ category; when `category` is omitted, the highest score category is used. Use
 `category = :all` to return one category-probability calibration block for each
 ordinal score category. Use `target = :all` to return expected-score rows plus
 all ordinal category-probability rows.
+
+Bins group the observed rating rows by their posterior mean prediction for
+each target. They are not ability bins. Each prediction retains that row's
+person, item and rater conditions; observed and expected values use the same
+rows with equal rating weight. `n_observations` counts ratings, not unique people,
+and `n_draws` counts selected parameter draws, not effective sample size.
+
+`predicted_lower` and `predicted_upper` form an equal-tail posterior interval
+for the bin's mean expected score or category probability. They do not include
+replicated-rating variation, uncertainty of the observed mean or Monte Carlo
+error. `:outside_interval` describes the observed mean's position relative to
+this interval; it is not a calibrated lack-of-fit test. These in-sample rows
+do not establish held-out predictive calibration. Use
+[`posterior_predictive_check`](@ref) for replicated-data comparisons and inspect
+sampling diagnostics separately.
 """
 function calibration_table(design::FacetDesign,
         draws::AbstractMatrix;
@@ -22834,19 +22946,35 @@ falsification_rule_summary(row, rows...; kwargs...) =
 Return plotting-ready rows from [`calibration_table`](@ref). Suggested mappings
 are `x = predicted_mean`, `y = observed_mean`, with `reference = predicted_mean`
 for the ideal calibration diagonal. The predicted interval fields can be used
-as horizontal uncertainty bars.
+as horizontal uncertainty bars for the **mean expected value**, not prediction
+intervals for observed ratings. Retain `target`, `category`, the bin's prediction
+range, and the conditioning described in [`calibration_table`](@ref) when labelling
+a figure. `flag` remains a descriptive comparison, not a fit-test decision.
+
+Rows also retain `n_observations`, `n_draws`, `predicted_median`,
+`interval_probability`, `lower_probability` and `upper_probability` when present.
+Older reduced rows remain accepted; absent metadata is returned as `missing`.
+Do not infer rating counts, effective sample size or interval levels from the
+plot coordinates. This conversion neither recomputes predictions nor generates
+replicated outcomes.
 """
 function calibration_plot_data(calibration_rows)
     return [(;
         target = row.target,
         category = row.category,
         bin = row.bin,
+        n_observations = hasproperty(row, :n_observations) ? row.n_observations : missing,
+        n_draws = hasproperty(row, :n_draws) ? row.n_draws : missing,
         predicted_mean = row.predicted_mean,
+        predicted_median = hasproperty(row, :predicted_median) ? row.predicted_median : missing,
         observed_mean = row.observed_mean,
         predicted_lower = row.predicted_lower,
         predicted_upper = row.predicted_upper,
         predicted_bin_lower = row.predicted_bin_lower,
         predicted_bin_upper = row.predicted_bin_upper,
+        interval_probability = hasproperty(row, :interval_probability) ? row.interval_probability : missing,
+        lower_probability = hasproperty(row, :lower_probability) ? row.lower_probability : missing,
+        upper_probability = hasproperty(row, :upper_probability) ? row.upper_probability : missing,
         calibration_error = row.calibration_error,
         absolute_calibration_error = row.absolute_calibration_error,
         flag = row.flag,

@@ -471,7 +471,7 @@ end
 
 """
     BayesianMGMFRM.plot_wright(fit; facets = :all, include_thresholds = true,
-        interval = 0.95, person_display = :intervals, bins = nothing,
+        interval = 0.95, kind = :intervals, person_display = :intervals, bins = nothing,
         max_levels = 60, size = nothing, annotation_io = stdout)
 
 Draw a Wright map from a stable MFRM rating-scale or partial-credit fit.
@@ -483,6 +483,15 @@ Facet panels share a vertical logit scale. Higher person ability increases
 adjacent-category log odds; higher rater severity or item difficulty decreases
 them. Points show medians and bars show central credible intervals. Diamonds
 identify fixed references or hard anchors; their external uncertainty is excluded.
+
+Set `kind = :ridge` for one marginal density per level, in facet panels sharing
+a horizontal logit axis. Circles and bars retain the unsmoothed median and
+central interval. Gaussian kernels use one common bandwidth (logits) and one
+height multiplier across panels; densities are not pooled across people or
+facets. Pass `bandwidth` to control smoothing and `points` (default 512) to
+control grid resolution. Fixed positions remain diamonds; constant estimated
+draws are crosses, never fabricated densities. Ridge mode cannot be combined
+with a person histogram. [`wright_ridge_data`](@ref) returns the plotted arrays.
 
 Set `person_display = :histogram` for horizontal person-frequency bars on the
 same vertical scale, retaining item/rater intervals. Each person contributes
@@ -551,7 +560,13 @@ function _wright_person_histogram(values, bins)
 end
 
 function _wright_plot_data(fit::MFRMFit; facets = :all, include_thresholds::Bool = true,
-        interval::Real = 0.95, person_display = :intervals, bins = nothing, max_levels = 60)
+        interval::Real = 0.95, person_display = :intervals, bins = nothing, max_levels = 60,
+        kind = :intervals, bandwidth = nothing, points = 512)
+    kind isa Symbol && kind in (:intervals, :ridge) || throw(ArgumentError("kind must be :intervals or :ridge"))
+    kind !== :ridge || person_display === :intervals ||
+        throw(ArgumentError("ridge mode requires person_display=:intervals"))
+    kind === :ridge || (bandwidth === nothing && points == 512) ||
+        throw(ArgumentError("bandwidth and points require kind=:ridge"))
     max_levels isa Integer && !(max_levels isa Bool) && max_levels > 0 ||
         throw(ArgumentError("max_levels must be a positive integer"))
     person_display isa Symbol && person_display in (:intervals, :histogram) ||
@@ -569,9 +584,58 @@ function _wright_plot_data(fit::MFRMFit; facets = :all, include_thresholds::Bool
         isfinite(row.position_upper), rows) || throw(ArgumentError("Wright-map summaries must be finite"))
     histogram = person_display === :histogram ?
         _wright_person_histogram([row.position_median for row in rows if row.facet === :person], bins) : nothing
-    return (; rows, groups = unique(getproperty.(rows, :facet)), interval = Float64(interval),
+    data = (; rows, groups = unique(getproperty.(rows, :facet)), interval = Float64(interval),
         person_display, histogram, n_individual_positions,
         n_draws = size(fit.draws, 1), diagnostic = _plot_diagnostic_note(diagnostics(fit).summary))
+    return kind === :ridge ? merge(data, (; ridge = _wright_ridges(fit, rows; bandwidth, points))) : data
+end
+
+"""
+    BayesianMGMFRM.wright_ridge_data(fit::MFRMFit; bandwidth=nothing, points=512, kwargs...)
+
+Numerical inputs for `plot_wright(fit; kind=:ridge)`, without a plotting dependency.
+Other options match `plot_wright` (except `kind`). Each row has its own marginal
+density on a shared logit grid; item-step positions are formed within joint draws.
+The automatic common Gaussian bandwidth is the median of positive per-row
+Silverman bandwidths, excluding fixed or constant rows. This descriptive
+smoothing rule uses retained draw counts, not ESS, and does not estimate MCSE.
+The grid covers all values plus four bandwidths; a spacing above half a bandwidth
+raises an error. Increase `points` (64–4096) or narrow the selected facets.
+All original rows and numerical warnings are retained. No fitting or randomness.
+"""
+wright_ridge_data(fit::MFRMFit; kwargs...) = _wright_plot_data(fit; kind=:ridge, kwargs...)
+
+function _wright_ridges(fit, rows; bandwidth, points)
+    points isa Integer && !(points isa Bool) && 64 <= points <= 4096 ||
+        throw(ArgumentError("points must be an integer from 64 to 4096"))
+    bandwidth === nothing || (bandwidth isa Real && !(bandwidth isa Bool) &&
+        isfinite(bandwidth) && bandwidth > 0) ||
+        throw(ArgumentError("bandwidth must be finite and positive, in logits"))
+    values = [row.component === :threshold ?
+        last(_wright_map_threshold_values(fit.design, fit.draws, row.item_index, row.step)) :
+        _wright_map_facet_values(fit.design, fit.draws, row.facet, row.level_index) for row in rows]
+    statuses = [row.is_fixed ? :fixed : all(==(first(v)), v) ? :constant : :density
+        for (row,v) in zip(rows,values)]
+    automatic = Float64[]
+    for (v,status) in zip(values,statuses)
+        status === :density || continue
+        sd, spread = std(v), (quantile(v, .75)-quantile(v, .25))/1.34
+        push!(automatic, .9 * (spread > 0 ? min(sd,spread) : sd) * length(v)^(-.2))
+    end
+    h = bandwidth === nothing ? (isempty(automatic) ? nothing : median(automatic)) : Float64(bandwidth)
+    h === nothing || (isfinite(h) && h > 0) ||
+        throw(ArgumentError("automatic bandwidth is not finite and positive; specify bandwidth"))
+    lo, hi = minimum(minimum.(values)), maximum(maximum.(values))
+    pad = h === nothing ? .5 : 4h
+    grid = collect(range(lo-pad,hi+pad;length=points))
+    all(isfinite, grid) && all(>(0), diff(grid)) || throw(ArgumentError("ridge grid is not finite and increasing"))
+    h === nothing || maximum(diff(grid)) <= h/2 ||
+        throw(ArgumentError("ridge grid is too coarse for the bandwidth; increase points or narrow facets"))
+    densities = [status === :density ?
+        [sum(exp(-.5*((g-z)/h)^2) for z in v)/(length(v)*h*sqrt(2pi)) for g in grid] : nothing
+        for (v,status) in zip(values,statuses)]
+    return (; grid, bandwidth=h, statuses, densities,
+        constant_labels=[row.label for (row,status) in zip(rows,statuses) if status === :constant])
 end
 
 """
@@ -701,7 +765,7 @@ function _fit_report_figure_options(figures)
         predictive = (:size,),
         prior = (:scale, :block, :dimension, :parameters, :max_parameters, :size),
         prior_predictive = (:size,),
-        wright = (:facets, :include_thresholds, :person_display, :bins, :max_levels, :size),
+        wright = (:facets, :include_thresholds, :person_display, :bins, :max_levels, :size, :kind, :bandwidth, :points),
         pathway = (:facets, :metric, :min_n, :max_levels, :size))
     for (kind, options) in pairs(figures)
         kind in _FIT_REPORT_FIGURE_KINDS || throw(ArgumentError("unknown figure kind: $kind"))

@@ -111,12 +111,111 @@ distances on an underlying ability scale. Declare the complete intended category
 order, including a category that happens not to occur in a small sample.
 An unobserved rating is missing information; it must not be entered as score zero.
 
+For a multidimensional analysis, also check which dimensions were actually rated
+for each person. A connected overall design can still leave one person's second
+ability unmeasured. The [worked dimension-support check](data-validation.md#person-dimension-support)
+shows how to find that person and keep the Q rows aligned with item names before
+running MCMC.
+
 The design also matters. If one group of people is rated only by R1 and another
-only by R2, with no linking observations or justified anchors, severity and
-group differences may not be separable from the ratings. More MCMC draws cannot
-create that missing link. Connectedness is necessary in many designs but does
-not guarantee useful precision or remove bias from selective rater assignment.
+only by R2, the ratings may not separate severity from group differences. Shared
+tasks and overlapping assignments must provide enough information to separate
+the effects. More MCMC draws cannot create that information. The current fitter
+requires connectedness and the design-rank checks to pass even with anchors;
+anchors do not bypass these checks. Passing them does not guarantee useful
+precision or remove bias from selective rater assignment.
 See [Data Validation](data-validation.md) for coverage, linking and missingness checks.
+
+## [Choose a reference or fix an external calibration](@id references-and-anchors)
+
+**You do not need external anchor values to run the first analysis.** In that
+example, R1 is set to zero so that R2's severity means the difference from R1.
+Zero is a reference point, not evidence that R1 is perfectly accurate or unbiased.
+The one-dimensional MFRM also sets the first item to zero and centers the category
+steps. Check the actual reference labels in `model_manifest(getdesign(spec))`.
+
+An external calibration asks a different question: *can new ratings be analyzed
+while retaining a previously established rater or item value?* A **hard anchor**
+holds that value fixed throughout estimation. Use it only when treating the
+value as exact is appropriate for the analysis and its scale and meaning match.
+
+| Setting | Meaning in this package |
+| --- | --- |
+| Default reference | Choose zero for the first rater and first item. These coordinates are not estimated. |
+| Hard anchor | Fix a named rater severity or item difficulty at a supplied logit value. It replaces the default reference in that facet. |
+| Starting value (`init`) | Choose where sampling begins; the free parameter can move during estimation. |
+| Soft anchor | Express external calibration uncertainty through an informative prior. This is not implemented by the current anchor-fitting route. |
+
+Some multidimensional design records use the term `prior_anchor` for an ability
+prior that defines the scale. That is a distributional assumption, not a fixed
+external calibration or support for the `anchors` option in that model.
+
+### Inspect an anchor before fitting
+
+The following code uses the supplied first-analysis data and performs no fitting.
+The value `0.25` is hypothetical; it is not an estimate or an externally validated
+calibration for these artificial raters.
+
+```julia
+using BayesianMGMFRM
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_analysis.jl"))
+data = FirstMFRMAnalysis.inputs().data
+
+anchored_spec = mfrm_spec(data;
+    thresholds = :partial_credit,
+    anchors = [(block = :rater, level = "R2", value = 0.25, type = :hard)],
+)
+plan = anchor_refit_plan(anchored_spec; require_provenance = false)
+plan.numerical_fit_supported   # true: this declaration has a fitting route
+anchored_design = getdesign(anchored_spec)
+model_manifest(anchored_design; view = :public).design.fixed_coordinates
+# R2: 0.25, hard_anchor; I1: 0.0, reference_zero; neither is sampled.
+anchored_design.parameter_names
+# Includes rater[R1] and rater[R3], but not rater[R2].
+```
+
+R1 is now free: declaring R2's anchor does **not** also keep R1 fixed at zero.
+To anchor an item instead, use `block = :item` and its actual level label.
+The same declaration syntax is supported with `thresholds = :rating_scale`. In partial-credit
+models, fixing item difficulty fixes only the item's location; it does not fix
+that item's category-step pattern. Item difficulty alone is therefore not a
+complete imported calibration of a PCM item.
+
+[`anchor_refit_plan`](@ref) checks the declaration; it does not fit the model
+or establish that the calibration is valid. Its optional provenance checks
+inspect recorded source fields, not the original source bytes. See the
+[external-calibration contract](migration-facets-conquest.md#Anchor-constrained-refitting-policy)
+for scale/sign conversion and source records. After choosing the prior and
+sampling settings, the existing [`fit`](@ref) function accepts `anchored_spec`;
+an anchored specification needs its own fit. The first-analysis cache and its
+R2−R1 interpretation cannot be reused for a changed specification.
+
+### What the resulting uncertainty means
+
+An anchored value has no estimated SE or credible interval. Reports separate
+fixed coordinates from posterior estimates; an interval with identical endpoints
+in a data table denotes a fixed value, not perfect empirical precision. Uncertainty
+in an external calibration is not propagated to the other estimates. Read the
+[fixed-coordinate report](fitting.md#Fixed-coordinates-and-anchors) alongside the
+posterior summaries.
+
+One anchor in a facet chooses that facet's origin at the likelihood level.
+Two anchors in the **same** facet also fix their difference: fixing R1 at zero
+and R2 at 0.25 imposes a severity difference of 0.25 rather than estimating it.
+More anchors are not automatically better. Calibration drift or incompatible
+anchor values can alter the analysis; assess that assumption against the study's
+purpose and external evidence. The zero-centered priors on free coordinates
+are not shifted automatically when the reference changes, so a change of origin
+that preserves likelihoods need not preserve the posterior.
+
+The fitted anchor route is limited to **one-dimensional MFRM**, with rating-scale
+or partial-credit steps and individual rater/item hard anchors. It does not fit
+person, category-threshold, group-mean or soft anchors, or anchors in GMFRM and
+multidimensional MFRM/MGMFRM. A displayed declaration or a successful
+[`anchor_linking_summary`](@ref) is not evidence that such a model can be fitted.
+For the supported route, unknown or duplicate targets and invalid fixed values
+are rejected before fitting. Anchors also cannot be used to bypass disconnected
+data or insufficient design rank in this implementation.
 
 ## Choose assumptions before choosing a model name
 
@@ -160,6 +259,12 @@ a *between-item* structure. Several ones in a row allow several abilities to
 enter that item's predictor. Choose and justify Q from the intended measurement
 structure; the current interface does not discover an unknown Q automatically.
 
+To connect that declaration to data and fitting, use the
+[bundled MGMFRM example](examples.md#Start-with-the-bundled-MGMFRM-data).
+Its inspection command shows the actual item assignment, incomplete rating
+table, prior and four-chain settings without starting estimation. Its fitting
+command uses those same inputs and saves dimension-specific estimates.
+
 Several active dimensions within one item are called *within-item*
 multidimensionality. This structure is distinct from a compensatory or
 non-compensatory response rule, and from correlation between abilities. See the
@@ -168,17 +273,46 @@ before interpreting these labels.
 
 ## Check what this package can currently fit
 
+After constructing a specification, enter `spec` at the Julia prompt. In a
+script or notebook, the following prints the same explanation:
+
+```julia
+show(stdout, MIME"text/plain"(), spec)
+println()
+```
+
+Read the slope line, the owner of the category steps and the fitting entry.
+The display also keeps design/Q warning counts and any validation-only terms
+visible. It uses the existing specification; it does not estimate parameters
+or select priors. An available fitting entry describes implementation support,
+not evidence that the model is appropriate for your ratings.
+
+Some existing option names need care:
+
+| Option or function | Meaning to check |
+| --- | --- |
+| `mfrm_spec(...; family=:mgmfrm)` | The `family` option chooses the model; the constructor retains its original name. |
+| MGMFRM `discrimination=:none` | Positive loadings at active Q cells and rater consistency are still estimated. This compatibility selector does not request unit slopes. |
+| GMFRM `discrimination=:rater` | The model estimates both item discrimination and rater consistency. |
+| `bias=[(:rater, :item)]` | Requests cell/design checks. It does not fit rater-item interactions; those use the separate [joint-interaction workflow](@ref "Jointly fitted rater-by-item effects (experimental)"). |
+| `backend=:julia` | Random-walk Metropolis. Request Julia NUTS with `backend=:advancedhmc`; stable bare `fit(spec)` currently uses one random-walk chain. |
+
+The specification display concerns the base `FacetSpec`. If you subsequently
+apply a correlation or slope-restriction wrapper, inspect that wrapper's
+documented contract; the original specification does not describe those changes.
+
 The stable fitting workflow covers one-dimensional MFRM with rating-scale or
 partial-credit steps. GMFRM, multidimensional MFRM and MGMFRM are experimental.
-Estimated ability correlation is available only through the documented,
-restricted two-dimensional between-item models. A three-dimensional model
-with independent abilities and a model estimating three-dimensional correlations
-are different capabilities; the latter is not a supported fitting route.
+Estimated ability correlation is available through the documented two-dimensional
+between-item models and the restricted three-dimensional pure-Q model
+([Correlations among Three Traits](correlated-3d.md)); broader correlation
+structures or four or more correlated dimensions are not supported.
 
-The common prediction/comparison APIs described in this development manual are
-an isolated, unreleased candidate. Their presence does not establish that any
-model is scientifically preferable. Read [Scope and Releases](scope.md) for
-the exact restrictions and use documentation matching your installed revision.
+The prediction and model-comparison functions described in this manual are
+development interfaces not yet included in a registered release. Their presence
+does not establish that any model is scientifically preferable. Read
+[Scope and Releases](scope.md) for the exact restrictions and use documentation
+matching your installed revision.
 
 **Julia versus CmdStan is a computation choice.** MFRM versus GMFRM versus
 MGMFRM is a model choice. Changing the backend should preserve the intended
@@ -204,22 +338,66 @@ seed does not establish that those ingredients match.
 
 To try data checking and model specification first, without sampling or writing
 files, use the [Inspect Data Without Fitting](examples.md#Inspect-Data-Without-Fitting)
-example. For the subsequent fitting example, use a project checkout with its
-dependencies installed and run this command from the repository root:
+example. Then follow the [first MFRM analysis](examples.md#First-MFRM-analysis),
+which answers one question using 72 supplied artificial ratings. With this
+checkout's dependencies installed, run from its root:
 
 ```sh
-julia --project=. examples/minimal.jl
+julia --project=. examples/first_analysis.jl
 ```
 
-This uses artificial data and only 50 warmup plus 50 retained draws per chain.
-It demonstrates data validation, fitting, diagnostics and save/reload. Those
-settings are not a sample-size or MCMC recommendation, and warnings should be
-read rather than treated as successful inference. The
-[example walkthrough](examples.md#Minimal-MFRM-Workflow) explains its output
-files and optional plots. The [Bayesian Workflow](bayesian-workflow.md) gives
-the fuller analysis sequence, including prior checks and sensitivity analysis.
+The worked result has an estimated R2−R1 severity difference of about 0.180
+logit and a 90% interval from −0.511 to 0.889. Positive values mean greater
+severity for R2. The interval spans both directions, so these ratings do not
+clearly establish which rater is more severe. That is an answer with uncertainty,
+not a software failure or proof that the raters are equivalent.
 
-## Use Julia help and examples
+The example checks computation before giving that interpretation, saves a
+plain-English answer and the fitted model, and reloads them. Its four chains
+and explicit priors reproduce the documented teaching setup; the walkthrough
+explains their meaning and how to inspect the saved result without refitting.
+The [Bayesian Workflow](bayesian-workflow.md) covers the additional checks needed
+for your own study, including prior implications and sensitivity.
+
+## [New to Julia? A 5-Minute Guide for R, Python, and FACETS Users](@id julia-for-beginners)
+
+You do not need prior Julia programming experience to run a many-facet analysis
+in `BayesianMGMFRM.jl`. The four short notes below cover everything required to
+read the examples, adapt them to your own rating data, and avoid first-time
+pitfalls.
+
+### 1. Project environments and starting Julia (`--project`)
+
+Julia manages package versions per project folder using two text files—`Project.toml`
+(direct dependencies) and `Manifest.toml` (exact locked versions, similar to R's
+`renv.lock` or Python's `uv.lock`). Keeping one folder per study ensures that
+your analysis remains reproducible across sessions:
+
+```julia
+using Pkg
+Pkg.activate("my-rating-study")                     # Create or switch to an isolated project folder
+Pkg.develop(path="path/to/BayesianMGMFRM.jl")       # Link this local package checkout
+```
+
+From a terminal, start Julia with `--project=.` inside that folder (or pass the
+folder path as `--project=my-rating-study`) so the same environment is active
+whether you work interactively or run a script:
+
+```sh
+julia --project=my-rating-study my_analysis.jl
+```
+
+### 2. Essential Julia syntax in 60 seconds
+
+| Concept | In R / Python / FACETS | In Julia (`BayesianMGMFRM.jl`) | Why it looks this way |
+| --- | --- | --- | --- |
+| **Column names and option flags (`:symbol`)** | `"examinee"`, `"partial_credit"` | `:examinee`, `:partial_credit` | A leading colon creates a `Symbol`—an lightweight identifier used for table columns, facet names, and model options. |
+| **Keyword arguments after `;`** | `f(data, person = "examinee", rater = "rater")` | `FacetData(ratings; person = :examinee, rater = :rater, item = :item, score = :score)` | The semicolon `;` separates positional inputs (`ratings`) from named keyword options. (Julia also accepts `,` before keyword arguments when unambiguous.) |
+| **Accessing fields in results (`.` notation)** | `validation$passed` (R) / `validation.passed` (Python) | `validation.passed`, `receipt.sha256` | Functions return structured `NamedTuple`s or model structs whose fields are read with `.field_name`. Type ` propertynames(x)` or `keys(x)` to list available fields. |
+| **Input rating tables** | `data.frame` / `pandas.DataFrame` / FACETS `Data=` | Any column-addressable table (`DataFrame`, `Dict`, or a `NamedTuple` of column vectors `(; examinee=[...], rater=[...], item=[...], score=[...])`) | `FacetData` reads columns by `:symbol` name (`table.col`, `table[!, :col]`, or `table[:col]`). Small examples use built-in `(; examinee=["P1", ...], ...)` column tuples so they run with zero extra dependencies. |
+| **Running a script file** | `source("script.R")` | `include("script.jl")` | Evaluates the file in your active Julia session. |
+
+### [Use Julia help and examples](@id Use-Julia-help-and-examples)
 
 Julia has built-in help for functions, types and modules. From the repository
 root, start an interactive session with `julia --project=.` and load the package:
@@ -275,11 +453,23 @@ You can also [download the no-fit example](assets/visual-guide/inspect_ratings.j
 from this preview and run `include("inspect_ratings.jl")` in a Julia session
 with BayesianMGMFRM loaded.
 
-One important default is easy to miss: `fit(spec)` currently selects
-`backend = :julia`, meaning random-walk Metropolis. The minimal fitting example
-explicitly chooses `backend = :advancedhmc` for Julia NUTS. A backend called
-“Julia” is not itself a sampler algorithm, and the default `chains = 1` is not
-sufficient for between-chain convergence checks.
+### 4. Three common pitfalls for first-time Julia users
+
+1. **First-call compilation time ("time-to-first-fit"):**
+   Julia compiles functions to machine code the first time they are called in a
+   new session. The first call to `fit` or `BayesianMGMFRM.plot` therefore
+   includes several seconds of compilation overhead; subsequent calls in the
+   same session run at compiled speed.
+2. **Always specify `backend = :advancedhmc` and `chains = 4` for substantive fits:**
+   Calling bare `fit(spec)` without keywords selects `backend = :julia`
+   (a single-chain random-walk Metropolis sampler intended only for lightweight
+   interface checks). For real Bayesian inference and between-chain convergence
+   diagnostics, pass explicit NUTS controls:
+   `fit(spec; backend = :advancedhmc, chains = 4, warmup = 500, ndraws = 500, seed = 20260718)`.
+3. **Load `CairoMakie` before calling `BayesianMGMFRM.plot`:**
+   Plotting is packaged as an optional extension so core estimation stays fast
+   to load. Install `CairoMakie` once in your project (`Pkg.add("CairoMakie")`)
+   and run `using CairoMakie` before calling `BayesianMGMFRM.plot(fit_result; kind = :wright)`.
 
 ## Check your understanding
 

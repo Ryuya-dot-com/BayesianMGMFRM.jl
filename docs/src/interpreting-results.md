@@ -34,6 +34,127 @@ than a posterior mean. Passing diagnostic thresholds is useful computation
 evidence, not a proof of convergence, identification, recovery or substantive
 validity. The [fitting guide](fitting.md) explains the available diagnostic output.
 
+## [Which conclusion does a rater analysis support?](@id rater-decision-evidence)
+
+Before removing a rater, adjusting scores or describing a group as disadvantaged,
+separate the evidence for the computation from evidence for the proposed
+interpretation. A precise estimate can depend on its prior, and a small effect
+in one model does not establish that the model reproduces the ratings.
+
+| Question | Read or do | Conclusion to keep separate |
+| --- | --- | --- |
+| Is the reported quantity computed precisely enough? | Read whole-fit diagnostics and mean, interval-endpoint or event MCSE for the actual reported quantity. Retain failed and unavailable checks. | Numerical qualification does not establish model adequacy or fairness. |
+| Does the model describe the relevant rating pattern? | Specify a discrepancy, such as category imbalance by rater, and its predictive reference distribution and conditioning. Inspect counts and allocation as well as the overall pattern. | A descriptive observed-minus-expected gap is not a calibrated test or a diagnosis of its cause. |
+| Does a rater difference change across items or groups? | Use the separate fitted [rater-item](#Jointly-fitted-rater-by-item-effects-(experimental)) or [group-effects](rater-group-effects.md) contrasts when their assumptions and design apply. `dff_report` is a residual screen. | A raw group difference, residual contrast and jointly fitted effect answer different questions. |
+| Would defensible assumptions change the answer? | Compare the same named quantity, data and scale under declared priors; qualify every fit and quantity. See [prior sensitivity](prior-sensitivity.md#prior-sensitivity-decisions). | Similar unqualified estimates do not establish robustness; a numerically resolved change is not automatically practically important. |
+| Is a score use unfair or an intervention justified? | Combine the adjusted effect, uncertainty, practical consequences and alternative explanations with evidence about the construct, allocation, access and intended use. | Neither a nonzero contrast nor absence of a flag settles fairness. |
+
+The [AERA/APA/NCME Standards (2014), Chapter 3](https://www.testingstandards.net/uploads/7/6/6/4/76643089/standards_2014edition.pdf)
+connect fairness to valid score interpretations for intended uses and require
+substantive evidence to interpret differential functioning as bias. Applied to
+the package's rater contrasts, this means reporting the relative effect and
+its limitations before drawing a broader fairness conclusion. There is no
+package-wide unfairness cutoff or automatic rater-exclusion rule.
+
+**Do not turn an expected-value interval into a predictive test.** The
+[group category report](rater-group-effects.md) summarizes uncertainty in
+conditional expected proportions and scores. An observed proportion outside
+that interval does not, by itself, establish misfit: the interval omits
+replicated-outcome variation. A predictive check must retain the design and
+dependence relevant to the question. For the separate group-effects model,
+the [selected category-count check](rater-group-effects.md#group-category-predictive-check)
+adds conditional count variation and numerical precision without new fitting.
+It provides exploratory tails, not a general mechanism classifier. Replicating
+each rating independently can
+be wrong when a latent class or response effect is shared across ratings.
+Posterior predictive tail probabilities also need their own numerical precision;
+they are not generally uniform under a correctly specified model and are not
+ordinary frequentist p-values. See the
+[Stan predictive-check guide](https://mc-stan.org/docs/stan-users-guide/posterior-predictive-checks.html).
+
+**Check whether agreement was imposed by fitting.** With suitable free category
+effects, unpenalized maximum-likelihood score equations can make observed
+category counts equal their fitted expectations. A matching count or a
+predictive tail near one half then supplies little independent evidence for
+the claimed mechanism. The
+[ConQuest worked example](migration-facets-conquest.md#fitted-category-counts)
+shows the identity and its conditions. Priors, penalties and constraints matter;
+do not assume that all fitted models match all counts. Report what is reproduced,
+what remains unchecked and whether any predictive reference fixes global
+parameters or integrates their uncertainty.
+
+For halo, distinguish failure to discriminate among criteria from a general
+impression of a person; these are different proposed mechanisms in
+[Jin and Eckes (2025)](https://doi.org/10.3758/s13428-025-02667-6).
+Preference for middle categories, criterion dependence and signed positive or
+negative impressions are also different claims. Low support for an ID class
+in a fitted research model would not establish category-use adequacy or absence
+of other mechanisms. The separate experimental [criterion-collapse route](criterion-collapse.md)
+fits a constant class per rater, reports posterior class probabilities and
+conditional category expectations, and retains prior and diagnostic warnings.
+It does not provide calibrated classification or signed halo/horns. Residual
+dependence summaries do not supply that classification, and the separate
+JointRatings model is not an ID-class model.
+
+For change over time, the separate
+[rater-drift route](rater-drift.md) estimates linked severity trajectories with
+a specified time grid and innovation prior. Cross-sectional DFF, a metadata
+`occasion` column, or repeating the same persons with new performances does
+not by itself identify severity drift. A trajectory contrast is not evidence
+of fatigue, a causal intervention effect, or a signed halo/horns mechanism.
+Each route retains its own input, fit, report and save/load contract; these
+effects cannot be combined merely because separate modules exist.
+
+## [Checklist for reporting in a manuscript](@id manuscript-reporting-checklist)
+
+When reporting a Bayesian many-facet analysis in a journal article or technical
+report, separate **design and model assumptions**, **MCMC numerical precision**,
+**substantive posterior uncertainty**, and **model-fit / sensitivity checks**.
+The table below maps each manuscript element to the function and output field
+that supply it:
+
+| Manuscript section | What to state explicitly | Where to inspect it in `BayesianMGMFRM.jl` | Interpretation boundary to preserve |
+| --- | --- | --- | --- |
+| **1. Data & Rating Design (Methods)** | Total ratings, number of examinees, items/tasks, and raters; intended score category range; missing-data policy (unobserved combinations omitted, never coded as zero); rating-network connectedness and category counts. | `design_summary(data)`, `validate_design(data)` (`validation.passed`, `validation.issues`), `coverage_summary(data)` | Graph connectivity permits joint scale linking under the model assumptions; it does not guarantee high precision for sparsely rated individuals or raters. |
+| **2. Model, Identification & Priors (Methods)** | Model family (e.g., 1D RSM/PCM MFRM, or the specific `Experimental` extension), sign convention (`+` ability, `-` difficulty, `-` severity), identification rule (reference level such as `R1 = 0`, sum-to-zero, or hard anchors), threshold owner, and full joint prior distributions on the declared parameter scale. | `contract(spec)`, `model_equation(spec)`, `constraint_table(spec)`, `identification_declarations(spec)`, `prior_predictive_check(spec; prior = ...)` | Reference levels and hard anchors fix the origin without propagating external anchor uncertainty. Changing from a reference level to sum-to-zero with the same marginal prior SDs changes the induced joint prior. |
+| **3. MCMC Sampling & Whole-Fit Qualification (Methods / Results)** | Package version and exact source revision, sampler backend (`AdvancedHMC` NUTS or `CmdStan`), chains, warmup and retained draws per chain, retained-draw sampler telemetry (divergences, max-treedepth hits, nonfinite log-densities, minimum `E-BFMI`), and worst-case parameter diagnostics (`max rank-normalized split R-hat`, `min bulk ESS`, `min tail ESS`). | `qualify(fit)` (`.qualified`, `.diagnostics`), `diagnostics(fit; view = :public)`, `sampler_diagnostics(fit; phase = :retained)` / `phase = :warmup`, `sampler_controls(fit)` | Passing numerical diagnostics shows that the Markov chains mixed adequately on the fitted target; it does not establish model adequacy, construct validity, or repeated-sampling coverage. Report warmup issues separately rather than hiding them. |
+| **4. Focal Estimates, Contrasts & MCSE (Results)** | Posterior mean/median and equal-tailed credible interval (stating the probability mass, e.g., 90% or 95% ETI, and the logit or probability unit), directional or ROPE probabilities (`P(left - right > 0)`), **and the Monte Carlo standard error (MCSE) of both the mean and the interval endpoints**. | `posterior_summary(fit; scale = :model)`, `posterior_mcse(fit)`, `contrast(fit; left = ..., right = ...)` (`.summary.mean`, `.summary.lower`, `.summary.upper`, `.summary.precision`), `reliability(fit)`, `ranking(fit)`, `classification(fit; cutoff = ...)` | Compute differences within each joint posterior draw (`contrast`), never by subtracting marginal interval endpoints. An interval crossing zero leaves the direction unresolved; it does not prove two raters or items are equivalent unless a justified equivalence region (ROPE) is established. |
+| **5. Predictive Fit, Comparison & Prior Sensitivity (Results)** | Posterior predictive discrepancy checks (stating what is conditioned on), leave-one-out cross-validation (`PSIS-LOO` `elpd_loo`, `se_elpd_loo`, and `pareto_k` tail warnings) or observation-bound `compare_models`, and sensitivity of focal conclusions across defensible alternative priors. | `predictive_check(fit)`, `criteria(fit)`, `compare_models(...)`, `prior_sensitivity(...)`, `BayesianMGMFRM.plot(fit; kind = ...)` | Predictive agreement on observed counts can occur by construction when free parameters match those counts. Small LOO differences relative to their SE do not decisively select a mechanism. |
+| **6. Reproducibility & Archival Artifacts (Data/Code Availability)** | Julia version, `Project.toml` and `Manifest.toml`, package source commit/digest, random seeds, and portable computed JSON reports with their SHA-256 receipts. | `save_fit` / `load_fit` (same-environment native cache), `save_report("report.json", fit; return_receipt = true)` / `load_report(path; expected_sha256 = ...)` | Native `.jls` files require the original Julia and package environment; share computed JSON reports and their SHA-256 receipts for cross-platform inspection. |
+
+### Illustrative reporting template (1D partial-credit MFRM)
+
+The template below shows how the numbers from the [first MFRM analysis](examples.md#First-MFRM-analysis)
+translate into prose while keeping numerical precision and substantive uncertainty distinct:
+
+> **Methods excerpt:** We fitted a one-dimensional Bayesian partial-credit
+> many-facet Rasch model (`BayesianMGMFRM.jl`, development snapshot) to 72
+> ratings across 12 examinees, 4 items, and 3 raters on a 4-category scale
+> (0–3). Pre-fit validation (`validate_design`) confirmed that all score
+> categories were observed and the examinee–item–rater network was connected.
+> For identification, Rater R1's severity and Item I1's difficulty were fixed at
+> 0 logits, and item-specific step parameters were constrained to sum to zero
+> within each item. Independent zero-centered normal priors were placed on
+> examinee abilities (SD = 1.5 logits) and on free rater severities,
+> item difficulties, and free step parameters (SD = 1.0 logit). Four
+> No-U-Turn Sampler (`AdvancedHMC`) chains were run for 1,000 warmup and 1,000
+> retained iterations per chain (`target_accept = 0.90`, diagonal metric).
+>
+> **Results excerpt:** All retained chains passed whole-fit numerical checks
+> (`qualify`: 0 retained divergent transitions, 0 maximum-treedepth hits,
+> minimum E-BFMI > 0.30, maximum rank-normalized split R-hat ≤ 1.01,
+> and minimum bulk and tail ESS ≥ 400). For the focal severity
+> contrast between Rater R2 and Rater R1 (`R2 - R1`, where
+> positive values indicate greater severity for R2), the posterior mean was
+> 0.180 logits with a 90% equal-tailed credible interval of [-0.511, 0.889].
+> Monte Carlo standard errors were 0.0069 logits for the posterior mean and
+> 0.0171 and 0.0156 logits for the lower and upper interval endpoints,
+> confirming that finite-sample MCMC error was negligible relative to the
+> posterior uncertainty. Because the 90% credible interval spanned both negative
+> and positive values, these ratings did not establish a clear directional
+> difference in severity between R2 and R1; this result reflects estimation
+> uncertainty under the small design and does not demonstrate rater equivalence.
+
 ## [Choose 90%, 95% or 99% credible intervals](@id credible-interval-levels)
 
 A credible interval (CrI) needs both a **probability mass** and an **interval
@@ -67,18 +188,22 @@ nested interval but leaves the main `lower`/`upper` columns at their default
 2.5th and 97.5th percentiles. There is no `interval = 0.99` keyword for this
 summary function.
 
-For experimental GMFRM and MGMFRM, `posterior_summary` describes raw
-computational coordinates. Use the qualified model-scale summary for positive
-loadings and rater consistencies:
+For scalar/fixed-Q GMFRM/MGMFRM and normalized/correlated-2D MGMFRM,
+the no-keyword `posterior_summary` retains raw computational coordinates.
+Select model coordinates explicitly for positive loadings and rater consistencies:
 
 ```julia
-model_rows99 = BayesianMGMFRM.direct_posterior_summary(fit;
+model_rows99 = posterior_summary(fit; scale=:model,
     lower = 0.005, upper = 0.995, intervals = (0.99,))
 ```
 
-Fixed-coefficient multidimensional MFRM also supports these two summary calls;
-its direct summary reconstructs model coordinates. Always report the coordinate
-and units of the quantity being summarized.
+The qualified `BayesianMGMFRM.direct_posterior_summary(fit)` spelling still
+returns the same model rows. Fixed-coefficient multidimensional MFRM retains
+its existing raw/direct summary calls; this selector does not extend its API.
+For a generalized fit, `estimand=:adjacent_logit_slope` in `posterior_summary`
+and `posterior_mcse` uses joint products of the item/rater slopes and the model's
+fixed multiplier. See [Read model parameters and effective slopes](model-equations.md#Read-model-parameters-and-effective-slopes).
+Always report the ability unit and conditioning, as well as the response scale.
 
 The plotting and response-surface interfaces instead take a single mass:
 
@@ -110,7 +235,11 @@ The default coordinate for this MCSE call matches the identified scalar MFRM
 or the direct generalized/multidimensional model coordinates. To match a raw
 GMFRM/MGMFRM summary instead, add `parameter_space = :raw_unconstrained`.
 Inspect the returned status and endpoint MCSE together with chain diagnostics;
-a returned number alone does not establish tail precision. The
+autocorrelation estimation considers all available split-chain lags, with the
+initial-positive/monotone-sequence stopping rule. A fixed short lag cap can
+understate error when autocorrelation persists. This does not rescue a chain
+that fails convergence diagnostics; a returned number alone does not establish
+tail precision. The
 [Stan posterior documentation](https://mc-stan.org/posterior/reference/mcse_quantile.html)
 explains quantile MCSE. Existing 90% simulation coverage results do not become
 99% coverage evidence simply by changing an output setting.
@@ -164,13 +293,28 @@ does not by itself establish equivalence.
 For raters, a positive severity contrast means the first rater is more severe
 under the model's sign convention. A consistency ratio describes relative
 probability concentration; it does not label one rater more reliable or fair.
-The [saved-fit contrast example](examples.md#Compare-abilities-or-raters-in-a-saved-MGMFRM-fit)
-keeps joint draws, diagnostics and MCSE together without fitting again.
+Use [`BayesianMGMFRM.posterior_contrast`](@ref) for scalar `MFRMFit` (RSM or PCM),
+independent `MGMFRMFit` or `NormalizedMGMFRMFit` results. Scalar MFRM differences
+are in unit logits; a hard anchor is treated as fixed, excluding its external
+uncertainty. The [scalar example](examples.md#Compare-persons-or-raters-in-a-saved-scalar-MFRM-fit)
+uses the ordinary one-dimensional names. The
+[saved-fit contrast example](examples.md#Compare-abilities-or-raters-in-a-saved-MGMFRM-fit)
+shows exact coordinate names, label-based selection and saved reproduction,
+keeping joint draws, diagnostics and MCSE together without fitting again.
+
+Apply numerical tolerances in the same units as the contrast. The
+[mean-profile example](examples.md#Check-a-mean-profile-contrast-in-the-intended-units)
+shows a saved fit whose global diagnostics pass while its interval-endpoint
+MCSE fails a declared tolerance, and explains why specifying prior means in
+unit logits does not change the returned contrast units.
 
 ## Ask what a predictive check actually checks
 
-A posterior predictive check generates replicated ratings from the fitted
-model and compares relevant features with the observations. Examine category
+A posterior predictive check compares relevant observed features with their
+distribution under replicated ratings from the fitted model. This distribution
+can be evaluated by simulation or, for some models and discrepancies, exact
+conditional integration. The package's prediction APIs retain their documented
+simulation behavior; this distinction adds no general exact-check API. Examine category
 use and patterns by rater, item and person, not only an overall average.
 An aggregate match can hide a systematic mismatch in a subgroup.
 Prior predictive checks perform the corresponding simulation before conditioning
@@ -221,9 +365,12 @@ model's dimensions represent the intended constructs.
 WAIC and importance-sampling LOO estimate predictive quantities from fitted
 draws under their own assumptions. Importance-sampling instability matters;
 see the [official loo example](https://mc-stan.org/loo/articles/loo2-example.html)
-for reference PSIS-LOO and its diagnostics. The package candidate's raw IS-LOO
-and experimental Hill-smoothed option must not be presented as independently
-validated equivalents of that reference implementation.
+for reference PSIS-LOO and its diagnostics. The common `:psis_loo` option now
+uses Zhang–Stephens GPD smoothing and chain relative efficiency, with finite
+checks against R's `loo`. Its [documented limits](common_prediction_comparison.md)
+include an exact alternating-series ESS boundary and unavailable comparison
+MCMC MCSE. Raw IS-LOO and the historical `:hill_smoothed_loo` remain distinct
+estimators; stored reports using them are not relabelled as standard PSIS.
 
 The current [common comparison guide](common_prediction_comparison.md) describes
 saved-fit scoring, explicit refit requests and complete-fold comparison across
@@ -379,14 +526,85 @@ Unexpected residuals may reflect multidimensionality, dependence or assignment,
 not a uniquely identified bias mechanism. Neither a flag nor an interval
 excluding zero by itself establishes unfairness.
 
-For a future fitted interaction API, begin with an identified MFRM interaction
-model, explicit row/column constraints and partial pooling, then validate sparse
-and unbalanced designs, reference contrasts, and practical decision accuracy.
+The experimental fitted rater-by-item route below implements one identified
+scalar PCM with partial pooling. It still needs replicated calibration, prior
+sensitivity and validation of practical decisions before stronger claims.
 Group DIF also requires separating group ability distributions from item effects;
 adding every possible interaction can destroy that identification. Extend to
 GMFRM/MGMFRM only with a declared response equation, dimension and reference
 population. Multipliers change the relation between latent contrasts and score
 changes, so a common raw-logit interpretation cannot be assumed.
+
+### Jointly fitted rater-by-item effects (experimental)
+
+Use this route for “Is R2 generally more severe than R1, or additionally more
+severe on item I1?” It estimates the main effects and interaction jointly. It is
+a separate model from the residual `dff_report` and FACETS' conditional secondary
+bias procedure. It does not establish better performance than either procedure.
+
+```julia
+using BayesianMGMFRM
+RI = BayesianMGMFRM.Experimental.RaterItemInteractions
+# data is a FacetData with person, item, rater and score columns.
+# These prior values and the 0.3-logit practical margin are illustrative.
+prior = RI.Prior(person_sd=1.5, item_sd=1.0, rater_sd=1.0, step_sd=1.0,
+    interaction_logmean=log(0.3), interaction_logsd=0.7)
+model = RI.model(data; prior)
+allocation = RI.design(model)  # Counts, distinct people and person--cell linking
+result = RI.fit(model; chains=4, warmup=1000, ndraws=2000,
+    seed=2026102301, target_accept=0.95, max_depth=12)
+RI.save_result("interaction-fit.jls", result)  # Refuses overwrite
+table = RI.report(result; practical_threshold=0.3, interval=0.95)
+comparison = RI.contrast(result; left="R2", right="R1", item="I1",
+    practical_threshold=0.3, interval=0.95)
+RI.save_report("interaction-report.json", table)
+restored = RI.load_result("interaction-fit.jls")  # Trusted native file only
+```
+
+`comparison.overall`, `.additional`, and `.total_at_item` report left-minus-right
+differences in overall severity, additional severity at the selected item, and
+their sum. A positive difference means greater severity and lower adjacent-category
+odds, conditional on the model. Each contains an equal-tailed interval,
+mean/endpoint MCSE and probabilities below, inside and above the practical margin,
+with event-probability MCSE. The three summaries use the same joint draws; do not
+subtract marginal interval endpoints. An interval including zero does not
+establish practical equivalence. `table.cells` includes every interaction cell,
+its rating and distinct-person counts, and the same uncertainty summaries.
+
+The model is a scalar, unit-slope, item-step PCM. Item and rater main effects sum
+to zero; each item's step effects sum to zero. Interaction row and column sums
+are zero, using the equally weighted full rater-item grid as reference. This
+differs from `dff_report`'s observed-assignment weighting. The lognormal scale
+`tau` is the marginal prior SD of an interaction cell conditional on tau; its
+log mean and log SD control partial pooling. Cell effects are dependent under
+the constraints. Other constrained prior SDs refer to orthonormal coordinates,
+so an individual level's marginal SD is smaller. These priors differ from the
+stable MFRM's reference-coded priors; an old MFRM fit is not automatically a
+matched no-interaction comparator. The prior gives tau positive support, so
+`P(tau > 0)` is not evidence for an interaction.
+
+This first route allows unequal counts and missing individual ratings, but
+requires every rater-item cell observed and a connected person--cell graph.
+It rejects an unsupported allocation before sampling. A complete rater-item
+table alone is insufficient if different people supply disconnected blocks.
+Connectivity establishes structural location rank, not adequate information or
+precision. Other facets, group DIF, shared-response dependence, free slopes,
+Q matrices and multidimensional interactions are outside this route.
+
+Read `table.diagnostics` and the contrast-specific diagnostics and MCSE together.
+`diagnostics.qualified` screens four or more chains, rank-normalized R-hat ≤ 1.01,
+bulk/tail ESS ≥ 400, no retained divergences or maximum-depth hits, and E-BFMI ≥ 0.3.
+Warmup diagnostics remain separate. Passing this screen does not establish focal
+precision, model adequacy, calibration or fairness. Marginal cell probabilities
+and partial pooling do not automatically control multiplicity. Do not label a
+rater unfair from an interval or probability alone.
+
+Run `examples/rater_item_interactions.jl NEW_OUTPUT_DIRECTORY` for the fixed
+72-rating artificial teaching example; add `--saved-fit PATH` to review a saved
+example without fitting or generating random ratings. Native files require the
+matching source, Julia and dependency environment. JSON files are computed
+reports, not portable posterior draws. The route remains experimental; its
+bounded operation evidence is separate from scientific and independent acceptance.
 
 ### Reliability, separation and Strata
 
@@ -836,6 +1054,20 @@ conventions and centering constraints are recorded in `model_contract` and
 `step_contract`. Compare models only after checking their
 [category equations and identification](model-equations.md).
 
+One-dimensional MGMFRM uses the same loading-on-ability and literal 1.7 rater
+scale as its multidimensional counterpart. Fixing both coefficients to one
+does not turn it into the unit-logit ordinary MFRM. For a single dimension,
+an adjacent crossing is `(item position + rater severity + item step) / loading`;
+the rater scale changes steepness, not that crossing.
+
+Earlier versions calculated D1 MGMFRM profile curves without its loading and
+rater scale, and omitted the loading from its crossings. Regenerate affected
+`curve_rows` and `crossing_rows`, including their computed-report copies, from
+the original fit cache in its matching environment. Refitting is unnecessary.
+Existing-row expected category use and centered-step summaries used separate
+calculations and are unaffected by this correction. Previously exported reports
+retain their original computed values; loading them does not repair them.
+
 `usage_rows` retain every declared category overall, per item and per rater,
 including unused categories. Counts use actual rating rows as the denominator;
 they do not give equal weight to persons or correct an unbalanced allocation.
@@ -897,7 +1129,14 @@ steps, gaps, probabilities and crossings. This API does not calculate HDIs or
 simultaneous bands. Results condition on the fitted model and its calibration
 policy; fixed anchors omit external calibration uncertainty. All original draws,
 chain layout, observation IDs, source identity and warnings are retained. Resource
-limits fail explicitly rather than selecting a subset of draws. The optional `fit_report(...; reporting=(...))` integration retains these
+limits fail explicitly rather than selecting a subset of draws. Category use is
+accumulated one facet level at a time, avoiding a full draws-by-ratings-by-categories
+tensor. `max_prediction_cells` now limits the aggregation/logit workspace to
+`S*K*(min(n_items,n_raters)+2)+K` Float64 cells; it does not bound loaded draws,
+summary/MCSE memory or runtime. Every rating is still evaluated for every draw.
+`max_curve_cells` retains its separate profile-grid budget. Floating-point
+summation order can change report hashes without changing the statistical target.
+The optional `fit_report(...; reporting=(...))` integration retains these
 definitions in a separate `category_report` section. Neither entry point establishes
 category calibration, a new-rater guarantee or model validity.
 
@@ -1004,7 +1243,7 @@ index is mandatory in every paper, and unavailable results should remain explici
 | Score interpretation | Raw averages versus adjusted expected scores; reference persons/items/raters and their weights | `fair_average_summary` supports ordinary MFRM on a balanced reference grid; this is not automatic population standardization. |
 | Fit and unexpected ratings | Infit/outfit, observed–predicted residual patterns and support; rationale for any flag | `fit_stats` provides ordinary MFRM posterior summaries. `facets_compatibility_stats` supplies a separate approximate plug-in MnSq/ZSTD table, not FACETS JML identity. No universal cutoff or automatic deletion follows. |
 | Category functioning | Use, steps, ordering uncertainty, probability curves and item/rater differences | `category_report` gives owner-aware steps, expected use and conditional curves across the common saved-fit types. Ordinary-MFRM `category_functioning_summary` retains replicated-use intervals. These targets differ; a disordered step alone does not justify merging categories. |
-| Rater behavior and DFF | Overall severity, pairwise contrasts, substantive margins, cell counts, assignment and multiplicity limitations | Severity homogeneity and residual DFF screening exist for ordinary MFRM. Joint fitted DFF remains a gap. |
+| Rater behavior and DFF | Overall severity, pairwise contrasts, substantive margins, cell counts, assignment and multiplicity limitations | Ordinary MFRM supports severity homogeneity and residual DFF screening. Separate Experimental [rater-item](#Jointly-fitted-rater-by-item-effects-(experimental)) and [group-effects](rater-group-effects.md) models jointly estimate bounded severity effects; common `FacetSpec` bias terms remain validation-only. No general DFF, item-DIF or fairness decision follows. |
 | Score agreement | Matched performance/criterion/occasion, exact/adjacent definition, full pair denominators, observed and model-expected rates, appropriate uncertainty | `rater_agreement` supports the common saved-fit types with explicit response IDs, joint-draw expectations and optional person-cluster observed SEs. It does not identify a dependence mechanism or provide a predictive interval. |
 | Reliability and resolution | Named facet/dimension, intended population/design, uncertainty definition, individual precision; justified separation/Strata | Explicit finite-cohort `posterior_reliability` supports one dimension at a time across the common fit types. The historical separation screen warns. Population/design reliability and validated Strata remain unavailable. |
 | Dependence and dimensionality | Response-level residual association, shared stimuli, repeated ratings, Q restrictions and estimated dimension correlations | Local-dependence and prediction tools exist within specific fit/metadata scopes; a residual correlation does not identify a causal mechanism. |
@@ -1158,3 +1397,10 @@ a stable ordering does not establish a practically important gap. Model and prio
 sensitivity, scientific acceptance, and substantive decision criteria remain
 separate from successful rank reporting. No new MCMC is required to change the
 reported cohort, direction, interval level or top-k query.
+
+## Jointly fitted group differences in severity
+
+For observed-group rater severity, use the separate
+[group-effects workflow](rater-group-effects.md). It estimates group ability means
+and relative rater/group effects together. Residual DFF screening and
+`FacetSpec` validation-only bias terms retain their existing meaning.

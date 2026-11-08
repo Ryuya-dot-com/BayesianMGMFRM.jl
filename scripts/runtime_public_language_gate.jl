@@ -23,6 +23,7 @@ const LEGACY_MAINTENANCE_EXPORTS = Set((
 # are intentionally absent from the published manual. Exact study-ledger and
 # recorded-output payloads remain unchanged.
 const EXPERIMENTAL_DEVELOPER_DOCSTRINGS = Set((
+    :ThreeIndicator,
     :free_latent_correlation_2d_known_truth_fixture,
     :free_latent_correlation_2d_oracle_profile,
     :free_latent_correlation_2d_recovery_pilot,
@@ -98,6 +99,11 @@ function exported_docstring_outputs()
     module_doc === nothing || push!(outputs,
         "docstring:Experimental" =>
             sprint(show, MIME"text/plain"(), module_doc))
+    vs_binding = Docs.Binding(BayesianMGMFRM, :ValidationSuite)
+    vs_doc = Docs.doc(vs_binding)
+    vs_doc === nothing || push!(outputs,
+        "docstring:ValidationSuite" =>
+            sprint(show, MIME"text/plain"(), vs_doc))
     experimental_names = experimental_public_docstring_names()
     isempty(experimental_names) &&
         error("no public Experimental docstrings were discovered")

@@ -35,10 +35,10 @@ const PRIOR = MFRMPrior(person_sd=SCALES.person_sd, rater_sd=SCALES.rater_kernel
         # Whiten the generated free severities with an independently evaluated
         # Gaussian covariance; check density including all normalization terms.
         sigma = SCALES.rater_kernel_sd^2 .* (Matrix{Float64}(I,R-1,R-1)-ones(R-1,R-1)/R)
-        dist = B.Turing.MvNormal(zeros(R-1),sigma)
+        dist = B.Distributions.MvNormal(zeros(R-1),sigma)
         for row in eachrow(draws[1:4,:])
             lp = logprior(t.base,row)-sum(B._normal_logpdf(v,SCALES.rater_kernel_sd) for v in row[block])
-            @test logprior(t,row) ≈ lp+B.Turing.logpdf(dist,row[block]) atol=1e-10
+            @test logprior(t,row) ≈ lp+B.Distributions.logpdf(dist,row[block]) atol=1e-10
         end
     end
     @test_throws ArgumentError B._fixed_q_prior_draws(target(specification(),false),0,MersenneTwister(1))

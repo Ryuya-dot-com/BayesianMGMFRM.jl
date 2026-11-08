@@ -24,8 +24,10 @@ uses independent abilities by default; `Experimental.correlated(spec)` explicitl
 selects population correlation for two between-item dimensions. See
 [Correlated ability dimensions](experimental.md#Correlated-ability-dimensions)
 for its priors, coordinate transformation and fitting constraints.
-For both fixed-coefficient models, [prior scales and facet labels](@ref "Prior scales, facet labels and locations")
-explain the reconstructed rater/step distributions and prior-anchored locations.
+The [route-specific conventions](#Fixed-coefficient-routes-and-their-priors)
+distinguish scalar MFRM from the fixed-Q routes. For independent/correlated
+multidimensional MFRM, [prior scales and facet labels](@ref "Prior scales, facet labels and locations")
+explain its reconstructed rater/step distributions and prior-anchored locations.
 Broader GMFRM/MGMFRM specifications expose source-aligned manifests and preview
 compiler rows for review. Only the restricted generalized configurations in
 [Scope and Releases](scope.md) can be fitted.
@@ -57,6 +59,68 @@ contract.support.implementation_status
 See [API](api.md) for the rendered [`model_equation`](@ref) and
 [`model_family_contract`](@ref) docstrings.
 
+## Fixed-coefficient routes and their priors
+
+With categories indexed ``0,\ldots,K-1``, the scalar unit-logit PCM uses
+
+```math
+\log\frac{P(Y_{pir}=k)}{P(Y_{pir}=k-1)}
+=\theta_p-b_i-s_r-d_{ik},\qquad k=1,\ldots,K-1.
+```
+
+Its K-1 transition offsets sum to zero within each item. RSM instead shares
+one such vector across items. In generalized implementation arrays, an extra
+leading zero marks the baseline log weight; it is not a second transition.
+Thus binary responses have one transition offset, fixed to zero, and no free
+step parameter. For K>2 there are K-2 free offsets in each centered vector.
+
+These routes must be distinguished before assigning priors:
+
+| Route | Location and step conventions without user hard anchors | Prior meaning |
+| --- | --- | --- |
+| Stable scalar `family=:mfrm`, `MFRMPrior` | First item and rater levels fixed at zero; person locations free; shared RSM or item-owned PCM steps sum to zero. | Independent zero-centered normals on free coordinates. Fixed reference coordinates have no prior density. The final step is minus the sum of the free steps. |
+| Fixed-coefficient multidimensional MFRM, `MFRMPrior` | Active Q coefficients one; rater severities sum to zero; item and person locations prior-anchored; item-owned PCM steps. | Independent free-coordinate normals, including R-1 free severities. The reconstructed rater and step need not have the same variance as free entries. |
+| The preceding route with `Experimental.ExchangeablePrior` | Same likelihood and constraints. | A normalized exchangeable centered rater prior replaces the free-rater prior. Item, ability and free-step priors retain their previous meanings. |
+| D1 `Experimental.slope_restriction` with both slope types `:fixed_one` and exchangeable `NormalizedMGMFRMPrior`, optionally `MeanProfilePrior` | Rater severities and item-owned steps sum to zero; item and person locations remain free; the raw response equation retains 1.7. | Centered exchangeable normal rater and step residuals; independent person/item normals. Mean profiles add fixed item/step means. This prior is distinct from scalar `MFRMPrior`. |
+
+For the last route, set ``\widetilde\theta=1.7\theta``,
+``\widetilde b=1.7b``, ``\widetilde s=1.7s`` and
+``\widetilde d=1.7d`` to obtain the unit-logit equation above. Transform the
+prior means and SDs at the same time. `MeanProfilePrior(units=:unit_logit)`
+converts its supplied means only; the base-prior SDs still use raw units.
+This conversion is specific to this fixed-one D1 route, not a rule to multiply
+every generalized-model parameter by 1.7.
+
+For this route, ``\theta_p-b_i`` is invariant when all person and item
+locations are shifted together. The proper priors determine their separate
+positions along that likelihood-invariant direction. With J persons, R raters,
+I items and item-owned PCM steps, there are ``J+(R-1)+I+I(K-2)`` free parameters.
+The ordinary scalar route instead has ``J+(R-1)+(I-1)+I(K-2)``. An extra free
+item location does not make the conditional response family multidimensional.
+
+Hard anchors replace the relevant scalar reference convention; they are fixed
+values, not uncertain measurements. Re-expressing samples in a centered gauge
+does not replace their original prior with an exchangeable prior. A same-target
+software comparison must match the induced joint prior, not just this response
+equation or the names of the constraints.
+
+The scalar default reference is the first level in the stored label order, not
+the first input row. Inspect `data.rater_levels`, `data.item_levels` and the
+display of `spec`. Reordering rows preserves those levels; renaming IDs can
+change which physical rater/item is the reference. With `r1=0` and independent
+`r2,r3 ~ Normal(0,sigma)`, the prior variances of `r2-r1` and `r2-r3` are
+`sigma^2` and `2sigma^2`. This is a particular prior on contrasts, not a neutral
+choice for interchangeable raters. Scalar fit reports retain this caveat in
+their fixed-coordinate warnings; it is a model-interpretation warning, not a
+failed convergence diagnostic. A lone fixed facet, including `rater=nothing`,
+does not create free within-facet contrasts.
+
+Changing references preserves the same posterior only when the full probability
+model is transported, including abilities, priors and any absolute cut scores.
+Simply reusing the SD keywords after relabeling is a new prior specification.
+See [Comparing fit and decisions](migration-facets-conquest.md#Comparing-fit-and-decisions)
+for analysis selection and the distinction between transformed samples and a refit.
+
 ## Generalized Partial-Credit and Multidimensional Structure
 
 The guarded scalar GMFRM kernel follows Uto and Ueno (2020), Eq. 9. Its
@@ -67,6 +131,50 @@ keeps the original 2020 scalar convention and the 2021 multidimensional
 convention explicit in `category.source_scale_contract`. Direct numerical
 comparison of discrimination parameters across those families therefore
 requires a predeclared scale harmonization rather than an implicit comparison.
+
+### Read model parameters and effective slopes
+
+For a fitted scalar GMFRM, fixed-Q MGMFRM, normalized-prior MGMFRM (including
+the D1 slope restriction), or correlated-2D MGMFRM, choose the quantity explicitly:
+
+```julia
+model_parameters = posterior_summary(result; scale=:model)
+raw_coordinates = posterior_summary(result; scale=:raw)
+slopes = posterior_summary(result; estimand=:adjacent_logit_slope)
+slope_precision = posterior_mcse(result; estimand=:adjacent_logit_slope)
+```
+
+The no-keyword summary retains its historical raw-coordinate meaning.
+`scale=:model` equals the existing qualified `direct_posterior_summary(result)`;
+it does not absorb the fixed response multiplier into loadings or consistency.
+The direct parameter list retains its existing scope; reconstructed category
+steps are also available in model-coordinate report/plot views.
+
+The slope rows describe `a_i*c_r` for scalar GMFRM and `1.7*a_id*c_r` for MGMFRM.
+They differentiate the **adjacent-category log odds** with respect to one unit
+of the named ability, holding other ability components fixed. Each product is
+computed within a stored joint draw, so its mean/interval is not a product of
+separate marginal means/intervals. These slopes are not reliability coefficients,
+standardized effects or cumulative-event log odds. They include structural Q
+zeros and explicitly fixed coefficients; a constant estimated trace does not
+become a fixed parameter. Rows flag item-rater pairs without direct observations.
+For model comparisons, align ability units, constructs and conditioning as well
+as the response units. Scale conversion alone does not match joint priors.
+
+To retain these quantities and their endpoint MCSE in the shared report:
+
+```julia
+report = fit_report(result; include_effective_slopes=true,
+    include_posterior_predictive=false, include_waic=false, include_loo=false)
+save_report("model-report.json", report)
+restored = load_report("model-report.json")
+```
+
+This report option uses all retained draws and no predictive RNG. The derived
+section retains the report's whole-fit diagnostics and prior context; available
+MCSE does not certify convergence or scientific precision. The raw/model selector
+and slope estimand above do not extend the separate Correlated3D record API or
+other joint/association models. Their existing report behavior is preserved.
 
 The related constants `1.7` and `1.702` have different contractual roles.
 `1.702` is the conventional minimax scaling constant used to approximate a
@@ -79,7 +187,8 @@ would define a new likelihood version and require regenerated reference
 results; it is not a numerical-precision correction to the current source
 model.
 
-The guarded MGMFRM kernel follows the conditional response form in Uto (2021):
+The guarded MGMFRM kernel follows the conditional response form in Uto (2021),
+written here with zero-based category index k and an empty sum for k=0:
 
 ```math
 P(Y_{pir}=k \mid \boldsymbol{\theta}_{p})
@@ -93,7 +202,8 @@ P(Y_{pir}=k \mid \boldsymbol{\theta}_{p})
 \right\}.
 ```
 
-This is an adjacent-category cumulative-softmax, or GPCM-form, kernel. There is
+This accumulates adjacent-category log odds and then applies softmax, giving
+a GPCM-form kernel; it does not use cumulative-event odds ``P(Y\geq k)/P(Y<k)``. There is
 no integral over ability inside the conditional response probability. The
 package samples person abilities as explicit posterior parameters. Integrating
 other parameters out of a marginal posterior conceptually, or approximating a
@@ -260,6 +370,88 @@ scientific appropriateness of the prior.
 The [MGMFRM prior comparison](@ref "MGMFRM prior choice and comparable scales")
 distinguishes the raw prior from explicit normalized priors, explains
 their rater asymmetry and gives explicit scale-matching conventions.
+
+## Density on free and constrained coordinates
+
+An equality constraint reduces dimension. A zero-sum vector has no ordinary
+n-dimensional density; the package records a density with respect to its n-1
+independent coordinates. To see the distinction, let
+``u=(z_1,\ldots,z_{n-1})`` and ``z_n=-\sum_{j<n}u_j`` for n>1.
+
+For independent free-coordinate normals, the raw prior is
+
+```math
+p_{\mathrm{raw}}(u)
+=(2\pi\sigma^2)^{-(n-1)/2}
+\exp\left(-\frac{\sum_{j<n}u_j^2}{2\sigma^2}\right).
+```
+
+This is already normalized and proper. It gives the last effect variance
+``(n-1)\sigma^2``, compared with ``\sigma^2`` for each free effect.
+
+For the exchangeable centered prior with kernel SD ``\tau``, the full vector
+has covariance ``\tau^2(I-\mathbf1\mathbf1^\top/n)``. Its density on the **same
+free coordinates** is
+
+```math
+p_{\mathrm{centered}}(u)
+=\frac{\sqrt n}{(2\pi\tau^2)^{(n-1)/2}}
+\exp\left(-\frac{\sum_{j=1}^{n}z_j^2}{2\tau^2}\right).
+```
+
+The free-coordinate covariance is
+``\tau^2(I_{n-1}-\mathbf1\mathbf1^\top/n)``, whose determinant is
+``\tau^{2(n-1)}/n``. This gives the normalization above. Each full effect has
+SD ``\tau\sqrt{(n-1)/n}``, and each pairwise difference has SD
+``\sqrt2\tau``. The word *normalized* in the API does not mean that the raw
+prior was improper. It names this explicitly normalized constrained-vector
+law and its specified source variant.
+
+Relative to independent free normals with SD ``\tau``, the log-density
+correction is ``\frac12\log n-(\sum_{j<n}u_j)^2/(2\tau^2)``. Multiplying n
+ordinary normal densities at the constrained vector without the normalization
+does not give the displayed free-coordinate density. Fixed-scale constants
+cancel in one posterior's normalization, but matter for density comparisons
+and cannot be dropped when they depend on a parameter. If n=1 the sole effect
+is fixed at zero and contributes no free-coordinate density.
+
+For a fixed zero-sum mean profile m, apply the centered formula to ``z-m``.
+Unequal means remove exchangeability of the full prior, while its residuals
+remain exchangeable. Increasing means do not impose ordered sampled steps.
+
+Deterministically reconstructing the last coordinate does not add another
+Jacobian to these already-declared free-coordinate densities. A **change of
+sampling coordinates** does: if ``v=f(u)`` is invertible, then
+``p_v(v)=p_u(f^{-1}(v))\lvert\det Df^{-1}(v)\rvert``. For d free coordinates
+all multiplied by a positive constant c, the log-density adjustment is
+``-d\log c``. For ``a=\exp(z)``, it is ``-\log a`` when expressing a z-density
+as an a-density. Transforming stored draws to compute summaries needs no such
+weighting. See [Stan's change-of-variables discussion](https://mc-stan.org/docs/stan-users-guide/reparameterization.html#changes-of-variables).
+
+### The two-dimensional LKJ transformation
+
+For the supported two-dimensional correlation target, let
+``B(a,b)=\int_0^1 t^{a-1}(1-t)^{b-1}\,dt``. The normalized LKJ marginal is
+
+```math
+p(\rho\mid\eta)=\frac{(1-\rho^2)^{\eta-1}}{B(1/2,\eta)},
+\qquad -1<\rho<1.
+```
+
+With ``\rho=\tanh z``, the Jacobian contributes one more power of
+``1-\rho^2``:
+
+```math
+\log p_z(z\mid\eta)
+=\eta\log(1-\tanh^2 z)-\log B(1/2,\eta).
+```
+
+The ability normal density also depends on rho through its covariance
+determinant and quadratic form; it is still required in the joint prior.
+This is not a prescription to transform pairwise correlations independently
+in dimension three or higher. The [correlation guide](experimental.md#Correlated-ability-dimensions)
+states the supported designs and parameter restrictions; general LKJ/Cholesky
+formulas do not extend that fitting boundary.
 
 ## Independent Known-Truth Ordinal Kernel
 

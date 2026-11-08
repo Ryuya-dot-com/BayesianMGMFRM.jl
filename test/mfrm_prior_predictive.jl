@@ -115,13 +115,13 @@ end
         # An independently evaluated joint density includes d_rho/d_z exactly once.
         for draw in 1:4
             row = draws[draw,:]; r = rho[draw]
-            lp = B.Turing.logpdf(B.Turing.Beta(eta, eta), (r+1)/2) - log(2) + log1p(-r*r)
+            lp = B.Distributions.logpdf(B.Distributions.Beta(eta, eta), (r+1)/2) - log(2) + log1p(-r*r)
             covariance = PRIOR.person_sd^2 .* [1 r; r 1]
             for i in 1:2:6
-                lp += B.Turing.logpdf(B.Turing.MvNormal(zeros(2), covariance), row[i:i+1])
+                lp += B.Distributions.logpdf(B.Distributions.MvNormal(zeros(2), covariance), row[i:i+1])
             end
             for i in 7:(length(row)-1)
-                lp += B.Turing.logpdf(B.Turing.Normal(0, B._source_fixture_prior_sd(target.base, i)), row[i])
+                lp += B.Distributions.logpdf(B.Distributions.Normal(0, B._source_fixture_prior_sd(target.base, i)), row[i])
             end
             @test logprior(target, row) ≈ lp atol = 1e-9
         end

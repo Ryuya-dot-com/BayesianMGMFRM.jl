@@ -43,8 +43,8 @@ function summarize(values;binary=false)
         all(v -> v in (0,1),values) || throw(ArgumentError("Binary events required"))
         c=Int(sum(values))
         # Exact binomial interval; zero observed events never implies impossibility.
-        bounds=(c==0 ? 0. : quantile(B.Turing.Beta(c,n-c+1),.025),
-            c==n ? 1. : quantile(B.Turing.Beta(c+1,n-c),.975))
+        bounds=(c==0 ? 0. : quantile(B.Distributions.Beta(c,n-c+1),.025),
+            c==n ? 1. : quantile(B.Distributions.Beta(c+1,n-c),.975))
     end
     return (;mean=mean(values),q05=quantile(values,.05),q95=quantile(values,.95),
         iid_mean_mcse=std(values)/sqrt(n),n,binomial_interval95=bounds)

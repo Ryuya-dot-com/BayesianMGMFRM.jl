@@ -49,6 +49,23 @@ MFRM allows item-specific steps. Ordered score labels do not require fitted
 adjacent-category step offsets to be increasing. Their interpretation differs
 from cumulative cutpoints in an ordered-logistic model.
 
+### Declare the whole score ladder
+
+Here ``k`` is a category's position on the declared ladder. `FacetData` currently
+requires consecutive integer labels, such as 0–2 or 1–3; it rejects a ladder
+such as `(1,3,7)`. Relabeling 0–2 as 1–3 preserves the matched category
+probabilities and adds one to the expected *raw score*. Consecutive labels do
+not assert equal distances between category transitions on the ability scale.
+The expected raw score weights probabilities by the declared numeric labels.
+
+Keep possible but unobserved categories in `category_levels`. If a 1–25 scale
+happens to contain only observed scores 8–25, the first seven categories still
+contribute to the probability denominator. Deleting them changes the likelihood
+and number of steps; it is not simply relabeling the same model. An omitted
+rating, including a recusal, is a different issue from an observed low score or
+an unobserved category. Neither a declared ladder nor a connected design makes
+the missingness mechanism ignorable.
+
 ## Work through a three-category example
 
 Consider categories 0, 1 and 2, with illustrative step offsets
@@ -231,6 +248,22 @@ free-coordinate prior and the explicit normalized-prior alternatives can imply
 different distributions after constraints, including different treatment of
 raters. See [Experimental Models](experimental.md) before selecting their scales.
 
+For example, the default scalar MFRM fixes the first item and rater locations
+to zero. The fixed-Q routes instead center rater severities and keep item
+locations free with proper priors. Their prior-anchored locations and
+reconstructed-coordinate priors therefore cannot be transferred merely because
+both models have fixed coefficients. The
+[route-specific conventions](model-equations.md#Fixed-coefficient-routes-and-their-priors)
+also explain the fixed-one, one-dimensional MGMFRM route used by mean profiles.
+
+A sum-to-zero rule alone does not make a prior symmetric. For three effects,
+independent ``u_1,u_2\sim N(0,\sigma^2)`` and
+``u_3=-u_1-u_2`` give the last effect twice the variance of either other effect.
+An exchangeable centered normal prior instead gives all three the same marginal
+variance and dependent free coordinates. Both are proper priors; they are
+different probability models. The [density derivation](model-equations.md#Density-on-free-and-constrained-coordinates)
+states which measure and SD each route uses.
+
 ## What Bayesian estimation computes
 
 Let ``\phi`` collect the unknown abilities, facet parameters and any estimated
@@ -265,6 +298,14 @@ formula generally gives a different result. Prediction for an unseen person
 also needs that person's ability distribution; it is a different target from
 another rating of a person already represented in the fitted data.
 
+Specify the rater target too. In a fixed-consistency, item-step model,
+predicting at severity zero describes a reference rater in the centered
+parameterization. Averaging probabilities over the fitted
+raters describes that finite panel and requires declared weights. These generally
+differ because probabilities are nonlinear in severity, even when severities
+sum to zero. For either target, average over the joint posterior as well; retain
+shared draw identity when computing contrasts or replicated rating panels.
+
 ## How correlation and LKJ fit into the model
 
 For several abilities, a population prior can use
@@ -279,6 +320,13 @@ correlations are independently uniform. Its implications depend on dimension.
 Computations often use a lower-triangular Cholesky factor ``L`` with ``R=LL^\top``.
 Changing coordinates changes the density: the Cholesky density is generally
 not constant at ``\eta=1``. See the [Stan correlation-distribution reference](https://mc-stan.org/docs/functions-reference/correlation_matrix_distributions.html).
+
+In two dimensions, the only correlation is ``\rho`` and
+``p(\rho)\propto(1-\rho^2)^{\eta-1}`` on ``(-1,1)``. If the sampler uses
+``z=\operatorname{atanh}(\rho)``, then ``d\rho/dz=1-\rho^2``; its prior density
+is proportional to ``(1-\tanh^2 z)^\eta``. Even a uniform prior on ``\rho``
+therefore is not uniform on ``z``. This Jacobian belongs to the sampled density,
+not to a histogram or an average of transformed posterior draws.
 
 These formulas extend mathematically beyond two dimensions. The package's
 fitting interface currently admits only its specified two-dimensional correlated

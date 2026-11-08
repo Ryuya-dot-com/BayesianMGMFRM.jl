@@ -29,9 +29,9 @@ pointwise(t,x) = B._mfrm_fixed_q_pointwise(reference(t), x[1:LD.dimension(refere
         correlated && (x[end] = atanh(0.4))
         covariance = tau^2 .* (Matrix{Float64}(I,R-1,R-1)-ones(R-1,R-1)/R)
         # Independent matrix-normal implementation checks normalization and derivatives.
-        distribution = B.Turing.MvNormal(zeros(R-1),covariance)
+        distribution = B.Distributions.MvNormal(zeros(R-1),covariance)
         expected = logprior(t.base,x) - sum(B._normal_logpdf(v,tau) for v in x[block]) +
-            B.Turing.logpdf(distribution,x[block])
+            B.Distributions.logpdf(distribution,x[block])
         @test logprior(t,x) ≈ expected atol=1e-11
         @test LD.logdensity(t,x) ≈ sum(pointwise(t,x))+expected atol=1e-10
         gradient = ForwardDiff.gradient(v->logprior(t,v),x)

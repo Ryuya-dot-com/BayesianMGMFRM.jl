@@ -2907,7 +2907,8 @@ available in the package. It does not validate convergence, align values to the
 package's first-reference gauge, construct a fit parameter vector or anchors,
 permit a numerical-comparison claim, or claim estimator/software equivalence.
 Use [`load_conquest_parameter_export`](@ref) when only the raw numbered values
-are needed.
+are needed, or [`BayesianMGMFRM.load_conquest_reference_parameters`](@ref) for
+first-reference point coordinates and the required ability translation.
 """
 function load_conquest_semantic_parameters(directory::AbstractString,
         spec_or_design;
@@ -3054,4 +3055,86 @@ function load_conquest_semantic_parameters(directory::AbstractString,
     return merge(payload, (;
         content_hash = artifact_content_hash(payload),
     ))
+end
+
+"""
+    BayesianMGMFRM.load_conquest_reference_parameters(directory, spec_or_design;
+        expected_bundle_id, software_version, executable_sha256, executed_at_utc)
+
+Validate a complete ConQuest return using [`load_conquest_semantic_parameters`](@ref)
+and map its point estimates to the unanchored scalar MFRM first-reference gauge.
+The same ConQuest 5.47.5, three-category RSM/PCM restrictions apply. The original
+source record is retained as `source`; `parameter_rows`, `rater_values`,
+`item_values` and `threshold_values` describe the destination coordinates.
+
+Subtract the source first rater and first item from their respective blocks.
+Centered steps remain unchanged. **Also translate every source ability by
+`ability_shift`**, the negative sum of those two source reference values. Only
+then do conditional category logits and probabilities agree. The first levels
+are those in the validated specification, not alphabetically selected labels.
+
+This record contains no person estimates, full fitting vector, transformed
+standard errors/covariance, posterior draws, anchors or fit object. Joint
+uncertainty and population/prior distributions cannot be transferred by copying
+point estimates or marginal standard errors. Neither convergence nor numerical
+estimator agreement is established. Use `source` to inspect the original
+provenance, source parameters and all receipt limitations.
+"""
+function load_conquest_reference_parameters(directory::AbstractString,
+        spec_or_design; expected_bundle_id, software_version,
+        executable_sha256, executed_at_utc)
+    source = load_conquest_semantic_parameters(directory, spec_or_design;
+        expected_bundle_id, software_version, executable_sha256, executed_at_utc)
+    rater_reference = first(source.rater_values)
+    item_reference = first(source.item_values)
+    ability_shift = -rater_reference - item_reference
+    rater_values = map(value -> value - rater_reference, source.rater_values)
+    item_values = map(value -> value - item_reference, source.item_values)
+    isfinite(ability_shift) && all(isfinite, rater_values) &&
+        all(isfinite, item_values) || throw(ArgumentError(
+            "ConQuest reference-gauge transformation produced nonfinite values"))
+    rows = map(source.parameter_rows) do row
+        reference = row.block === :rater ? rater_reference :
+            row.block === :item ? item_reference : 0.0
+        (; block = row.block, level_index = row.level_index, level = row.level,
+            item_index = row.item_index, item = row.item, step = row.step,
+            from_category = row.from_category, to_category = row.to_category,
+            bridge_label = row.bridge_label, orientation = row.orientation,
+            source_value = row.value, reference_value = reference,
+            value = row.value - reference,
+            derivation = row.block in (:rater, :item) ?
+                :subtract_source_first_level : :unchanged_centered_step)
+    end
+    rater_row = first(filter(row -> row.block === :rater, rows))
+    item_row = first(filter(row -> row.block === :item, rows))
+    payload = (;
+        schema = "bayesianmgmfrm.conquest_reference_parameters.v1",
+        object = :conquest_reference_parameters,
+        status = :point_coordinates_aligned,
+        source,
+        destination_gauge = (;
+            rater = :reference_first, item = :reference_first,
+            thresholds = source.source_gauge.thresholds,
+            rater_reference = rater_row.level, item_reference = item_row.level),
+        rater_values, item_values, threshold_values = source.threshold_values,
+        parameter_rows = rows,
+        ability_shift,
+        ability_relation = :destination_equals_source_plus_shift,
+        source_reference_values = (; rater = rater_reference, item = item_reference),
+        semantic_parameter_identity_resolved = true,
+        source_gauge_validated = true,
+        destination_gauge_aligned = true,
+        conditional_prediction_coordinates_ready = true,
+        destination_parameter_vector_ready = false,
+        person_estimates_available = false,
+        uncertainty_transformed = false,
+        prior_equivalence_established = false,
+        anchor_candidate_ready = false,
+        convergence_validated = false,
+        numerical_comparison_allowed = false,
+        software_equivalence_claimed = false,
+        caveat = :point_coordinate_alignment_not_inference_equivalence,
+        next_gate = :matched_estimand_estimator_and_uncertainty_review,
+    )
+    return merge(payload, (; content_hash = artifact_content_hash(payload)))
 end

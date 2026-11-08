@@ -10,6 +10,8 @@ using TOML
 include(joinpath(@__DIR__, "public_language_gate.jl"))
 using .PublicLanguageGate
 
+include(joinpath(@__DIR__, "release_metadata.jl"))
+
 const ROOT = abspath(normpath(joinpath(@__DIR__, "..")))
 const JULIA = joinpath(Sys.BINDIR, Base.julia_exename())
 
@@ -96,6 +98,7 @@ function assert_present(project, key)
 end
 
 function metadata_check()
+    ReleaseMetadata.check(ROOT)
     project = project_file()
     name = assert_present(project, "name")
     uuid = assert_present(project, "uuid")

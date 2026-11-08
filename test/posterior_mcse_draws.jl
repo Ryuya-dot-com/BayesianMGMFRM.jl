@@ -4,6 +4,19 @@ using Statistics
 using MCMCDiagnosticTools
 using BayesianMGMFRM
 
+@testset "MCSE retains long-lag autocorrelation" begin
+    # Deterministic stress input, not posterior evidence. Independent posterior
+    # 1.7.0 reference; this trace is itself nonconverged, so MCSE cannot qualify it.
+    x=[sin(.003i+.17c)+.0002c*i for i in 1:1200,c in 1:4]
+    row=only(posterior_mcse(reshape(vec(x),:,1);chains=4,
+        parameter_names=["long"],probabilities=(.025,.975)))
+    @test row.mean_mcse ≈ .1360754930334213 rtol=1e-10
+    @test row.quantiles[1].mcse ≈ .10959194584195503 rtol=1e-10
+    @test row.quantiles[2].mcse ≈ .02640171430536198 rtol=1e-10
+    @test row.convergence_review_required
+    @test row.mean_mcse > MCMCDiagnosticTools.mcse(x;kind=mean,split_chains=2,maxlag=250)
+end
+
 @testset "posterior MCSE for parameters and derived estimands" begin
     rng = MersenneTwister(20260815)
     chains = 4

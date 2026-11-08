@@ -46,10 +46,16 @@ end
     @test "api-prediction-recovery.md" in PublicLanguagePolicy.PUBLIC_DOCUMENTATION_PAGES
     @test "api-experimental.md" in PublicLanguagePolicy.PUBLIC_DOCUMENTATION_PAGES
     @test isempty(PublicLanguagePolicy.runtime_language_violations(["example"=>"abspath(PROGRAM_FILE) == @__FILE__"]))
-    for token in ("call __FILE__", "@__FILE__suffix", "@__private_helper")
+    @test "rater-drift.md" in PublicLanguagePolicy.PUBLIC_DOCUMENTATION_PAGES
+    @test "joint-ratings.md" in PublicLanguagePolicy.PUBLIC_DOCUMENTATION_PAGES
+    @test isempty(PublicLanguagePolicy.runtime_language_violations(["example"=>"joinpath(@__DIR__, \"analysis-fit.jls\")"]))
+    for token in ("call __FILE__", "@__FILE__suffix", "@__private_helper", "call __DIR__", "@__DIR__suffix")
         @test !isempty(PublicLanguagePolicy.runtime_language_violations(["example"=>token]))
     end
-    @test "roadmap.md" in PublicLanguagePolicy.DEVELOPER_DOCUMENTATION_PAGES
+    for page in ("roadmap.md", "mgmfrm-research-roadmap.md")
+        @test page in PublicLanguagePolicy.PUBLIC_DOCUMENTATION_PAGES
+        @test !(page in PublicLanguagePolicy.DEVELOPER_DOCUMENTATION_PAGES)
+    end
     @test PublicLanguagePolicy._rendered_build_root(root) ==
         joinpath(root, "docs", "build")
     mktempdir() do temp_root
@@ -173,7 +179,7 @@ end
         write(allowed,
             "<html><body>" *
             "<a target=\"_blank\" href=\"https://example.org/guide\">Guide</a>" *
-            "<code>public_api</code>" *
+            "<code>public_api</code><code>@__DIR__</code><code>@__FILE__</code>" *
             "<script>const _private_search_state = true;</script>" *
             "</body></html>\n")
         @test isempty(PublicLanguagePolicy.rendered_language_violations(
@@ -195,6 +201,7 @@ end
     mktempdir() do temp_root
         write(joinpath(temp_root, "README.md"), "# Safe\n")
         write(joinpath(temp_root, "NEWS.md"), "# Safe\n")
+        write(joinpath(temp_root, "ROADMAP.md"), "# Safe\n")
         nested_example = joinpath(temp_root, "examples", "nested", "demo.jl")
         mkpath(dirname(nested_example))
         write(nested_example, "println(\"reader-facing\")\n")
@@ -526,3 +533,5 @@ end
         @test isempty(PublicLanguagePolicy.runtime_language_violations(outputs))
     end
 end
+
+include("public_documentation_wording.jl")

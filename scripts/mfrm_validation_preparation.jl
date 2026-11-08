@@ -128,7 +128,7 @@ end
 # Separate from _fixed_q_prior_draws: generate in full model coordinates.
 function _prior_state(geometry, rng, prior; correlated::Bool, lkj_eta)
     _prior_options(prior, correlated, lkj_eta)
-    rho = correlated ? 2rand(rng, B.Turing.Beta(lkj_eta, lkj_eta))-1 : 0.0
+    rho = correlated ? 2rand(rng, B.Distributions.Beta(lkj_eta, lkj_eta))-1 : 0.0
     abs(rho) < 1 || throw(ArgumentError("unrepresentable boundary prior correlation; retain this failure"))
     theta = Matrix{Float64}(undef, length(geometry.data.person_levels), 2)
     for p in axes(theta, 1)
@@ -697,7 +697,7 @@ function compare_backend_pairs(plan, attempts; alpha, independent_streams::Bool)
         all(m -> _finite_number(m.tolerance) && m.tolerance > 0, p.margins) ||
             throw(ArgumentError("supply finite positive numerical margins"))
         family_size = 3length(names)
-        z = quantile(B.Turing.Normal(), 1-alpha/(2family_size))
+        z = quantile(B.Distributions.Normal(), 1-alpha/(2family_size))
         isfinite(z) || throw(ArgumentError("alpha is too small for a finite comparison interval"))
         pair = get(results, p.id, nothing)
         fits = pair === nothing ? (nothing, nothing) : (pair.julia, pair.cmdstan)

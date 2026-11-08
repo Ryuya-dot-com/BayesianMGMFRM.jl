@@ -12,7 +12,7 @@ function _fixed_q_prior_draws(target, ndraws::Int, rng::AbstractRNG)
     correlated = target isa _MFRMFixedQCorrelated2DLogDensity
     base = correlated ? target.base : target
     draws = Matrix{Float64}(undef, ndraws, LogDensityProblems.dimension(target))
-    correlation_prior = correlated ? Turing.Beta(target.lkj_eta, target.lkj_eta) : nothing
+    correlation_prior = correlated ? Distributions.Beta(target.lkj_eta, target.lkj_eta) : nothing
     for row in eachrow(draws)
         for i in 1:LogDensityProblems.dimension(base)
             row[i] = _source_fixture_prior_sd(base, i) * randn(rng)
