@@ -1,6 +1,6 @@
 module RaterDriftFittingChecks
 # Fixed points and manufactured telemetry only; no model RNG or NUTS transition.
-using Test, JSON3, SHA, Serialization, Statistics
+using Test, JSON3, SHA, Serialization, Statistics, LinearAlgebra
 using BayesianMGMFRM
 const D=BayesianMGMFRM.Experimental.RaterDrift
 const W=D.RaterDriftWorkflow
@@ -52,6 +52,9 @@ function runner(t,initial;kwargs...)
 end
 
 function prepare_checks(output)
+    old_blas = LinearAlgebra.BLAS.get_num_threads()
+    LinearAlgebra.BLAS.set_num_threads(1)
+    try
     ispath(output) && error("new output directory required");mkpath(output)
     receipts=NamedTuple[]
     tests=@testset "RW1 sampler connection with deterministic replacement" begin
@@ -172,6 +175,9 @@ function prepare_checks(output)
     R.write_json(joinpath(output,"checks.json"),(;status="passed_deterministic_connection_only",
         assertions=tests.n_passed,receipts,context=R.context(),workflow_sha256=R.digest(joinpath(dirname(pathof(B)),"rater_drift","workflow.jl")),
         actual_sampling_calls=0,new_research_datasets=0,model_random_draws=0))
+    finally
+        LinearAlgebra.BLAS.set_num_threads(old_blas)
+    end
 end
 
 function replay(input,output)
@@ -261,6 +267,9 @@ function bridge_unit_checks()
 end
 
 function public_checks(output)
+old_blas = LinearAlgebra.BLAS.get_num_threads()
+LinearAlgebra.BLAS.set_num_threads(1)
+try
 @testset "Public RW1 planning and fallback boundaries" begin
     t=target()
     args=(;controls=CONTROLS,chain_seeds=collect(11:14),reference="2024",panel_weights=fill(.25,4),epsilon=.2,interval=.9,precision=PRECISION)
@@ -294,6 +303,9 @@ function public_checks(output)
     for name in (:prepare,:fit,:load_fit,:summarize)
         @test BayesianMGMFRM._binding_doc(D,name)!==nothing
     end
+end
+finally
+    LinearAlgebra.BLAS.set_num_threads(old_blas)
 end
 end
 

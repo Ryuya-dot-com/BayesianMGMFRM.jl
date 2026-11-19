@@ -334,22 +334,32 @@ end
 
 step("Project metadata and registry shape", metadata_check)
 step("Clean temporary-environment installation and import", install_and_import_check)
-step("Registration handoff message", run_registration_handoff)
-if !SKIP_TESTS
-    step("Pkg.test()", run_package_tests)
+const _HAD_ROOT_MANIFEST = isfile(joinpath(ROOT, "Manifest.toml"))
+try
+    if !_HAD_ROOT_MANIFEST
+        step("Instantiate root project for CLI and example checks", () -> begin
+            run_julia("using Pkg; Pkg.instantiate()"; project = ROOT)
+        end)
+    end
+    step("Registration handoff message", run_registration_handoff)
+    if !SKIP_TESTS
+        step("Pkg.test()", run_package_tests)
+    end
+    step("Public examples", run_public_examples)
+    if !SKIP_DOCS
+        step("Documenter build", build_docs)
+    end
+    if !SKIP_AQUA
+        step("Aqua package hygiene", run_aqua)
+    end
+    step("git diff --check", git_diff_check)
+    if !SKIP_PUBLIC_LANGUAGE
+        step("Public language gate", public_language_check)
+        step("Runtime public language gate", runtime_public_language_check)
+    end
+    step("Skipped-test scan", skipped_test_check)
+finally
+    !_HAD_ROOT_MANIFEST && rm(joinpath(ROOT, "Manifest.toml"); force = true)
 end
-step("Public examples", run_public_examples)
-if !SKIP_DOCS
-    step("Documenter build", build_docs)
-end
-if !SKIP_AQUA
-    step("Aqua package hygiene", run_aqua)
-end
-step("git diff --check", git_diff_check)
-if !SKIP_PUBLIC_LANGUAGE
-    step("Public language gate", public_language_check)
-    step("Runtime public language gate", runtime_public_language_check)
-end
-step("Skipped-test scan", skipped_test_check)
 
 println("\nRelease-verification gate passed.")

@@ -11,6 +11,7 @@ on:
 env:
   # Ordinary jobs are distribution checks, not consumers of optional study results.
   BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS: "false"
+  OPENBLAS_NUM_THREADS: "1"
 
 jobs:
   postprocessing:
@@ -22,12 +23,27 @@ jobs:
         julia: ['1.10.8', '1']
     steps:
       - uses: actions/checkout@v4
+      - name: Provision Julia 1.10.8 without legacy libopenlibm executable stack on glibc 2.41+
+        if: runner.os == 'Linux' && matrix.julia == '1.10.8'
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest="${RUNNER_TOOL_CACHE}/julia/1.10.8/x64"
+          if [[ ! -f "${dest}.complete" ]]; then
+            tmp_tar="$(mktemp)"
+            curl -fsSL "https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-1.10.8-linux-x86_64.tar.gz" -o "$tmp_tar"
+            echo "0410175aeec3df63173c15187f2083f179d40596d36fd3a57819cc5f522ae735  $tmp_tar" | sha256sum -c -
+            rm -rf "$dest"
+            mkdir -p "$dest"
+            tar -xzf "$tmp_tar" --strip-components=1 -C "$dest"
+            rm -f "$tmp_tar"
+            python3 scripts/clear_elf_execstack.py --julia-bindir "$dest/bin"
+            touch "${dest}.complete"
+          fi
+          "$dest/bin/julia" --version
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.julia }}
-      - name: Clear legacy libopenlibm executable-stack flag on glibc 2.41+
-        if: runner.os == 'Linux' && matrix.julia == '1.10.8'
-        run: python3 scripts/clear_elf_execstack.py --julia-bindir "$(dirname "$(which julia)")"
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - name: Check summaries, figure data, contrasts and cache reload
@@ -81,11 +97,26 @@ jobs:
       BAYESIANMGMFRM_TEST_GROUP: all
     steps:
       - uses: actions/checkout@v4
+      - name: Provision Julia 1.10.8 without legacy libopenlibm executable stack on glibc 2.41+
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest="${RUNNER_TOOL_CACHE}/julia/1.10.8/x64"
+          if [[ ! -f "${dest}.complete" ]]; then
+            tmp_tar="$(mktemp)"
+            curl -fsSL "https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-1.10.8-linux-x86_64.tar.gz" -o "$tmp_tar"
+            echo "0410175aeec3df63173c15187f2083f179d40596d36fd3a57819cc5f522ae735  $tmp_tar" | sha256sum -c -
+            rm -rf "$dest"
+            mkdir -p "$dest"
+            tar -xzf "$tmp_tar" --strip-components=1 -C "$dest"
+            rm -f "$tmp_tar"
+            python3 scripts/clear_elf_execstack.py --julia-bindir "$dest/bin"
+            touch "${dest}.complete"
+          fi
+          "$dest/bin/julia" --version
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1.10.8'
-      - name: Clear legacy libopenlibm executable-stack flag on glibc 2.41+
-        run: python3 scripts/clear_elf_execstack.py --julia-bindir "$(dirname "$(which julia)")"
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
@@ -210,11 +241,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Provision Julia 1.10.8 without legacy libopenlibm executable stack on glibc 2.41+
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest="${RUNNER_TOOL_CACHE}/julia/1.10.8/x64"
+          if [[ ! -f "${dest}.complete" ]]; then
+            tmp_tar="$(mktemp)"
+            curl -fsSL "https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-1.10.8-linux-x86_64.tar.gz" -o "$tmp_tar"
+            echo "0410175aeec3df63173c15187f2083f179d40596d36fd3a57819cc5f522ae735  $tmp_tar" | sha256sum -c -
+            rm -rf "$dest"
+            mkdir -p "$dest"
+            tar -xzf "$tmp_tar" --strip-components=1 -C "$dest"
+            rm -f "$tmp_tar"
+            python3 scripts/clear_elf_execstack.py --julia-bindir "$dest/bin"
+            touch "${dest}.complete"
+          fi
+          "$dest/bin/julia" --version
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1.10.8'
-      - name: Clear legacy libopenlibm executable-stack flag on glibc 2.41+
-        run: python3 scripts/clear_elf_execstack.py --julia-bindir "$(dirname "$(which julia)")"
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - name: Test the experimental 2D free-correlation contract and bounded diagnostic smoke

@@ -1,5 +1,5 @@
 module ThreeIndicatorFittingChecks
-using BayesianMGMFRM, Test, Serialization
+using BayesianMGMFRM, Test, Serialization, LinearAlgebra
 using BayesianMGMFRM: JSON3
 const B=BayesianMGMFRM
 const T=B.Experimental.ThreeIndicator
@@ -31,6 +31,9 @@ function runner(t,initial;kwargs...)
 end
 
 function checks(out)
+    old_blas = LinearAlgebra.BLAS.get_num_threads()
+    LinearAlgebra.BLAS.set_num_threads(1)
+    try
     @testset "Three-outcome public preparation and artificial failure handling" begin
         p=prepare_three_indicator_example(;controls=CONTROLS,chain_seeds=collect(41:44))
         @test p.kind===:posterior && p.prior==M.REFERENCE_PRIOR
@@ -72,6 +75,9 @@ function checks(out)
         for name in (:prepare,:fit,:load_fit,:summarize)
             @test BayesianMGMFRM._binding_doc(T,name)!==nothing
         end
+    end
+    finally
+        LinearAlgebra.BLAS.set_num_threads(old_blas)
     end
 end
 
