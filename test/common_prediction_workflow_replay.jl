@@ -21,6 +21,6 @@ checks=@testset "Fresh-session public saved prediction workflow" begin
 end
 open(joinpath(output,"replay.toml"),"w") do io
     counts=Test.get_test_counts(checks)
-    TOML.print(io,Dict("status"=>"passed","assertions"=>counts.passes+counts.cumulative_passes,
+    TOML.print(io,Dict("status"=>"passed","assertions"=>(counts isa Tuple ? counts[1]+counts[5] : counts.passes+counts.cumulative_passes),
         "julia_version"=>string(VERSION),"pid"=>getpid(),"new_posterior_fits"=>0))
 end

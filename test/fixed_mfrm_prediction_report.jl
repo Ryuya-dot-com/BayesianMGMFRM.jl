@@ -124,7 +124,7 @@ checks=@testset "Fixed-coefficient MFRM prediction report workflow" begin
 end
 counts=Test.get_test_counts(checks)
 open(joinpath(output,"verification.toml"),"w") do io
-    TOML.print(io,Dict("status"=>"passed","passed"=>counts.passes+counts.cumulative_passes,
+    TOML.print(io,Dict("status"=>"passed","passed"=>(counts isa Tuple ? counts[1]+counts[5] : counts.passes+counts.cumulative_passes),
         "seconds"=>time()-started,"new_posterior_fits"=>0,"candidate_source"=>pathof(B),
         "scope"=>"fixed-coefficient report/cache/public example and shared-accessor regression; no statistical acceptance"))
 end

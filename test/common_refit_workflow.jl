@@ -94,7 +94,7 @@ checks = @testset "Actual public refit, cache and heldout workflow" begin
 end
 counts = Test.get_test_counts(checks)
 open(directory * (replay ? "-replay.toml" : "-verification.toml"), "w") do io
-    TOML.print(io, Dict("status"=>"passed", "assertions"=>counts.passes+counts.cumulative_passes,
+    TOML.print(io, Dict("status"=>"passed", "assertions"=>(counts isa Tuple ? counts[1]+counts[5] : counts.passes+counts.cumulative_passes),
         "pid"=>getpid(), "new_posterior_fits"=>replay ? 0 : 16,
         "formal_simulation_replications"=>0, "formal_sbc_replications"=>0,
         "scope"=>"Actual short AdvancedHMC fits and public workflow compatibility; no accuracy, calibration, timing or model recommendation."))

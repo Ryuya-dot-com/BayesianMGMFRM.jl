@@ -187,7 +187,7 @@ end
 counts=Test.get_test_counts(tests)
 open(joinpath(output,"verification.toml"),"w") do io
     TOML.print(io,Dict("status"=>"passed",
-        "assertions"=>counts.passes+counts.cumulative_passes,"new_posterior_fits"=>0,
+        "assertions"=>(counts isa Tuple ? counts[1]+counts[5] : counts.passes+counts.cumulative_passes),"new_posterior_fits"=>0,
         "scope"=>"deterministic target/binding, native likelihood, cache and serialization checks; no calibration claim"))
 end
 return tests

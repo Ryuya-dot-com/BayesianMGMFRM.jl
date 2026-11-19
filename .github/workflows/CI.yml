@@ -91,10 +91,14 @@ jobs:
         run: python test/mgmfrm_core_sbc_runtime.py
 
   minimum-version-test:
-    name: Full package tests - Julia 1.10.8 - Ubuntu
+    name: Julia 1.10.8 - ${{ matrix.min_shard }} - Ubuntu
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        min_shard: [core, fitting_core, fitting_reports, local_dependence_core, local_dependence_integrity, generalized]
     env:
-      BAYESIANMGMFRM_TEST_GROUP: all
+      BAYESIANMGMFRM_TEST_GROUP: ${{ matrix.min_shard }}
     steps:
       - uses: actions/checkout@v4
       - name: Provision Julia 1.10.8 without legacy libopenlibm executable stack on glibc 2.41+

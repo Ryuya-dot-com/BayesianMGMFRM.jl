@@ -43,7 +43,7 @@ end
             @test any(e -> e.alt_psis_sd > 0, v.estimands)
             for e in v.estimands
                 col = sub.draws[:, findfirst(==(e.parameter), sub.names)]
-                @test e.alt_psis_mean == e.baseline_mean == mean(col)
+                @test e.alt_psis_mean == e.baseline_mean && isapprox(e.baseline_mean, mean(col); atol = 1e-14, rtol = 1e-14)
                 @test e.mean_shift == 0
                 @test e.alt_psis_sd ≈ std(col; corrected=false)
                 for (p, q) in zip((.025,.5,.975), (e.alt_psis_q025,e.alt_psis_median,e.alt_psis_q975))

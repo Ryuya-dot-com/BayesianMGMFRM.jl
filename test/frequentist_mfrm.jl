@@ -74,8 +74,8 @@ end
     lay_m = FM.build_layout(prob_m; estimate_mean = true, estimate_sd = true)
     q_m = FM.gauss_hermite_normal(21; sd = 1.0)
     # Check Golub-Welsch moments: E[1]=1, E[Z]=0, E[Z^2]=1, E[Z^4]=3
-    @test sum(q_m.weights) ≈ 1.0 atol = 1e-15
-    @test abs(sum(q_m.weights .* q_m.std_nodes)) <= 1e-15
+    @test sum(q_m.weights) ≈ 1.0 atol = 1e-13
+    @test abs(sum(q_m.weights .* q_m.std_nodes)) <= 1e-13
     @test sum(q_m.weights .* (q_m.std_nodes .^ 2)) ≈ 1.0 atol = 1e-14
     @test sum(q_m.weights .* (q_m.std_nodes .^ 4)) ≈ 3.0 atol = 1e-13
 

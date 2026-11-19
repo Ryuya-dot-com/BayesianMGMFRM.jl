@@ -33,7 +33,7 @@ checks=@testset "Warning-only tables and unchanged existing report results" begi
 end
 counts=Test.get_test_counts(checks)
 open(joinpath(output,"verification.toml"),"w") do io
-    TOML.print(io,Dict("status"=>"passed","passed"=>counts.passes+counts.cumulative_passes,
+    TOML.print(io,Dict("status"=>"passed","passed"=>(counts isa Tuple ? counts[1]+counts[5] : counts.passes+counts.cumulative_passes),
         "seconds"=>time()-started,"new_posterior_fits"=>0,
         "scope"=>"added warning-only tables, numerical and diagnostic identity against check-01; no full-suite rerun"))
 end
