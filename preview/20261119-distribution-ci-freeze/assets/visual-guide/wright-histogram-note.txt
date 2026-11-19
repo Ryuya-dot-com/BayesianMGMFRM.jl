@@ -1,0 +1,12 @@
+Synthetic illustration: 80 people, four items, three raters and 40 deterministic artificial draws per parameter. These are not fitted posterior draws. No MCMC was run.
+
+MFRM Wright map Shared logit scale
+
+Note. Person histogram: one posterior median per person; all 80 persons in the selected facet.
+This distribution of shrunken estimates is not a population density or pooled posterior draws; it does not show individual uncertainty. Use person_display=:intervals for individual intervals.
+Bin edges (logits): -3.0, -2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0. Counts in increasing logit order: 1, 0, 3, 6, 12, 19, 18, 11, 6, 3, 0, 1.
+Bins include the lower edge and exclude the upper edge, except the last includes both.
+Circles: medians and 95.0% central credible intervals; all 40 retained draws.
+Diamonds: fixed references/anchors; external anchor uncertainty excluded.
++ Ability raises adjacent-category log odds; - severity and - difficulty lower them. No recentering.
+MCMC warnings: inspect diagnostics(fit) (whole fit). The map does not establish convergence or model fit.

@@ -1,0 +1,24 @@
+{
+  "origin": "Actual posterior estimated from 72 supplied artificial teaching ratings; not real-rater data.",
+  "question": "Is R2 more severe than R1?",
+  "fit_sha256": "597fcbb56d8e037c0d69ed6e9a4c184323fa8c8c41e2e9140ae3aebec7ca1893",
+  "producer_source_ledger_sha256": "4a5baaa71ea4e2515cdaa248a4cab485a0a18d9d68c6f5d746f7b353d92e202e",
+  "producer_julia": "1.10.8",
+  "producer_original_manifest_sha256": "e323787552a08d2cdc89ee019997c1bbe4b4ed7c6c969757ffa3ea51a73f46b7",
+  "producer_plot_manifest_sha256": "08bc6d3c3b2484d354091841f34831b9c559b19f76e029b55ba699fe71055539",
+  "ratings_sha256": "94e9101049afcc30cb98de7bbbf2d591fae5608734a3022269079156bb31e20a",
+  "seed": 2026110903,
+  "posterior_predictive_replicates": 4000,
+  "posterior_predictive_target": "Observed people, items, raters and 72-rating allocation; one replicate per retained state in stored order.",
+  "sha256": {
+    "fit_report.json": "4e2f8115075b55665dfdfefd531a77951923f89a21f3a00bd05705803e357cdc",
+    "answer.json": "37b4993f88cc3402fca0eea731f2e370d8651ca1caad03b899b3a722fef9b898",
+    "answer.txt": "baf0954c2e852620b4646551c9cea22e537227948f8c92d948ee00a0e5911cfe"
+  },
+  "limitations": [
+    "Numerical qualification does not establish model adequacy.",
+    "PPC pools raters/items; no grouped or dependence check.",
+    "PPC interval endpoint MCSE and prior sensitivity are not established.",
+    "Portable figures do not restore the complete joint posterior."
+  ]
+}

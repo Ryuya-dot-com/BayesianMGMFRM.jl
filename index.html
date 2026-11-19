@@ -20,18 +20,19 @@ li{margin:10px 0}
 <main>
 <p><strong>BayesianMGMFRM.jl</strong> · Separate person ability, task difficulty, and rater severity with full Bayesian uncertainty</p>
 <h1>Documentation and Entry Guide</h1>
-<p class="notice"><strong>Updated manual and entry guide · 9 November 2026.</strong>
-One-dimensional many-facet Rasch measurement (MFRM) is the supported baseline workflow.
-Generalized, multidimensional, and multi-outcome extensions under <code>Experimental</code> retain the explicit identification and validation limits stated in each guide.</p>
+<p class="notice"><strong>Updated manual and entry guide · 19 November 2026 (<code>20261119-distribution-ci-freeze</code>).</strong>
+One-dimensional many-facet Rasch measurement (MFRM) — both Bayesian MCMC and classical JMLE / MMLE — is the supported baseline workflow.
+Generalized, multidimensional, mixed-outcome, and custom Stan post-estimation extensions retain the explicit identification and validation limits stated in each guide.</p>
 
 <h2>Start here by goal</h2>
 <ul>
-<li><a href="dev/"><strong>Open the complete 38-page manual (<code>/dev/</code>)</strong></a> — organized into six sidebar sections with task routing and visual previews.</li>
+<li><a href="dev/"><strong>Open the complete 53-page manual (<code>/dev/</code>)</strong></a> — organized by task routing, model equations, diagnostics, and visual previews.</li>
 <li><a href="dev/learning-guide/#julia-for-beginners"><strong>New to Julia? 5-Minute Guide for R, Python, and FACETS Users</strong></a> — project environments, <code>:symbols</code>, keyword arguments, interactive <code>?</code> help, and common first-time pitfalls.</li>
-<li><a href="dev/migration-facets-conquest/#software-comparison"><strong>Compare with FACETS, ACER ConQuest, R (TAM / mirt), and Stan</strong></a> — capability matrix, sign conventions, anchors, and posterior uncertainty.</li>
-<li><a href="dev/visualization-gallery/"><strong>Explore the Visualization Gallery</strong></a> — all 12 <code>BayesianMGMFRM.plot(x; kind = ...)</code> modes including Wright Maps, Pathway Maps, Ridge Wright Maps, and 3D MGMFRM Response Surfaces.</li>
+<li><a href="dev/migration-stan-brms/"><strong>Migrating from Stan and brms: Controls, Defaults, and Diagnostics</strong></a> — exact mathematical correspondence for <code>adapt_delta</code> / <code>target_accept</code>, <code>max_treedepth</code> / <code>max_depth</code>, <code>E-BFMI</code>, split R-hat, ESS, MCSE, and <code>StanAdapter</code>.</li>
+<li><a href="dev/migration-facets-conquest/#software-comparison"><strong>Compare with FACETS, ACER ConQuest, R (TAM / mirt), and Stan</strong></a> — capability matrix, JMLE / MMLE / Bayesian HMC parity, sign conventions, anchors, and posterior uncertainty.</li>
+<li><a href="dev/visualization-gallery/"><strong>Explore the Visualization Gallery</strong></a> — <code>BayesianMGMFRM.plot(x; kind = ...)</code> modes including Wright Maps, Pathway Maps, Ridge Wright Maps, and 3D MGMFRM Response Surfaces.</li>
 <li><a href="dev/interpreting-results/#manuscript-reporting-checklist"><strong>Manuscript Reporting Checklist (Methods &amp; Results)</strong></a> — what to report in a journal article, where to inspect it in <code>BayesianMGMFRM.jl</code>, and an illustrative prose template.</li>
-<li><a href="dev/bayesian-workflow/"><strong>Follow the 4-Step Bayesian Workflow</strong></a> — validate design, specify model &amp; priors, fit &amp; qualify MCSE, and report &amp; save portable JSON receipts.</li>
+<li><a href="dev/bayesian-workflow/"><strong>Follow the 4-Step Bayesian Workflow</strong></a> — validate design, specify model &amp; priors, fit &amp; qualify MCSE, and report &amp; save portable JSON / joint-draw handoff receipts.</li>
 <li><a href="dev/api/"><strong>API Reference (Practitioner Layer 1 &amp; Glass-Box Layer 2)</strong></a> — unified lifecycle verbs and exact mathematical/coordinate/gradient inspection hooks.</li>
 </ul>
 
@@ -43,10 +44,10 @@ Generalized, multidimensional, and multi-outcome extensions under <code>Experime
   </div>
   <div class="card">
     <a href="dev/visualization-gallery/#pathway-map"><img src="dev/assets/visual-guide/pathway-map.png" alt="Pathway Map"></a>
-    <p><strong>2. Location vs. Fit Pathway Map</strong> (<code>kind = :pathway</code>): posterior location estimates against infit/outfit mean-square diagnostics.</p>
+    <p><strong>2. Location vs. Fit Pathway Map</strong> (<code>kind = :pathway</code>): location estimates against infit/outfit mean-square diagnostics.</p>
   </div>
   <div class="card">
-    <a href="dev/visualization-gallery/#wright-ridge"><img src="dev/assets/visual-guide/wright-ridge.png" alt="Ridge Wright Map"></a>
+    <a href="dev/visualization-gallery/#wright-ridge"><img src="dev/assets/visual-guide/wright-ridge.png" alt="Ridge Posterior Wright Map"></a>
     <p><strong>3. Ridge Posterior Wright Map</strong> (<code>plot_wright(...; kind = :ridge)</code>): full posterior density ridges for rater severities and item difficulties.</p>
   </div>
   <div class="card">
@@ -56,17 +57,18 @@ Generalized, multidimensional, and multi-outcome extensions under <code>Experime
 </div>
 
 <h2>Install the matching source revision</h2>
-<p>With Julia 1.10.8 or newer, install this exact source commit (<a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/tree/2becfad8031b4820ee9dfeaf239840dd2cbb1f31"><code>2becfad8031b</code></a>):</p>
+<p>With Julia 1.10.8 or newer, install this exact source commit (<a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/tree/7e8e3ca9db56357b3b9ad0dd09ab960e266a93d4"><code>7e8e3ca9db56</code></a>):</p>
 <pre><code>using Pkg
 Pkg.activate("rating-local")
 Pkg.add(url="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl",
-    rev="2becfad8031b4820ee9dfeaf239840dd2cbb1f31")
+    rev="7e8e3ca9db56357b3b9ad0dd09ab960e266a93d4")
 Pkg.pin("BayesianMGMFRM")
 using BayesianMGMFRM
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_analysis.jl"))
 result = FirstMFRMAnalysis.main()</code></pre>
 
 <p>Dated manual snapshots:
+<a href="preview/20261119-distribution-ci-freeze/">19 November 2026 snapshot</a> ·
 <a href="preview/20261109-entry-organization/">9 November 2026 snapshot</a> ·
 <a href="preview/20261013-successor/">13 October 2026 successor preview</a> ·
 <a href="preview/20261013/">13 October preview</a> ·

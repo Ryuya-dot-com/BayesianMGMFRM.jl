@@ -1,0 +1,9 @@
+Synthetic illustration: 80 deterministic artificial draws, not a fitted posterior. Numerical diagnostics describe this fixture, not an actual estimation run.
+
+MFRM Wright map Shared logit scale
+
+Note. Circles: medians and 95.0% central credible intervals; all 80 retained draws.
+Diamonds: fixed references/anchors; external anchor uncertainty excluded.
++ Ability raises adjacent-category log odds; - severity and - difficulty lower them. No recentering.
+Item + step: adjacent-category equal-probability boundaries at rater severity 0; not expected-score half-points.
+MCMC warnings: inspect diagnostics(fit) (whole fit). The map does not establish convergence or model fit.
