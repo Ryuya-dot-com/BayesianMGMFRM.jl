@@ -60,4 +60,76 @@ include(joinpath(@__DIR__, "..", "scripts", "release_metadata.jl"))
     end
 end
 
+@testset "Release CLI options reject mistakes before dependency loading" begin
+    @test ReleaseMetadata.expected_version(String[]) === nothing
+    @test ReleaseMetadata.expected_version(["--expected-version=0.1.2"]) == v"0.1.2"
+    @test ReleaseMetadata.expected_version(["--strict", "--help"]; allowed_flags=("--strict",)) === nothing
+    @test ReleaseMetadata.expected_version(["-h"]) === nothing
+    for args in (["--unknown"], ["--strict"], ["--expected-version="],
+                 ["--expected-version=invalid"],
+                 ["--expected-version=0.1.2", "--expected-version=0.1.2"])
+        @test_throws ArgumentError ReleaseMetadata.expected_version(args)
+    end
+    mktempdir() do environment
+        write(joinpath(environment, "Project.toml"), "[deps]\n")
+        depot = mktempdir(environment)
+        empty_path = mktempdir(environment)
+        withenv("JULIA_DEPOT_PATH" => depot, "JULIA_LOAD_PATH" => "@:@stdlib",
+                "JULIA_PKG_OFFLINE" => "true", "PATH" => empty_path) do
+            for name in ("check_release.jl", "pre_registration_gate.jl",
+                         "print_registration_handoff.jl", "registration_handoff.jl",
+                         "platform_smoke.jl", "distribution_archive_smoke.jl",
+                         "public_language_gate.jl", "runtime_public_language_gate.jl", "release_metadata.jl")
+                script = joinpath(@__DIR__, "..", "scripts", name)
+                command = `$(Base.julia_cmd()) --startup-file=no --history-file=no --compiled-modules=no --project=$environment $script`
+                output = read(`$command --help`, String)
+                canonical = name == "registration_handoff.jl" ? "print_registration_handoff.jl" :
+                    name == "pre_registration_gate.jl" ? "check_release.jl" : name
+                @test occursin("Usage:", output)
+                @test occursin(canonical, output)
+                out, err = IOBuffer(), IOBuffer()
+                process = run(pipeline(ignorestatus(`$command --unknown`); stdout=out, stderr=err))
+                @test process.exitcode != 0
+                @test occursin("unknown argument", String(take!(err)))
+                @test isempty(take!(out))
+            end
+        end
+        @test !isfile(joinpath(environment, "Manifest.toml"))
+        @test !isdir(joinpath(depot, "registries"))
+        @test !isdir(joinpath(depot, "packages"))
+    end
+end
+
+@testset "A handoff identifies its own checkout and retains strict checks" begin
+    mktempdir() do directory
+        withenv("PATH" => directory) do
+            @test !ReleaseMetadata.repository_context(directory).available
+            @test_throws ErrorException ReleaseMetadata.repository_context(directory; strict=true)
+        end
+        if Sys.which("git") !== nothing
+            hooks = joinpath(directory, "empty-hooks")
+            mkpath(hooks)
+            git(args...) = run(pipeline(`git -C $directory -c core.hooksPath=$hooks $args`;
+                stdout=devnull, stderr=devnull))
+            git("init", "--quiet")
+            git("symbolic-ref", "HEAD", "refs/heads/main")
+            git("-c", "user.name=Release test", "-c", "user.email=release@example.invalid",
+                "-c", "commit.gpgsign=false", "commit", "--allow-empty", "--quiet", "-m", "fixture")
+            context = ReleaseMetadata.repository_context(directory; strict=true)
+            @test context.available && context.branch == "main" && !context.dirty
+            @test context.commit == readchomp(`git -C $directory rev-parse HEAD`)
+            nested = mktempdir(directory)
+            @test !ReleaseMetadata.repository_context(nested).available
+            @test_throws ErrorException ReleaseMetadata.repository_context(nested; strict=true)
+            write(joinpath(directory, "untracked.txt"), "not part of the release\n")
+            @test ReleaseMetadata.repository_context(directory).dirty
+            @test_throws ErrorException ReleaseMetadata.repository_context(directory; strict=true)
+            rm(joinpath(directory, "untracked.txt"))
+            git("checkout", "--quiet", "-b", "feature")
+            @test ReleaseMetadata.repository_context(directory).branch == "feature"
+            @test_throws ErrorException ReleaseMetadata.repository_context(directory; strict=true)
+        end
+    end
+end
+
 end

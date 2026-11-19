@@ -1,40 +1,44 @@
 # Migrating from FACETS and ACER ConQuest
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
 
 This page maps the smallest genuinely overlapping many-facet models from
 FACETS and ACER ConQuest to `BayesianMGMFRM.jl`. It is a semantic migration
 guide, not a parser for FACETS specification files or ConQuest command files.
 The source likelihood, category structure, sign convention, identification,
 weights, anchors, and estimator must be checked before comparing any numbers.
+For Bayesian MCMC control and diagnostic mappings from **`brms`**, **`rstan`**,
+and **`cmdstanr`**, see the companion guide
+[Migrating from Stan and brms](migration-stan-brms.md).
 
 The fit-supported destination on this page is the one-dimensional additive
 MFRM with either shared rating-scale steps or item-specific partial-credit
-steps. Arbitrary facets, multiple rating-scale groups, observation weights,
+steps. In this minimal migration bridge, arbitrary additional facets, multiple rating-scale groups, observation weights,
 fitted interactions, soft anchors, threshold anchors, and group-mean anchors
 are not silently approximated by the current stable API. Exact individual
-rater/item hard anchors are supported in the minimal MFRM path.
+rater/item hard anchors are supported in the minimal MFRM path. For additional
+user-named scalar main effects, see the separate experimental
+[additive-facets workflow](additive-facets.md); it is not an automatic importer.
 
 ## [At-a-glance comparison with related rating software](@id software-comparison)
 
-Before translating a specification or comparing parameter estimates across
-packages, review how each tool handles estimation, uncertainty, design
-validation, and model extensions:
+Choose a comparison for the decision you need to make:
 
-| Capability / Workflow Stage | `BayesianMGMFRM.jl` | `FACETS` | `ACER ConQuest` | `R (TAM / mirt)` | `brms / CmdStan` |
-| --- | --- | --- | --- | --- | --- |
-| **Primary estimation & uncertainty** | Joint Bayesian MCMC (`AdvancedHMC` NUTS or `CmdStan`); simultaneous posterior draws & MCSE for all facets | Joint Maximum Likelihood (JMLE); asymptotic point-estimate SEs | Marginal Maximum Likelihood (MML) & Patz–Junker MCMC; asymptotic or MCMC SEs | MML-EM / quasi-MCEM; asymptotic SEs and plausible values | Joint Bayesian MCMC (HMC/NUTS); simultaneous posterior draws & MCSE |
-| **Pre-fit rating connectivity & rank audit** | **Built-in** (`validate_design`, graph connectedness, category-gap & rank checks) | Subset connectivity checks during estimation | Design-matrix rank & aliasing checks during model setup | Manual data preparation or custom matrix checks | Manual data preparation & custom code |
-| **Core 1D MFRM (RSM / PCM & hard anchors)** | **Supported** (`mfrm_spec`, `anchors = ...`, `rater = nothing` for 1PL) | **Supported** (comprehensive operational facet & anchor options) | **Supported** (general linear facet & anchor expressions) | **Supported** (via facet design matrices in `TAM::tam.mml.mfr`) | Requires custom formula / Stan program & sum-to-zero constraints |
-| **Additional main-effect facets (5+ facets)** | **Experimental** ([User-Named Additive Facets](additive-facets.md)) | **Supported** (arbitrary declared main-effect facets) | **Supported** (arbitrary main-effect facet terms) | **Supported** (via facet formula in `TAM::tam.mml.mfr`) | **Supported** (via additional varying/fixed effects) |
-| **Generalized slopes & multidimensional traits (GMFRM / MGMFRM)** | **Experimental** (1D GMFRM, fixed-Q 1D–3D MGMFRM, correlated 2D/3D traits) | 1D Rasch family (fixed unit slopes; diagnostic discrimination indices) | Multidimensional Rasch / 2PL MML (`score` statements) | Multidimensional 2PL / GPCM (`mirt`, `TAM`) | Requires custom non-linear formula or custom Stan program |
-| **Multi-criterion rating events & rater-mechanism models** | **Experimental** (`:none` shared-response, `:uniform` paired, `:star` multi-criterion, RW1 drift, criterion collapse, rater group/item) | Bias/interaction tables (`Barcharts`, pairwise bias reports) | Linear interaction terms (`rater*item`, `rater*step`) | Facet interaction terms (`xsi.fixed` / custom design) | Requires writing custom likelihoods & Jacobians in Stan |
-| **Prior predictive checks, PSIS-LOO & prior sensitivity** | **Built-in** (`prior_predictive_check`, `predictive_check`, `criteria`, `prior_sensitivity`) | Classic infit/outfit mean-square & standardized residuals | Classic infit/outfit, deviance/AIC, plausible-value checks | Infit/outfit, information criteria (AIC/BIC), item fit | Available via external R packages (`loo`, `priorsense`, `bayesplot`) |
-| **Psychometric maps & reproducible portable reports** | **Built-in** (`plot` for Wright, Pathway, 3D surfaces; SHA-256 JSON `save_report`) | Built-in ASCII / GUI Wright maps & score tables | Built-in Wright maps & text/table outputs | Requires external plotting packages (`WrightMap`, `ggplot2`) | Requires custom post-processing & plotting scripts |
-| **Glass-Box mathematical inspection** | **Built-in** (`contract`, `facet_basis`, `logposterior`, `logdensity_and_gradient`, `stan_data`) | Output tables & residual files | Design matrices & parameter logs | Exported design matrices & likelihood values | Generated Stan code & unconstrained draw methods |
+| Question | Compare | What must be aligned or disclosed |
+| --- | --- | --- |
+| Does the same response model give consistent estimates? | The overlapping scalar MFRM/PCM in this package and a specified FACETS or ConQuest model | Categories, response equation, signs, constraints and anchors; JML, MML and Bayesian estimates answer different estimation questions |
+| Is the Bayesian implementation consistent? | A model-specific Julia and Stan implementation | The entire joint prior, coordinate transformations and Jacobians as well as likelihood; compare uncertainty and numerical precision |
+| Would a different model predict these ratings better? | Explicit competing models, potentially specified in other software | The same observations, prediction unit and validation split; explain differences in priors and structure |
+| Which workflow is easier for the study? | Input preparation, supported diagnostics, figures and persistence for the actual model | Check the relevant software version and official manual; an unchecked feature is not evidence of non-support |
+
+This guide documents the specific migration and comparison operations below. It is
+not a complete capability inventory of FACETS, ConQuest, TAM, mirt, brms or CmdStan.
+Their formula languages, estimators and output conventions should not be reduced
+to a single supported/unsupported label. Shared names do not guarantee equivalent
+models, and different priors do not prevent a clearly labelled predictive comparison.
 
 ## Two different comparison questions
 

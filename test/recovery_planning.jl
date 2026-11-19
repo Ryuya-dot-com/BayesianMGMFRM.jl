@@ -18,7 +18,7 @@ function checks(directory)
         @test !P.contract().sbc && !P.contract().interrupted_chain_resume
         for operation in (:prepare,:generator_input,:bind_observations,:bind_data,
                 :observation_table,:review_fit,:ledger,:record_stage,:review,:contract)
-            @test Base.Docs.doc(getfield(P,operation)) !== nothing
+            @test BayesianMGMFRM._binding_doc(P,operation) !== nothing
         end
         for (allocation,plan) in zip((:concentrated,:distributed),plans)
             @test length(plan.assignments) == 72
@@ -109,7 +109,7 @@ function sbc_checks(directory)
         @test P.contract().sbc_input_preparation && !P.contract().sbc
         @test !study.generation_verified && !study.sbc_performed
         for operation in (:prepare_sbc,:prior_input,:bind_prior_draw)
-            @test Base.Docs.doc(getfield(P,operation)) !== nothing
+            @test BayesianMGMFRM._binding_doc(P,operation) !== nothing
         end
         recipe=P.prior_input(study,"first")
         @test Tuple(c.parameter for c in recipe.coordinates)==template.free_names
@@ -243,7 +243,7 @@ function sbc_rank_checks(directory)
     unresolved=(;status=:unresolved,evidence="Artificial fixture; dependence unassessed")
     declared=(;status=:declared_independent,evidence="Exercise declaration branch only; not empirical evidence")
     @testset "SBC saved ranks, identity, ties and diagnostic exclusions" begin
-        @test Base.Docs.doc(P.review_sbc_fit)!==nothing
+        @test BayesianMGMFRM._binding_doc(P,:review_sbc_fit)!==nothing
         @test P.contract().sbc_saved_rank_review && !P.contract().automatic_tie_randomization
         @test !hasproperty(P.prepare_sbc(template.assignments;options...),:rank_settings)
         for ids in ((),(0,),(33,),(1,1),(9,1),(true,))
@@ -324,7 +324,7 @@ function sbc_summary_checks(directory,original,observed,rank_review,cache_path)
         record
     end
     @testset "SBC study roster, saved identities and conditional rank CDF" begin
-        @test Base.Docs.doc(P.summarize_sbc)!==nothing
+        @test BayesianMGMFRM._binding_doc(P,:summarize_sbc)!==nothing
         @test P.contract().sbc_study_summary && !P.contract().sbc
         # Real review path on an artificial native cache: preserve its warnings.
         obs_path=joinpath(directory,"bound-observations.jls");serialize(obs_path,observed)
@@ -498,7 +498,7 @@ function relocation_checks(directory)
     record=P.record_stage(plan,record,"unfinished";stage=:generation,status=:started)
     original=deepcopy(record)
     @testset "Move saved study without changing outcomes or executing work" begin
-        @test Base.Docs.doc(P.relocate_ledger) !== nothing
+        @test BayesianMGMFRM._binding_doc(P,:relocate_ledger) !== nothing
         @test P.contract().verified_ledger_relocation
         expected=Dict(:recorded_completed=>1,:failed=>1,:unresolved_started=>1,:no_attempt_recorded=>1)
         @test P.review(plan,record).counts==expected

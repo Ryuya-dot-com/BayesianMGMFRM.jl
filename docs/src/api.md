@@ -1,9 +1,9 @@
 # API
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
 
 The reference is split by workflow area for easier navigation.
 
@@ -28,8 +28,11 @@ that a model or diagnostic is validated for an analysis.
 
 ## Unified Practitioner Lifecycle
 
-Every model family in `BayesianMGMFRM` connects through one concise sequence of
-verbs:
+Model families share the following workflow vocabulary. **Methods and return
+values depend on the input model**: not every family implements every verb or
+option. Start with a model's guide and inspect its contract before combining
+operations. Multi-worker checkpointing is a model-specific option, not a
+required step in an ordinary analysis:
 
 1. **Specify & Inspect Design:** `FacetData`, `design_summary`, `mfrm_spec`,
    `Experimental.joint_rating_spec`, `with_options`

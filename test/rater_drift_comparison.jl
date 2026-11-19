@@ -81,7 +81,7 @@ function checks(output)
         @test any(r->!r.diagnostic_passed,b.locations)
         @test any(contains("location numerical criteria"),D._warnings(b))
         @test any(contains("fixed to zero by assumption"),D._warnings(a))
-        @test Base.Docs.doc(D.compare)!==nothing
+        @test BayesianMGMFRM._binding_doc(D,:compare)!==nothing
     end
 end
 end

@@ -1,5 +1,20 @@
 #!/usr/bin/env julia
 
+if abspath(PROGRAM_FILE) == @__FILE__
+    for arg in ARGS
+        arg in ("-h", "--help") || throw(ArgumentError("unknown argument: $arg"))
+    end
+    if !isempty(ARGS)
+        print("""
+Usage: julia --startup-file=no --project=. scripts/platform_smoke.jl
+
+Runs short package fits and save/reopen checks in temporary files.
+-h, --help prints this message without loading inference dependencies.
+""")
+        exit(0)
+    end
+end
+
 using BayesianMGMFRM
 
 function require_smoke(condition::Bool, message::AbstractString)

@@ -221,18 +221,18 @@ end
     mktempdir() do temp_root
         workflow_path = joinpath(temp_root, ".github", "workflows", "CI.yml")
         release_gate_path =
-            joinpath(temp_root, "scripts", "pre_registration_gate.jl")
+            joinpath(temp_root, "scripts", "check_release.jl")
         mkpath(dirname(workflow_path))
         mkpath(dirname(release_gate_path))
         workflow = read(joinpath(root, ".github", "workflows", "CI.yml"), String)
         release_gate = read(
-            joinpath(root, "scripts", "pre_registration_gate.jl"), String)
+            joinpath(root, "scripts", "check_release.jl"), String)
         write(workflow_path, workflow)
         write(release_gate_path, release_gate)
         @test isempty(PublicLanguagePolicy.release_workflow_violations(temp_root))
 
         commented_workflow = join((
-            occursin("scripts/pre_registration_gate.jl", line) &&
+            occursin("scripts/check_release.jl", line) &&
             occursin("julia", line) ? "# " * line : line
             for line in split(workflow, '\n'; keepempty = true)), "\n")
         write(workflow_path, commented_workflow)
@@ -241,10 +241,10 @@ end
             Set(violation.rule for violation in violations)
 
         inline_comment_workflow = join((
-            occursin("scripts/pre_registration_gate.jl", line) &&
+            occursin("scripts/check_release.jl", line) &&
             occursin("julia", line) ?
                 replace(line, r"julia.*" =>
-                    "julia --version # julia scripts/pre_registration_gate.jl") :
+                    "julia --version # julia scripts/check_release.jl") :
                 line
             for line in split(workflow, '\n'; keepempty = true)), "\n")
         write(workflow_path, inline_comment_workflow)

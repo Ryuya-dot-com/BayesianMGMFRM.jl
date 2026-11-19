@@ -175,7 +175,7 @@ function checks(output)
         result=B.rater_agreement(short;base...)
         @test result.mcse_warning && result.overall.exact.status===:mcse_unavailable
         @test ismissing(result.overall.exact.mcse.mean_mcse)
-        @test Base.Docs.doc(B.rater_agreement)!==nothing
+        @test B._binding_doc(B,:rater_agreement)!==nothing
         @test :rater_agreement ∉ names(B)
         @test B._root_api_contract()!==nothing
     end

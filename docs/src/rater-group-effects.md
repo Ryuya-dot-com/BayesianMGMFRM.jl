@@ -1,5 +1,10 @@
 # Group differences in rater severity
 
+Here `group` is an attribute of the assessed **person**, fixed for that person.
+It is not a rater-experience variable. The recipe needs a `FacetData` object with
+these groups and supported coverage. Inspect the design before fitting, then
+interpret a between-rater difference in group effects with its uncertainty.
+
 Does a judge rate one group more severely than another, after allowing the groups
 to differ in ability? `Experimental.RaterGroupEffects` fits **relative severity
 within an explicitly defined rater panel**. For example, compare the gap between

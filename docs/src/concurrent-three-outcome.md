@@ -1,11 +1,19 @@
 # Concurrent Three-Outcome Study
 
+**Question and scope:** jointly describe two ordinal ratings and one binary
+outcome from the specified two-study protocol, preserving study, listener,
+recording and trial identities. This is a study-specific 9/9/2 model, not a
+generic constructor for any three outcomes. Input/mathematical inspection comes
+first; use the fitting section only to start inference, or saved-report figures
+to inspect existing answers. The [preliminary-only route](fitting.md#three-outcome-fitting)
+has a different input and prior contract.
+
 The separate `ThreeIndicator.ConcurrentInput` route checks a concurrent table of
 preliminary and additional listeners with 9/9/2 responses. Its current scope is
 mathematical inspection, fitting, joint posterior probabilities/contrasts,
 conditional posterior predictive response checks, and
 portable model specifications and computed reports. The preliminary-only
-fitting and saved-report routes above remain separate; their fitting methods do
+[fitting and saved-report routes](fitting.md#three-outcome-fitting) remain separate; their fitting methods do
 not accept this concurrent target.
 
 ```julia
@@ -209,14 +217,16 @@ covariance is `(1-1/R)*(1-1/W)*pair_covariance`. Original B and main-effect draw
 require their joint conditional Gaussian reconstruction. Do not interpret effective
 effects or conditional means as those original draws.
 
-`pointwise_loglikelihood` has one entry per sorted event, summing its three
-conditionally independent response terms. `design_summary(target).source_rows`
+`pointwise_loglikelihood` has one entry per sorted event. With
+`association=:independent`, it sums three conditionally independent response terms;
+with `association=:plackett`, it uses the joint accentedness/comprehensibility
+pair probability and the conditional binary term. `design_summary(target).source_rows`
 maps each sorted event back to its input row. This vector is not a held-out
 predictive score with shared effects integrated out. `save_report` in this example
 saves **only a model specification**, with rows, declared source checksum, prior
 choice and interaction restriction; it stores no parameter point or posterior.
 The supplied source checksum is provenance declared by the caller, while the
-receipt verifies the saved specification bytes. Restore with the typed constructor
+receipt verifies the saved specification bytes. Restore with the `load_report` call
 shown above, retaining the generating package/environment for reproducibility.
 
 The gradient uses analytic likelihood/large-block adjoints and automatic
@@ -292,7 +302,7 @@ chooses a scientific default or certifies model adequacy.
 
 ### Exact seeds and saved report versions
 
-Both concurrent predictive reports now use schema version 2. Seeds are decimal
+Both concurrent predictive reports use schema version 3, including the association policy. Seeds are decimal
 strings so large integers survive JSON normalization exactly; use
 `parse(Int, report.seed)` to reuse the original seed in the same source/environment.
 The RNG and Julia version are retained; identical seeds do not promise identical
@@ -349,6 +359,72 @@ retained draws are used; generation cost grows with retained states × events.
 Only count/discrepancy arrays are accumulated, without a retained response cube.
 The computed report stores seeds and draw identities; generating native fits
 still require their original source/environment. No migration is provided.
+
+## [Draw saved PPC, contrasts and profiles](@id saved-report-figures)
+
+**Availability:** this route is included in development snapshot
+`20261109-first-analysis`. Install its matching source archive in your analysis
+environment, as explained on the [installation page](installation.md).
+Earlier development snapshots may not provide this adapter.
+
+Use a report and its separately retained checksum receipt. Rendering does not fit
+a model, generate replicated responses or load a native chain. The four supported
+views answer distinct questions:
+
+| Report | Call | Interpretation |
+| --- | --- | --- |
+| Posterior predictive report | `BayesianMGMFRM.plot(rep; kind=:predictive, view=:marginal)` | Observed category counts versus saved replicated medians and pointwise predictive intervals, separately by cohort and outcome. |
+| Same report | `BayesianMGMFRM.plot(rep; kind=:predictive, view=:joint)` | A–C joint count residuals, `100 × (observed − replicated mean) / cohort denominator`, on a common symmetric percentage-point color scale. |
+| Posterior contrast report | `BayesianMGMFRM.plot(rep; kind=:posterior)` | Eight saved left-minus-right contrasts for expected ordinal ratings and correctness probability, with posterior means and pointwise credible intervals. |
+| Posterior ENG-reference report | `BayesianMGMFRM.plot(rep; kind=:posterior)` | Speaker profiles under the stored preliminary-listener reference and word weights. Labels retain counts of recordings requiring cross-study extrapolation. |
+
+```julia
+using BayesianMGMFRM, CairoMakie
+rep = load_report("posterior-ppc.json"; expected_sha256=ppc_receipt.sha256)
+note = IOBuffer()
+drawn = BayesianMGMFRM.plot(rep; kind=:predictive, view=:joint,
+    annotation_io=note, return_data=true)
+save("joint-ppc.svg", drawn.figure) # PNG and PDF exports also use Makie's save.
+write("joint-ppc-note.txt", String(take!(note)))
+receipt = save_report("ppc-plot-data.json", drawn.data; return_receipt=true)
+
+# A new process needs only this compact JSON, its receipt and the plotting environment.
+saved = load_report(receipt.path; expected_sha256=receipt.sha256)
+fig = BayesianMGMFRM.plot(saved; kind=:predictive, view=:marginal)
+save("marginal-ppc.png", fig)
+```
+
+`return_data=true` adds the computed numerical report to the ordinary Figure
+return; otherwise `plot` returns the Figure. `drawn.data.rows` contains the exact
+display inputs. `metadata` retains model/prior, source versions, chain/event IDs
+where present, interval definitions, reference weights and warnings. Source
+report/fit hashes bind the origin. Large repeated parameter-diagnostic tables
+and adaptation matrices remain in the original report. Saving never overwrites
+an existing report. Keep the receipt separately; an integrity checksum is not
+a substitute for scientific qualification or a trusted source.
+
+For focal plots, only 24 contrast quantities or three quantities per ENG speaker
+are displayed. The caption retains qualification for the **whole original
+report**, with the original denominator and all precision/diagnostic failure
+names in the compact data. A passing displayed subset does not erase failures
+elsewhere. Hollow markers identify displayed quantities with failed/unavailable
+precision or diagnostics. Ordinal expected ratings remain descriptive score
+summaries, not interval-scale measurements.
+
+For the joint PPC, outlined squares mark cells outside their pointwise predictive
+interval whose endpoints pass the stored CDF-based precision screen; circles
+mark outside cells whose endpoint screens remain unresolved. Those screens are
+not a simultaneous test or proof of reliable tail estimation. The caption keeps
+the total unresolved endpoint count and unavailable quantile MCSE. Correctness
+probability in focal plots and transcription error counts in PPC are labelled
+separately; the category coding is never silently reversed.
+
+The adapter accepts saved Concurrent posterior-PPC v1–v3 and posterior-report
+v1–v2 contracts, plus its own compact report. Prior prediction, fixed-point
+probabilities, observed-row reports, native fits, model overlays and sensitivity
+curves remain separate inputs/operations. No report is relabelled to make it fit
+one of these views. Reopening a compact report preserves its numbers and permits
+redraw only; retain the original report for other quantities and diagnostics.
 
 ## Probabilities, the eight study contrasts and the ENG reference panel
 

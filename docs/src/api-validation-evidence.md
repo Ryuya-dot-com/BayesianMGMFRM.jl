@@ -1,9 +1,14 @@
 # Validation and Evidence API
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
+
+These are research-validation tools, not required steps in a first rating analysis.
+Contract and saved-summary functions inspect records; `simulate_*` and generation
+preflights can create responses, and explicitly enabled resource probes can fit
+models. Read each function's execution boundary before calling it.
 
 ## User-facing runtime and provenance utilities
 

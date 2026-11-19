@@ -1,7 +1,7 @@
 module PredictionObservationAdapterChecks
 using Test, BayesianMGMFRM, Random, Serialization, SHA
 const B = BayesianMGMFRM
-include("../scripts/prediction_observation_adapter.jl")
+import BayesianMGMFRM: PredictionObservationAdapter
 using .PredictionObservationAdapter
 include("fixtures/reporting_fit.jl")
 include("mgmfrm_correlated_2d_fixtures.jl")
@@ -49,6 +49,7 @@ bytes(x) = (io=IOBuffer(); serialize(io, x); take!(io))
         before = bytes(fit)
         selection = [40, 1, 13, 1]
         bundle = extract(fit; draw_indices=selection)
+        @test bundle.schema == "bayesianmgmfrm.prediction_observations.v1"
         @test bundle.draw_indices == selection
         @test bundle.chain_ids == [2, 1, 1, 1]
         @test bundle.iterations == [20, 1, 13, 1]
@@ -84,6 +85,8 @@ bytes(x) = (io=IOBuffer(); serialize(io, x); take!(io))
         end
     end
     a, b = extract(fits[1]), extract(fits[3])
+    @test_throws ArgumentError observation_alignment(
+        merge(a, (; schema="bayesianmgmfrm.prediction_observations.prototype.v1")), b)
     @test a.model.dimensions != b.model.dimensions
     @test observation_alignment(a, b) == collect(1:length(a.observation_ids))
     corrupt = deepcopy(last(fits))

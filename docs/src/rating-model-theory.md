@@ -1,9 +1,9 @@
 # How Rating Models Work
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
 
 A rating model assigns a probability to each possible score. Its parameters
 describe how those probabilities change with the person, item and rater.
@@ -328,10 +328,13 @@ is proportional to ``(1-\tanh^2 z)^\eta``. Even a uniform prior on ``\rho``
 therefore is not uniform on ``z``. This Jacobian belongs to the sampled density,
 not to a histogram or an average of transformed posterior draws.
 
-These formulas extend mathematically beyond two dimensions. The package's
-fitting interface currently admits only its specified two-dimensional correlated
-models; a mathematical generalization does not establish a fitted or validated
-higher-dimensional workflow. Identity population correlation likewise does not
+These formulas extend mathematically beyond two dimensions. The package has
+separate [two-dimensional](experimental.md#Correlated-ability-dimensions),
+[three-dimensional pure-Q](correlated-3d.md) and
+[multi-criterion star-association](star-association.md) fitting routes, each with
+its own likelihood, priors and restrictions. They are not one arbitrary
+correlated-model constructor; their availability does not establish scientific
+validation for every design. Identity population correlation likewise does not
 make every posterior estimate or observed score independent.
 
 Continue to [Reading Results and Comparing Models](interpreting-results.md)

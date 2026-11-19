@@ -173,8 +173,13 @@ Controls include `target_accept=.9`, `max_depth=10`, `step_size=.03`,
 extension or scientific acceptance. Inspect `report` and save the result.
 """
 function fit(target::Target;ndraws::Int,warmup::Int,chains::Int,seed,reconstruction_seed,
-        target_accept=.9,max_depth=10,step_size=.03,init_jitter=.1,metric=:diagonal,
+        target_accept::Union{Nothing,Real}=nothing,adapt_delta::Union{Nothing,Real}=nothing,
+        max_depth::Union{Nothing,Int}=nothing,max_treedepth::Union{Nothing,Int}=nothing,
+        step_size=.03,init_jitter=.1,metric=:diagonal,
         chain_execution=:serial,max_parallel_chains=chains,progress=false)
+    ta_res,md_res=B._resolve_stan_nuts_aliases(;target_accept,adapt_delta,default_target_accept=.9,
+        max_depth,max_treedepth,default_max_depth=10,caller="fit",backend=:advancedhmc)
+    target_accept=ta_res;max_depth=md_res
     all(s->s isa Integer && !(s isa Bool) && s>=0,(seed,reconstruction_seed)) &&
         seed!=reconstruction_seed || throw(ArgumentError("distinct nonnegative integer seeds required"))
     t=from_record(target_record(target))

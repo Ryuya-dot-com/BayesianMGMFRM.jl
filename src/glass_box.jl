@@ -37,6 +37,13 @@ function getdesign(input::_TIC.Input;association::Symbol=:independent,associatio
     _TIC.AssociationTarget(_TIC.Target(input;kwargs...);log_sd=association_log_sd)
 end
 initial_params(t::_TIC.Target) = _TIC.initial(t)
+initial_params(t::_CC_MOD.Target) = _CC_MOD.initial(t)
+initial_params(t::_CC_MOD.MaskedTarget) = _CC_MOD.initial(t)
+initial_params(t::_RGE_MOD.Target) = _RGE_MOD.initial(t)
+initial_params(t::_RII_MOD.Target) = _RII_MOD.initial(t)
+initial_params(t::_C3D_MOD.Target) = _C3D_MOD.initial(t)
+initial_params(t::_JR_MOD.S.Target) = _JR_MOD.S.initial(t)
+initial_params(t::_OA_MOD.Target) = _OA_MOD.initial(t)
 contract(t::_TIC.Target) = _TIC.contract(t)
 coordinates(t::_TIC.Target,q::AbstractVector{<:Real}) = _TIC.coordinates(t,q)
 logposterior(t::_TIC.Target,q::AbstractVector{<:Real}) = LogDensityProblems.logdensity(t,q)
@@ -46,7 +53,11 @@ pointwise_loglikelihood(t::_TIC.Target,q::AbstractVector{<:Real}) = _TIC.pointwi
 design_summary(t::_TIC.Target) = (;events=t.data.N,listeners=t.data.R,words=t.data.W,
     recordings=t.data.J,cohorts=3,predictors=24,fixed_design_rank=27,free_parameters=t.size,
     categories=(9,9,2),interaction=t.interaction,source_rows=copy(t.data.source_rows),scientific_acceptance=false)
-parameter_names(t::_TIC.Target) = reduce(vcat,(["$(k)[$i]" for i in 1:length(v)] for (k,v) in sort(collect(t.blocks);by=x->first(last(x)))))
+function parameter_names(t::_TIC.Target; scale::Symbol = :raw)
+    scale === :raw && return Experimental.ThreeIndicator.ConcurrentWorkflow.raw_names(t)
+    scale === :model && return Experimental.ThreeIndicator.ConcurrentWorkflow.model_values(t, _TIC.initial(t)).names
+    throw(ArgumentError("scale must be :raw or :model"))
+end
 _save_report(path::AbstractString,t::_TIC.Target) = _TIC.save_model(path,t)
 
 """
@@ -93,7 +104,26 @@ contract(t::_OA_MOD.Target) = _OA_MOD.contract()
 contract(t::_RGE_MOD.Target) = _RGE_MOD.contract()
 contract(t::_RII_MOD.Target) = _RII_MOD.contract()
 contract(t::_CC_MOD.Target) = _CC_MOD.contract()
+contract(t::_CC_MOD.MaskedTarget) = _CC_MOD.contract()
 contract(t::_RD_MOD.M.Target) = _RD_MOD.contract()
+
+function getdesign(r::NamedTuple)
+    tag = _sample_schema_symbol(r)
+    tag === :correlated_3d && return _C3D_MOD.restore(r)
+    tag === :joint_ratings && return _JR_MOD.W.restore(r)
+    tag === :ordinal_association && return _OA_MOD.restore(r)
+    tag === :rater_group_effects && return _RGE_MOD._restore(r)
+    tag === :rater_item_interactions && return _RII_MOD._restore(r)
+    tag === :criterion_collapse && return _CC_MOD._restore(r)
+    tag === :criterion_collapse_masked && return _CC_MOD._restore_masked(r)
+    throw(ArgumentError("unsupported NamedTuple record for getdesign"))
+end
+
+function contract(r::NamedTuple)
+    _sample_schema_symbol(r) !== nothing ||
+        throw(ArgumentError("unsupported NamedTuple record for contract"))
+    return contract(getdesign(r))
+end
 
 function contract(spec::FacetSpec)
     eq = model_equation(spec)
@@ -184,6 +214,34 @@ function parameter_names(t::_OA_MOD.Target; scale::Symbol = :raw)
     return _OA_MOD.model_draws(t, permutedims(q0), zeros(1, 2)).names
 end
 
+function parameter_names(t::_CC_MOD.Target; scale::Symbol = :raw)
+    scale in (:raw, :model) || throw(ArgumentError("scale must be :raw or :model"))
+    if scale === :raw
+        return vcat(
+            ["u_person[$j]" for j in 1:(t.P - 1)],
+            ["v_rater[$j]" for j in 1:(t.R - 1)],
+            ["delta[$i,$k]" for k in 1:(t.K - 1) for i in 1:t.I],
+            ["log_person_precision", "log_rater_precision"],
+            t.halo ? ["logit_pi"] : String[],
+        )
+    end
+    return vcat(
+        ["theta[$p]" for p in 1:t.P],
+        ["severity[$r]" for r in 1:t.R],
+        ["delta[$i,$k]" for k in 1:(t.K - 1) for i in 1:t.I],
+        ["sigma_person", "sigma_rater"],
+        t.halo ? ["pi"] : String[],
+    )
+end
+
+parameter_names(t::_CC_MOD.MaskedTarget; scale::Symbol = :raw) = parameter_names(t.base; scale)
+
+function parameter_names(r::NamedTuple; scale::Symbol = :raw)
+    _sample_schema_symbol(r) !== nothing ||
+        throw(ArgumentError("unsupported NamedTuple record for parameter_names"))
+    return parameter_names(getdesign(r); scale)
+end
+
 """
     facet_basis(x, facet = :entity)
 
@@ -237,6 +295,7 @@ coordinates(t::_OA_MOD.Target, q::AbstractVector{<:Real}) = _OA_MOD.representati
 coordinates(t::_RGE_MOD.Target, q::AbstractVector{<:Real}) = _RGE_MOD.coordinates(t, q)
 coordinates(t::_RII_MOD.Target, q::AbstractVector{<:Real}) = _RII_MOD.coordinates(t, q)
 coordinates(t::_CC_MOD.Target, q::AbstractVector{<:Real}) = _CC_MOD.coordinates(t, q)
+coordinates(t::_CC_MOD.MaskedTarget, q::AbstractVector{<:Real}) = _CC_MOD.coordinates(t.base, q)
 
 function coordinates(design::FacetDesign, q::AbstractVector{<:Real})
     _check_fit_supported_mfrm(design, "coordinates")
@@ -358,6 +417,11 @@ loglikelihood(t::_CC_MOD.Target, q::AbstractVector{<:Real}) =
     _CC_MOD.components(t, q).loglikelihood
 logposterior(t::_CC_MOD.Target, q::AbstractVector{<:Real}) =
     LogDensityProblems.logdensity(t, q)
+logprior(t::_CC_MOD.MaskedTarget, q::AbstractVector{<:Real}) = _CC_MOD.logprior(t.base, q)
+loglikelihood(t::_CC_MOD.MaskedTarget, q::AbstractVector{<:Real}) =
+    LogDensityProblems.logdensity(t, q) - _CC_MOD.logprior(t.base, q)
+logposterior(t::_CC_MOD.MaskedTarget, q::AbstractVector{<:Real}) =
+    LogDensityProblems.logdensity(t, q)
 logposterior(t::_RGE_MOD.Target, q::AbstractVector{<:Real}) =
     LogDensityProblems.logdensity(t, q)
 logposterior(t::_RII_MOD.Target, q::AbstractVector{<:Real}) =
@@ -408,7 +472,8 @@ end
     stan_data(model_or_spec; prior = MFRMPrior())
 
 Export the exact data and hyperparameter dictionary consumed by a corresponding
-CmdStan model for independent cross-engine posterior verification.
+CmdStan model. Exporting inputs does not run Stan or verify posterior agreement;
+check the model-specific contract and independent comparison evidence.
 """
 stan_data(m::_SA_MOD.StarModel) = _SA_MOD.stan_data(m)
 stan_data(res::_SA_MOD.StarResult) = _SA_MOD.stan_data(res.model)

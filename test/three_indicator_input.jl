@@ -62,7 +62,7 @@ function checks()
         r=T.inspect_input(object(sparse))
         @test r.categories==[9,9,2] && r.category_counts[1]==[165;zeros(Int,8)]
         @test any(contains("unobserved"),r.warnings)
-        @test Base.Docs.doc(T.inspect_input)!==nothing
+        @test BayesianMGMFRM._binding_doc(T,:inspect_input)!==nothing
     end
 end
 function interface_checks()

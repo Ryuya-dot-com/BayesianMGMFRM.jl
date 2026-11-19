@@ -1,3 +1,7 @@
+if abspath(PROGRAM_FILE) == abspath(@__FILE__) && Base.find_package("CairoMakie") === nothing
+    println("Include examples/response_surface_variants.jl in an analysis environment with CairoMakie installed.")
+    exit(0)
+end
 using BayesianMGMFRM, CairoMakie
 
 function response_surface_comparison_board(data)

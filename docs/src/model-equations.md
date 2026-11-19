@@ -1,9 +1,14 @@
 # Model Equations
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
+
+This is a reference for readers who have seen the
+[worked probability example](rating-model-theory.md). Code using `spec` or a fit
+assumes that you already constructed that model; it is not a standalone analysis.
+An equation being representable does not imply that every combination can be fitted.
 
 For a first explanation with a worked three-category example, read
 [How Rating Models Work](rating-model-theory.md). This page gives the more

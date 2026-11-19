@@ -80,6 +80,10 @@ function main(args=ARGS)
     (;result,report,contrast,assessment=checked,categories,predictive)
 end
 end
-if abspath(PROGRAM_FILE)==@__FILE__
+if abspath(PROGRAM_FILE)==abspath(@__FILE__)
+    if isempty(ARGS) || ARGS==["--help"]
+        println("Usage: julia --project=. examples/rater_group_effects.jl OUTPUT [--saved-fit PATH]")
+        exit(0)
+    end
     RaterGroupExample.main()
 end

@@ -62,6 +62,7 @@ end
         end
         allrows = prediction_observations(fit; options(fit)..., include_probabilities=false)
         stat = prediction_criteria(allrows; criteria=(:waic,:raw_loo,:hill_smoothed_loo))
+        @test stat.schema == "bayesianmgmfrm.prediction_criteria.v1"
         @test stat.prediction === allrows
         @test isequal(stat.scores.waic,waic(allrows.pointwise_loglikelihood))
         @test isequal(stat.scores.raw_loo,loo(allrows.pointwise_loglikelihood))
@@ -109,7 +110,14 @@ end
     @test unstable.criterion_warnings.hill_smoothed_loo === :high_pareto_k
     @test all(v == [first(base.observation_ids)] for v in values(unstable.problem_observation_ids))
     @test size(unstable.prediction.pointwise_loglikelihood) == size(L)
-    for bad in ((), (:waic,:waic), (:loo,), (:psis_loo,), (:unknown,))
+    psis = prediction_criteria(merge(base,(;pointwise_loglikelihood=fill(log(.2),40,length(base.observation_ids))));
+        criteria=(:psis_loo,))
+    @test psis.scores.psis_loo.elpd_loo ≈ length(base.observation_ids)*log(.2)
+    @test psis.reference_psis_validation === :finite_reference_checks
+    @test psis.uncertainty.relative_efficiency === :chain_basic_ess_for_psis
+    @test_throws ArgumentError prediction_criteria(
+        merge(base,(;schema="bayesianmgmfrm.prediction_observations.prototype.v1")))
+    for bad in ((), (:waic,:waic), (:loo,), (:unknown,))
         @test_throws ArgumentError prediction_criteria(base;criteria=bad)
     end
     @test_throws ArgumentError prediction_criteria(base; pareto_k_threshold=-1)

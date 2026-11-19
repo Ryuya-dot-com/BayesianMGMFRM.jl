@@ -1,5 +1,21 @@
 #!/usr/bin/env julia
 
+if abspath(PROGRAM_FILE) == @__FILE__
+    for arg in ARGS
+        arg in ("-h", "--help") || throw(ArgumentError("unknown argument: $arg"))
+    end
+    if !isempty(ARGS)
+        print("""
+Usage: julia --startup-file=no scripts/distribution_archive_smoke.jl
+
+Copies Git-visible source to a temporary directory, installs dependencies,
+checks package loads, runs a short fit and builds documentation.
+-h, --help prints this message without copying source or running checks.
+""")
+        exit(0)
+    end
+end
+
 # Build the package candidate from Git-visible worktree files, then verify the
 # result from a temporary directory that has no repository metadata or ignored
 # local artifacts. Git is used only to select the candidate files; every package

@@ -45,6 +45,10 @@ function main(args=ARGS)
 end
 end
 
-if abspath(PROGRAM_FILE)==@__FILE__
+if abspath(PROGRAM_FILE)==abspath(@__FILE__)
+    if isempty(ARGS) || ARGS==["--help"]
+        println("Usage: julia --project=. examples/rater_item_interactions.jl OUTPUT_DIRECTORY [--saved-fit PATH]")
+        exit(0)
+    end
     RaterItemInteractionExample.main()
 end

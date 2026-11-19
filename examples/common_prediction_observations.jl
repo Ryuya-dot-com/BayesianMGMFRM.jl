@@ -3,7 +3,7 @@ module CommonPredictionExample
 const HELP = """
 Usage: julia --project=. examples/common_prediction_observations.jl FIT.jls DATASET_ID IDS.txt
 
-Repository prototype; the common adapter is not yet a package API.
+Uses the common prediction adapter included in this development snapshot.
 FIT.jls: an existing save_fit_cache file, not a private raw sample record.
 DATASET_ID: the stable identity/version of the original fitted rating data.
 IDS.txt: one unique, nonblank observation ID per line, in the original fit row order.
@@ -14,7 +14,7 @@ WAIC and raw importance-sampling LOO use every retained draw and chain.
 Predictions condition on existing fitted rows/levels with equal-row weighting.
 This is not heldout K-fold evaluation or new-person/rater prediction.
 Sampling and criterion warnings remain visible. Pointwise score SE is not MCMC
-MCSE or a cluster-adjusted SE; reference PSIS equivalence is not established.
+MCSE or a cluster-adjusted SE. This example requests raw IS-LOO, not PSIS.
 """
 
 # Help and argument errors must not initialize the inference library.
@@ -27,8 +27,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
 end
 
 using BayesianMGMFRM, SHA
-include("../scripts/prediction_observation_adapter.jl")
-using .PredictionObservationAdapter
+using BayesianMGMFRM.PredictionObservationAdapter
 
 function main(args=ARGS; io=stdout)
     if isempty(args) || args == ["--help"]
@@ -44,7 +43,7 @@ function main(args=ARGS; io=stdout)
     evaluation = prediction_criteria(fit; dataset_id, observation_ids=ids,
         criteria=(:waic, :raw_loo))
     bytes2hex(open(sha256, cache_path)) == digest || error("Input cache changed during review")
-    println(io, "Prototype: existing fitted rows only; no new fit or acceptance decision.")
+    println(io, "Existing fitted rows only; no new fit or acceptance decision.")
     println(io, "Dataset: ", dataset_id, "; observations: ", length(ids))
     println(io, "Category order: ", preview.category_levels)
     println(io, "Probability preview axes (one draw, observations, categories): ", size(preview.probabilities))
@@ -57,7 +56,7 @@ function main(args=ARGS; io=stdout)
     println(io, "Criterion warnings: ", evaluation.criterion_warnings)
     println(io, "Problem observation IDs: ", evaluation.problem_observation_ids)
     println(io, "Uncertainty: ", evaluation.uncertainty)
-    println(io, "No automatic model ranking, reference PSIS validation or scientific acceptance.")
+    println(io, "No automatic model ranking or scientific acceptance; this example does not request PSIS.")
     return (; preview, evaluation)
 end
 end

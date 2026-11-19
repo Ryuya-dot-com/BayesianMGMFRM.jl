@@ -72,8 +72,10 @@ profile log scores for the mixture and induced all-ordinary model. This returns
 a separate criterion report with PSIS diagnostics and paired numerical MCSE,
 not Bayes factors; see `criteria` for its conditioning and precision limits.
 """
-function compare_models(result;criterion=:bayes_factor,unit=nothing)
-    criterion===:loo && return _heldout_comparison(result;unit)
+function compare_models(result;criterion=:bayes_factor,unit=nothing,mixture_refits=(),ordinary_refits=(),independent_refit_rng::Bool=false)
+    criterion in (:loo,:psis_loo) && return _heldout_comparison(result;unit,mixture_refits,ordinary_refits,independent_refit_rng)
+    isempty(mixture_refits) && isempty(ordinary_refits) && !independent_refit_rng ||
+        throw(ArgumentError("profile refits apply only when criterion=:loo, unit=:performance_rater"))
     criterion===:bayes_factor && unit===nothing || throw(ArgumentError("choose criterion=:loo with unit=:performance_rater, or the no-keyword Bayes-factor operation"))
     t=_restore(result)
     (;kind=:criterion_collapse_model_comparison,_operation_context(result,t)...,
@@ -230,7 +232,7 @@ function _operation_report_check(r)
     for flag in (:sampling_warning,:mcse_warning)
         getproperty(r,flag) isa Bool || fail()
     end
-    if string(r.kind) in ("criterion_collapse_heldout_criteria","criterion_collapse_heldout_comparison")
+    if string(r.kind) in ("criterion_collapse_heldout_criteria","criterion_collapse_heldout_comparison","criterion_collapse_heldout_pair_comparison")
         return _heldout_report_check(r)
     elseif string(r.kind)=="criterion_collapse_model_comparison"
         all(k->hasproperty(r,k),(:models,:conditioning,:posterior_all_ordinary,:prior_all_ordinary,

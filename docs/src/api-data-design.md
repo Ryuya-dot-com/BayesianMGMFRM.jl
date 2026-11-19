@@ -1,9 +1,14 @@
 # Data and Design API
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
+
+For a first analysis, use `FacetData`, `validate_design`, `mfrm_spec` and
+`design_summary`; then consult individual references below as needed.
+`view=:public` changes presentation, not confidentiality: user-supplied identifiers
+may remain. It is not an anonymization operation.
 
 Enter `spec` at the Julia prompt to read a `FacetSpec`'s slopes, category-step
 owner, fitting entry and warning counts. In a script, use
@@ -41,6 +46,11 @@ FacetDesign
 validate_design
 validation_suggestions
 ordinal_response_pattern_audit
+```
+
+## Model specifications and constraints
+
+```@docs
 mfrm_spec
 getdesign
 design_identity
@@ -54,6 +64,11 @@ model_surface_check
 q_matrix_validation
 fit_ready_parameter_layout
 domain_compilation_summary
+```
+
+## Inspect the design and mathematical representation
+
+```@docs
 design_row_table
 linear_predictor_table
 linear_predictor_values
@@ -63,11 +78,21 @@ logposterior
 logprior
 threshold_map_data
 facet_response_table
+```
+
+## Allocation and linking
+
+```@docs
 coverage_summary
 coverage_matrix
 rater_overlap
 anchor_linking_summary
 anchor_refit_plan
+```
+
+## External model interchange
+
+```@docs
 facets_bridge_bundle
 conquest_bridge_bundle
 save_external_bridge_bundle
@@ -76,6 +101,11 @@ load_conquest_parameter_export
 load_conquest_semantic_parameters
 BayesianMGMFRM.load_conquest_reference_parameters
 external_bridge_result_receipt
+```
+
+## Design and software reference
+
+```@docs
 rating_design_check
 testlet_design_check
 design_summary

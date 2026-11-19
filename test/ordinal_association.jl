@@ -50,7 +50,7 @@ function finite_checks()
             (;intercept_sd=1.5,person_log_sd_mean=log(.5),person_log_sd_sd=.5,lambda_sd=.5))
         @test_throws ArgumentError A.model(b.data.rows;criteria=b.data.criteria,prior=pr)
         for name in (:model,:fit,:report,:contrast,:event_probabilities,:save_result,:load_result,:save_report,:contract)
-            @test Base.Docs.doc(getfield(A,name))!==nothing
+            @test B._binding_doc(A,name)!==nothing
         end
     end
     tests.n_passed

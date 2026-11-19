@@ -278,7 +278,7 @@ end
         init_jitter = 0.0, progress = false, chain_execution = :serial, max_parallel_chains = 1,
         cmdstan_path = nothing, cmdstan_cache_dir = nothing)
     @test Set(Base.kwarg_decl(which(fit, (FacetDesign,)))) ==
-        union(Set(keys(options)), Set((:_on_enter,)))
+        union(Set(keys(options)), Set((:_on_enter, :method, :adapt_delta, :max_treedepth, Symbol("freq_kwargs..."))))
     rand(options.rng, 11) # Test state only; not an evaluation allocation.
     checkpoint = copy(options.rng)
     input = Records.fit_input_record(design; options)

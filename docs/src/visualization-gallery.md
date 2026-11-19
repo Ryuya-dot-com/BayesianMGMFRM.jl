@@ -1,13 +1,24 @@
 # Visualization Gallery
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
+
+**New to the package?** Open [the supplied fitted-result figures](first-analysis.md)
+first. The recipes here instead assume a compatible existing fit or computed
+report and, for new rendering, CairoMakie. In option lists, `:posterior | :diagnostics`
+means choose one value; it is not Julia code for selecting both.
+Use the support table to match the figure to the model and saved object.
 
 A useful plot answers a question. Start with **location**, then examine
 **response patterns**, and finally ask how a multidimensional model translates
 abilities into **rating probabilities**.
+
+For a complete estimated example, read the
+[three-figure rater comparison](first-analysis.md). It
+connects one actual fit to artificial teaching data with its intervals, chain
+diagnostics, posterior predictive check and portable saved result.
 
 ## [Unified plotting overview (`BayesianMGMFRM.plot`)](@id unified-plotting-overview)
 
@@ -24,7 +35,32 @@ dedicated `plot_*` helpers:
 | How sensitive are conclusions to the prior, or how precise is a planned design? | `BayesianMGMFRM.plot(rep; kind = :prior_sensitivity \| :prior_predictive_sensitivity \| :design_precision)` | `plot_prior_sensitivity`, `plot_prior_predictive_sensitivity`, `plot_design_precision` | Prior-variant interval/ridge shifts ([guide](prior-sensitivity.md)) or planned-cohort target interval-width frequencies ([guide](design-planning.md)). |
 | How does rater severity drift over time, or which raters collapse criteria? | `BayesianMGMFRM.plot(rep; kind = :rater_drift \| :criterion_collapse_classes \| :criterion_collapse_categories)` | `Experimental.RaterDrift.plot_trajectory`, `Experimental.CriterionCollapse.plot_classes` / `plot_categories` | Temporal severity trajectories ([guide](rater-drift.md)) or latent-class probabilities and category curves ([guide](criterion-collapse.md)). |
 
-The Wright and Pathway illustrations below use **deterministic artificial draws**, not
+## [Choose a plot for your input](@id plot-input-coverage)
+
+The shared verb does **not** make every plot available for every fit or report.
+These are operation boundaries, not scientific validation claims. Install and
+load `CairoMakie` before rendering; ordinary tables and summaries do not need it.
+
+| Input | Available route | Computation and limits |
+| --- | --- | --- |
+| Scalar `MFRMFit` | `:wright`, `:pathway`; ridge via `plot_wright(fit; kind=:ridge)` | Reuses joint draws; RSM/PCM and fixed references are supported. No fitting or predictive replication. GMFRM and multidimensional fits cannot use this single-axis renderer. |
+| Frequentist 1D `FrequentistMFRM.Fit` and its saved JSON reports | `:posterior`, `:wright`, `:pathway`, `:comparison` | Plots JMLE/MMLE point estimates and 95% asymptotic Wald intervals (explicitly labelled non-Bayesian), multi-facet Wright maps, Pathway maps, or MMLE `ΔAIC`/`ΔBIC` comparisons without recomputation; see [frequentist 1D JMLE & MMLE](frequentist-mfrm.md). |
+| `StanAdapter.Fit`, `PortableHandoff.Handoff`, and saved `StanAdapter` JSON reports | `:posterior`, `:diagnostics`, `:wright`, `:comparison`, `:prior_sensitivity` | Plots posterior intervals, per-chain traces (`include_draws=true` for saved JSON), shared-logit block maps, `ΔELPD ± 2 SE` comparisons, and PSIS importance-reweighted prior sensitivity; see [Custom Stan Adapter and Portable Handoffs](stan-adapter.md). |
+| Additive/explanatory fits and their computed reports | `:posterior`, `:diagnostics`, `:prediction`, `:predictive` | Select parameters for traces. Prediction gives known-owner category probabilities. Prior/PPC reports use distinct labels; plotting computed reports starts no generation. See the [diagnostic walkthrough](explanatory-diagnostics.md). |
+| Core MFRM/GMFRM/MGMFRM fits | `:posterior`, `:diagnostics`, `:predictive` | The first two summarize saved draws. `:predictive` generates replicated outcomes from them; it is not a report-only redraw. |
+| `NormalizedMGMFRMFit` / `CorrelatedMGMFRMFit` records and fixed-Q multidimensional MFRM fit wrappers | `:posterior`, `:diagnostics`, `:predictive` through their model-specific methods | Validated sample records are required; see [fitting](fitting.md). These methods do not cover the separate `Experimental.Correlated3D` result type and do not imply Wright/Pathway or surface support. |
+| Independent `MGMFRMFit` with `GeneralizedPrior`, at least two dimensions | `:response_surface` | A conditional item–rater slice of category probabilities from saved joint draws; fix every undisplayed ability. Normalized/correlated fit types are rejected. |
+| `Experimental.StarAssociation.StarResult` | `:posterior`, `:diagnostics`, `:predictive` | Only these three kinds. The predictive route generates new outcomes; qualification warnings remain relevant. |
+| Core prior-predictive check returned as a `NamedTuple` with parameter draws and replicated scores | `:predictive` | Draws the existing **prior predictive** check. This overload is not a reader for arbitrary posterior-PPC JSON or Concurrent reports. |
+| Design-precision, prior-sensitivity or prior-predictive-sensitivity reports | `:design_precision`, `:prior_sensitivity`, `:prior_predictive_sensitivity`, respectively | Each renderer requires its own report schema; see [design planning](design-planning.md) and [prior sensitivity](prior-sensitivity.md). |
+| Rater-drift or criterion-collapse model reports | `:rater_drift`, or `:posterior` / `:criterion_collapse_classes`, `:criterion_collapse_categories`, `:predictive`, `:comparison` | Use the input/report types in the [drift](rater-drift.md) and [criterion-collapse](criterion-collapse.md) guides; plotting computed reports performs no MCMC or RNG. Not interchangeable with core fits. |
+| Concurrent saved posterior-PPC or focal reports, including compact plot reports | `:predictive` with `view=:marginal` or `:joint`; `:posterior` for contrasts or ENG speaker profiles | Redraws saved numbers without RNG or native chains. Retains full-report qualification and failure scope. Fits, prior-PPC and other report operations are not accepted by this adapter. See [saved-report figures](concurrent-three-outcome.md#saved-report-figures). |
+
+For repeatable export, retain the numerical inputs and external figure note.
+Reopening a native fit requires its producing environment; a portable report
+requires a renderer for that report's schema, not merely a `.json` extension.
+
+The Wright, ridge and Pathway illustrations below use **deterministic artificial draws**, not
 fitted posteriors. They demonstrate the output and its reading conventions, not
 uncertainty calibrated by a study. The original MGMFRM figures reuse a saved experimental fit
 to simulated ratings; the new category-panel illustrations explicitly use artificial
@@ -37,7 +73,11 @@ To change an interval from 90% or 95% to 99%, follow the
 [interval-level examples](interpreting-results.md#credible-interval-levels).
 They also explain ETIs, HDIs and the precision of interval endpoints.
 
-## Wright Map: locate the facets
+```@raw html
+<a id="Wright-Map:-locate-the-facets"></a>
+```
+
+## [Wright Map: locate the facets](@id wright-map)
 
 **Figure 1**
 
@@ -125,7 +165,35 @@ limit still applies to item, rater and boundary marks. See
 [Person histogram overview](fitting.md#Person-histogram-overview) for explicit
 edges, full-roster report output and saved-fit reproduction.
 
-## Pathway Map: connect location with response patterns
+## [Ridge Wright Map: inspect marginal shapes](@id wright-ridge)
+
+*Marginal Shapes in an Artificial MFRM Illustration*
+
+[![Artificial marginal-density ridges for persons, raters, items and adjacent-category boundaries on a shared logit scale.](assets/visual-guide/wright-ridge.png)](assets/visual-guide/wright-ridge.svg)
+
+*Note.* This display uses 40 deterministic artificial draws, not a fitted
+posterior. Each ridge represents one level's marginal shape. It is not a
+population density or a pool of levels. Gaussian smoothing uses bandwidth 0.08
+logits; medians and central 95% intervals use the unsmoothed inputs. Diamonds
+mark fixed references/anchors and exclude their external uncertainty. The
+artificial-input MCMC warnings remain in the full note.
+
+[PDF](assets/visual-guide/wright-ridge.pdf) · [SVG](assets/visual-guide/wright-ridge.svg) · [Full text note](assets/visual-guide/wright-ridge-note.txt)
+
+```julia
+figure = BayesianMGMFRM.plot_wright(fit_result; kind = :ridge, interval = 0.95)
+save("wright-ridge.svg", figure)
+```
+
+The renderer shares the scalar Wright-map support boundary. Use it when skewness
+or unequal uncertainty matters; the choice of smoothing does not diagnose
+convergence or supply a Monte Carlo standard error.
+
+```@raw html
+<a id="Pathway-Map:-connect-location-with-response-patterns"></a>
+```
+
+## [Pathway Map: connect location with response patterns](@id pathway-map)
 
 **Figure 3**
 
@@ -164,27 +232,30 @@ on the design. Interpret them alongside counts, predictive checks and the
 substantive rating context. A flagged point does not by itself establish bias,
 justify removing a rater, or choose MFRM over GMFRM.
 
-The package supplies [`diagnostic_map_data`](@ref); the figure is an example
-using CairoMakie, rather than a new package plotting API. Download the
-[Pathway Map example](assets/visual-guide/pathway_map.jl), save it beside your
-analysis, and use a stable MFRM cache:
+Use the common plotting verb with a scalar MFRM fit; no separate helper script
+is required. [`diagnostic_map_data`](@ref) remains available for inspecting the
+numerical rows and their flags.
 
 ```julia
 using BayesianMGMFRM, CairoMakie
-include("pathway_map.jl")
-fit_result = load_fit_cache("analysis-fit.jls")
-save("pathway-map.svg", pathway_map(fit_result))
+fit_result = load_fit("analysis-fit.jls")
+figure = BayesianMGMFRM.plot(fit_result; kind = :pathway,
+    metric = :infit, interval = 0.95)
+save("pathway-map.svg", figure)
 
-# Inspect the exact numerical rows and their flags before interpreting them.
 rows = diagnostic_map_data(fit_result; metrics = :infit,
     include_thresholds = false, interval = 0.95)
 ```
 
-The example uses every retained draw and does not fit a model. Review sampler
+This route uses every retained draw and does not fit a model. Review sampler
 diagnostics separately; missing summaries produce an error rather than omitted
 points. See [Reading Results](interpreting-results.md) for the surrounding workflow.
 
-## MGMFRM in 3D: abilities become probabilities
+```@raw html
+<a id="MGMFRM-in-3D:-abilities-become-probabilities"></a>
+```
+
+## [MGMFRM in 3D: abilities become probabilities](@id mgmfrm-response-surface)
 
 The callable surface method currently accepts independent `MGMFRMFit` results
 with `GeneralizedPrior` and at least two ability dimensions. It does not accept
@@ -234,7 +305,8 @@ surface function requires values for every undisplayed ability and shows a
 conditional slice. A three-ability person scatterplot would instead require
 three latent axes, uncertainty displays and identifiable dimension meanings.
 It would not establish support for estimating a free correlation matrix with
-three or more dimensions; that fitting extension remains unavailable.
+three or more dimensions. Separate experimental correlated 2D/3D fitting routes
+exist, but are not inputs to this surface method; see [correlated traits](correlated-3d.md).
 
 This is a static figure. The current CairoMakie interface can change the viewing
 angle or select one category; it does not provide browser rotation. See
@@ -404,7 +476,7 @@ use 40 deterministic vectors to illustrate dependence on both displayed axes.
 [Planar note](assets/visual-guide/surface-heatmaps-note.txt).
 
 ```julia
-# An independent MGMFRMFit with GeneralizedPrior, as in the saved example below.
+# Requires an existing independent MGMFRMFit with GeneralizedPrior, named restored.
 fig = BayesianMGMFRM.plot_response_surface(restored;
     item = "I1", rater = "R1", category = :all, layout = :panels)
 save("category-panels.pdf", fig)

@@ -41,8 +41,13 @@ end
 
 """Run Julia NUTS with explicit sample counts/seed; retains numerical warnings."""
 function fit_julia(target::S.Target;ndraws::Int,warmup::Int,chains::Int,seed,
-        target_accept::Real=.9,max_depth::Int=10,step_size::Real=.03,init_jitter::Real=.1,
+        target_accept::Union{Nothing,Real}=nothing,adapt_delta::Union{Nothing,Real}=nothing,
+        max_depth::Union{Nothing,Int}=nothing,max_treedepth::Union{Nothing,Int}=nothing,
+        step_size::Real=.03,init_jitter::Real=.1,
         ad_backend::Symbol=:auto,progress::Union{Bool,B.SamplingProgress}=false)
+    ta_res,md_res=B._resolve_stan_nuts_aliases(;target_accept,adapt_delta,default_target_accept=.9,
+        max_depth,max_treedepth,default_max_depth=10,caller="fit",backend=:advancedhmc)
+    target_accept=ta_res;max_depth=md_res
     t=snapshot(target)
     selected=ad_backend===:auto ? :analytic : ad_backend
     run=B._run_generalized_candidate_advancedhmc(t,S.initial(t);
@@ -66,7 +71,12 @@ end
 
 """Run the matched Stan target; verify every retained density and observation likelihood in Julia."""
 function fit_cmdstan(target::S.Target,compiled;ndraws::Int,warmup::Int,chains::Int,seed,
-        target_accept::Real=.9,max_depth::Int=10,step_size::Real=.03,init_jitter::Real=.1)
+        target_accept::Union{Nothing,Real}=nothing,adapt_delta::Union{Nothing,Real}=nothing,
+        max_depth::Union{Nothing,Int}=nothing,max_treedepth::Union{Nothing,Int}=nothing,
+        step_size::Real=.03,init_jitter::Real=.1)
+    ta_res,md_res=B._resolve_stan_nuts_aliases(;target_accept,adapt_delta,default_target_accept=.9,
+        max_depth,max_treedepth,default_max_depth=10,caller="fit",backend=:cmdstan)
+    target_accept=ta_res;max_depth=md_res
     t=snapshot(target)
     step_size=B._check_fit_controls(ndraws,warmup,chains,step_size)
     target_accept,_,init_jitter=B._check_nuts_controls(target_accept,max_depth,1000.,init_jitter)

@@ -12,7 +12,7 @@ end
 @testset "Fixed profiles bind IDs, scale and supported models" begin
     m=model(specification(),:fixed_one);d=m.base_spec.data;p=profile(m)
     @test :MeanProfilePrior in E.surface_contract().reader_facing_bindings
-    @test occursin("not integrated",string(@doc E.MeanProfilePrior))
+    @test occursin("not integrated",string(B._binding_doc(E,:MeanProfilePrior)))
     @test_throws ArgumentError profile(m;units=:ambiguous)
     @test_throws ArgumentError profile(m;category_levels=reverse(d.category_levels))
     @test_throws ArgumentError profile(m;item_means=Dict(1=>0.))

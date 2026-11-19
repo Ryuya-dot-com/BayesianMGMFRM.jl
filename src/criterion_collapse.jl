@@ -175,13 +175,152 @@ end
 
 
 const SCHEMA="bayesianmgmfrm.criterion_collapse_samples.v1"
+const SCHEMA_MASKED="bayesianmgmfrm.criterion_collapse_masked_samples.v1"
 const SCOPE=(;family=:scalar_unit_slope_criterion_step_pcm,
     mechanism=:criterion_collapse,latent_class_unit=:rater_constant,
     prior=:exchangeable_sum_zero,acceptance=:experimental_engineering_only)
 """Machine-readable supported operations and scientific boundary."""
 contract()=(;SCOPE...,backend=:advancedhmc,allocation=:complete_cells_connected_person_cell,
-    operations=(:model,:design,:target_identity,:fit,:report,:category_report,:predictive_check,:criteria,:pointwise_loglikelihood,:compare_models,:save_result,:load_result,:save_report,:load_report,:plot_classes,:plot_categories),
+    operations=(:model,:design,:target_identity,:fit,:report,:category_report,:predictive_check,:posterior_predictive_check,:criteria,:loo_refit_plan,:pointwise_loglikelihood,:compare_models,:save_result,:load_result,:save_report,:load_report,:plot_classes,:plot_categories,:plot),
     scientific_acceptance=false)
+
+struct MaskedTarget
+    base::Target
+    profile::Int
+    heldout::Vector{Int}
+    retained::Vector{Int}
+    model::Symbol
+    parent_target_identity::String
+end
+
+L.dimension(t::MaskedTarget)=L.dimension(t.base)
+L.capabilities(::Type{MaskedTarget})=L.LogDensityOrder{0}()
+function B._check_source_fixture_raw_vector(t::MaskedTarget,q::AbstractVector)
+    coordinates(t.base,q);nothing
+end
+initial(t::MaskedTarget)=t.base.halo ? initial(t.base) : initial(Target((f===:halo ? true : getfield(t.base,f) for f in fieldnames(Target))...))[1:end-1]
+
+function L.logdensity(t::MaskedTarget,q::AbstractVector{<:Real})
+    length(q)==L.dimension(t) || throw(DimensionMismatch("masked criterion-collapse coordinates"))
+    all(isfinite,q) || return oftype(float(q[1]),-Inf)
+    try
+        probs=category_logprobs(t.base,q)
+        lp=logprior(t.base,q)
+        if t.model===:all_ordinary
+            for n in t.retained
+                lp+=probs.ordinary[n,t.base.score[n]+1]
+            end
+        else
+            s=coordinates(t.base,q)
+            ell=zeros(eltype(q),t.base.R,2)
+            for n in t.retained
+                ell[t.base.rater[n],1]+=probs.ordinary[n,t.base.score[n]+1]
+                ell[t.base.rater[n],2]+=probs.halo[n,t.base.score[n]+1]
+            end
+            for r in 1:t.base.R
+                lp+=logadd(s.log1mpi+ell[r,1],s.logpi+ell[r,2])
+            end
+        end
+        isfinite(lp) ? lp : oftype(lp,-Inf)
+    catch e
+        e isa DomainError || rethrow()
+        oftype(float(q[1]),-Inf)
+    end
+end
+
+function _masked_heldout_logprobs(t::MaskedTarget,draws::AbstractMatrix{<:Real})
+    S=size(draws,1);out=zeros(Float64,S)
+    for (j,q) in enumerate(eachrow(draws))
+        probs=category_logprobs(t.base,q)
+        if t.model===:all_ordinary
+            out[j]=sum(probs.ordinary[n,t.base.score[n]+1] for n in t.heldout)
+        else
+            s=coordinates(t.base,q)
+            r_h=t.base.rater[first(t.heldout)]
+            ell_ret1=0.0;ell_ret2=0.0
+            for n in t.retained
+                t.base.rater[n]==r_h || continue
+                ell_ret1+=probs.ordinary[n,t.base.score[n]+1]
+                ell_ret2+=probs.halo[n,t.base.score[n]+1]
+            end
+            a=sum(probs.ordinary[n,t.base.score[n]+1] for n in t.heldout)
+            b=sum(probs.halo[n,t.base.score[n]+1] for n in t.heldout)
+            u=s.log1mpi+ell_ret1;v=s.logpi+ell_ret2
+            norm_ret=logadd(u,v)
+            out[j]=logadd(u-norm_ret+a,v-norm_ret+b)
+        end
+    end
+    out
+end
+
+function _masked_draws(t::MaskedTarget,draws)
+    b=t.base
+    names=[["theta[$p]" for p in 1:b.P];["severity[$r]" for r in 1:b.R];
+        ["delta[$i,$k]" for k in 1:b.K-1 for i in 1:b.I];"sigma_person";"sigma_rater";
+        (t.model===:mixture ? ["pi"] : String[])]
+    values=Matrix{Float64}(undef,size(draws,1),length(names))
+    for (j,q) in enumerate(eachrow(draws))
+        s=coordinates(b,q)
+        row=[collect(s.theta);collect(s.severity);vec(Matrix(s.delta));inv.(sqrt.(s.precision))]
+        t.model===:mixture && push!(row,exp(s.logpi))
+        values[j,:]=row
+    end
+    (;names,values,fixed=Set{String}())
+end
+
+_masked_target_record(t::MaskedTarget)=(;parent_target=_target_record(Target((f===:halo ? true : getfield(t.base,f) for f in fieldnames(Target))...)),
+    parent_target_identity=t.parent_target_identity,profile=t.profile,heldout=copy(t.heldout),retained=copy(t.retained),model=t.model)
+target_identity(t::MaskedTarget)=B._cache_hash(_masked_target_record(t))
+
+function _restore_masked_target(rec)
+    keys(rec)==(:parent_target,:parent_target_identity,:profile,:heldout,:retained,:model) ||
+        throw(ArgumentError("Unknown masked criterion-collapse target record."))
+    full=_restore_target(rec.parent_target)
+    B._cache_hash(rec.parent_target)==rec.parent_target_identity ||
+        throw(ArgumentError("Masked parent target checksum mismatch."))
+    rec.model in (:mixture,:all_ordinary) || throw(ArgumentError("Invalid masked model branch."))
+    base=rec.model===:mixture ? full : Target((f===:halo ? false : getfield(full,f) for f in fieldnames(Target))...)
+    MaskedTarget(base,Int(rec.profile),Int.(rec.heldout),Int.(rec.retained),Symbol(rec.model),String(rec.parent_target_identity))
+end
+
+function fit(target::MaskedTarget;ndraws::Int,warmup::Int,chains::Int,seed,
+        target_accept::Union{Nothing,Real}=nothing,adapt_delta::Union{Nothing,Real}=nothing,
+        max_depth::Union{Nothing,Int}=nothing,max_treedepth::Union{Nothing,Int}=nothing,
+        step_size=.03,init_jitter=.1,
+        progress::Union{Bool,B.SamplingProgress}=false,chain_execution::Symbol=:serial,max_parallel_chains::Int=chains)
+    ta_res,md_res=B._resolve_stan_nuts_aliases(;target_accept,adapt_delta,default_target_accept=.9,
+        max_depth,max_treedepth,default_max_depth=10,caller="fit",backend=:advancedhmc)
+    target_accept=ta_res;max_depth=md_res
+    rec=_masked_target_record(target)
+    mt=_restore_masked_target(rec)
+    run=B._run_generalized_candidate_advancedhmc(mt,initial(mt);ndraws,warmup,chains,seed,
+        target_accept,max_depth,step_size,init_jitter,ad_backend=:ForwardDiff,record_warmup=true,
+        progress,chain_execution,max_parallel_chains)
+    body=(;schema=SCHEMA_MASKED,target=rec,target_identity=B._cache_hash(rec),scope=SCOPE,run)
+    result=merge(body,(;content_hash=B._cache_hash(body)))
+    _restore_masked(result);result
+end
+
+function _restore_masked(result)
+    result isa NamedTuple && keys(result)==(:schema,:target,:target_identity,:scope,:run,:content_hash) &&
+        result.schema==SCHEMA_MASKED && result.scope==SCOPE || throw(ArgumentError("Unknown masked criterion-collapse sample record."))
+    B._cache_hash(Base.structdiff(result,(;content_hash=nothing)))==result.content_hash ||
+        throw(ArgumentError("Masked criterion-collapse sample checksum mismatch."))
+    B._cache_hash(result.target)==result.target_identity ||
+        throw(ArgumentError("Masked criterion-collapse target checksum mismatch."))
+    mt=_restore_masked_target(result.target);B._check_generalized_sample_run(mt,result.run)
+    run=result.run
+    length(run.warmup_stats)==run.controls.chains*run.controls.warmup ||
+        throw(ArgumentError("Incomplete masked warmup record."))
+    B._warmup_diagnostic_rows(run.warmup_stats,run.controls,run.backend)
+    mt
+end
+function save_masked_result(path,result)
+    _restore_masked(result);B._save_serialized_record(path,result;overwrite=false)
+end
+function load_masked_result(path)
+    result=open(deserialize,path);_restore_masked(result);result
+end
 _target_record(t)=(;table=RI._table(t.data),categories=copy(t.data.category_levels),prior=_prior(t.prior))
 """Fingerprint the model's data, categories and prior to check a saved result's target."""
 target_identity(t::Target)=B._cache_hash(_target_record(t))
@@ -193,8 +332,13 @@ end
 
 """Fit with Julia NUTS; explicit counts and seed, full sampler and warmup telemetry."""
 function fit(target::Target;ndraws::Int,warmup::Int,chains::Int,seed,
-        target_accept=.9,max_depth::Int=10,step_size=.03,init_jitter=.1,
+        target_accept::Union{Nothing,Real}=nothing,adapt_delta::Union{Nothing,Real}=nothing,
+        max_depth::Union{Nothing,Int}=nothing,max_treedepth::Union{Nothing,Int}=nothing,
+        step_size=.03,init_jitter=.1,
         progress::Union{Bool,B.SamplingProgress}=false,chain_execution::Symbol=:serial,max_parallel_chains::Int=chains)
+    ta_res,md_res=B._resolve_stan_nuts_aliases(;target_accept,adapt_delta,default_target_accept=.9,
+        max_depth,max_treedepth,default_max_depth=10,caller="fit",backend=:advancedhmc)
+    target_accept=ta_res;max_depth=md_res
     t=_restore_target(_target_record(target))
     run=B._run_generalized_candidate_advancedhmc(t,initial(t);ndraws,warmup,chains,seed,
         target_accept,max_depth,step_size,init_jitter,ad_backend=:ForwardDiff,record_warmup=true,

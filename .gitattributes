@@ -19,3 +19,41 @@ test/fixtures/conquest_5_47_5/rsm_control.cqc -text whitespace=-trailing-space
 test/fixtures/conquest_5_47_5/pcm_control.cqc -text whitespace=-trailing-space
 test/fixtures/conquest_5_47_5/rsm_history.tsv whitespace=-trailing-space
 test/fixtures/conquest_5_47_5/pcm_history.tsv whitespace=-trailing-space
+
+# Lightweight installable package archive boundary (`git archive` <= 5 MiB):
+# keep all package/extension sources, runnable examples + input data, manual
+# markdown sources + README hero figure, scripts, and ordinary `Pkg.test()`
+# fixtures; exclude repository CI metadata, local manifests, rendered manual
+# gallery figures, computed narrative report archives, and opt-in
+# `BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true` study JSON archives.
+# Keep `.github/workflows/CI.yml` (2.9 KiB gz) so `test/test_group_selection.jl`
+# can verify the CI shard matrix inside extracted package archives.
+.gitattributes export-ignore
+.gitignore export-ignore
+Manifest*.toml export-ignore
+
+docs/src/assets/category-report export-ignore
+docs/src/assets/criterion export-ignore
+docs/src/assets/explanatory export-ignore
+docs/src/assets/explanatory-diagnostics export-ignore
+docs/src/assets/integrated-report export-ignore
+docs/src/assets/moderation export-ignore
+docs/src/assets/posterior-reliability export-ignore
+docs/src/assets/prior-predictive-sensitivity export-ignore
+docs/src/assets/prior-sensitivity export-ignore
+docs/src/assets/rater-agreement export-ignore
+docs/src/assets/repeated export-ignore
+docs/src/assets/visual-guide export-ignore
+docs/src/assets/first-analysis/* export-ignore
+docs/src/assets/first-analysis/posterior.png -export-ignore
+
+examples/reports export-ignore
+
+test/fixtures/local_dependence_pilot_*.json export-ignore
+test/fixtures/local_dependence_calibration_scorer_preflight.json export-ignore
+test/fixtures/mgmfrm_publication_grade_*.json export-ignore
+test/fixtures/mgmfrm_full_heldout_mcmc_refit_*.json export-ignore
+test/fixtures/mgmfrm_tam_direct_agreement_*.json export-ignore
+test/fixtures/existing_api_design_robustness_stress_grid.json export-ignore
+test/fixtures/gmfrm_prior_likelihood_sensitivity_grid.json export-ignore
+test/fixtures/mgmfrm_heldout_prediction_execution.json export-ignore

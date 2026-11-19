@@ -7,6 +7,11 @@ estimates, diagnostic qualification, and transparent target densities.
 
 # Unified Practitioner Workflow
 
+Start with `FacetData`, `mfrm_spec`, explicit sampling settings for `fit`,
+`diagnostics` and `contrast`, then save the result. The extended operations below
+share names across models, but availability and return values are model-specific.
+Consult the selected model guide; checkpointing is not required for a scalar fit.
+
 1. **Specify & Inspect Design**: Build a table with `FacetData` and inspect it
    with `design_summary` and `mfrm_spec` (or `Experimental.joint_rating_spec`
    for multi-criterion rating events). Modify specifications cleanly with `with_options`.
@@ -169,6 +174,7 @@ export SamplingProgress,
     parameter_recovery_summary,
     pointwise_loglikelihood,
     pointwise_loglikelihood_matrix,
+    predict,
     posterior_predict,
     posterior_predictive_check,
     posterior_mcse,
@@ -346,8 +352,17 @@ include("prediction_report.jl")
 include("saved_reporting.jl")
 include("validation_suite.jl")
 include("unified_workflow.jl")
+include("concurrent_plot.jl")
 include("glass_box.jl")
 include("additive_facets.jl")
+include("explanatory_power_sensitivity.jl")
+include("explanatory_comparison.jl")
+include("bounded_comparison.jl")
+include("mixed_outcomes_comparison.jl")
+include("frequentist_mfrm.jl")
+include("frequentist_mfrm_api.jl")
+include("stan_adapter.jl")
+include("api_contract_freeze.jl")
 
 # Exact 0.1.x root-export classification and growth boundary.
 include("root_api_contract.jl")

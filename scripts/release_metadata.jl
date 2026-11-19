@@ -3,6 +3,46 @@ module ReleaseMetadata
 using Dates
 using TOML
 
+function expected_version(args; allowed_flags = ())
+    version = nothing
+    for arg in args
+        arg in ("--help", "-h") && continue
+        arg in allowed_flags && continue
+        startswith(arg, "--expected-version=") ||
+            throw(ArgumentError("unknown argument: $arg"))
+        version === nothing || throw(ArgumentError("--expected-version may be supplied only once"))
+        value = split(arg, '='; limit = 2)[2]
+        isempty(value) && throw(ArgumentError("--expected-version requires a version"))
+        version = VersionNumber(value)
+    end
+    return version
+end
+
+function repository_context(root; strict = false)
+    function unavailable()
+        strict && error("strict handoff requires a Git checkout rooted at this source directory")
+        return (; available = false, branch = nothing, commit = nothing, dirty = nothing)
+    end
+    read_git(args) = readchomp(pipeline(Cmd(`git $args`; dir = root); stderr = devnull))
+    context = try
+        top = read_git(["rev-parse", "--show-toplevel"])
+        # A nested snapshot must not inherit its ancestor checkout's identity.
+        realpath(top) == realpath(root) || return unavailable()
+        branch = read_git(["branch", "--show-current"])
+        commit = read_git(["rev-parse", "HEAD"])
+        dirty = !isempty(read_git(["status", "--porcelain"]))
+        (; available = true, branch, commit, dirty)
+    catch err
+        err isa Base.IOError || err isa Base.ProcessFailedException || rethrow()
+        return unavailable()
+    end
+    if strict
+        context.branch == "main" || error("strict handoff must run from main, got $(context.branch)")
+        !context.dirty || error("worktree changes are present")
+    end
+    return context
+end
+
 # Check the repository's plain, top-level scalar fields, not the full CFF schema.
 function cff_scalar(text, key; required = true)
     fields = collect(eachmatch(Regex("(?m)^" * key * ":[^\\r\\n]*"), text))
@@ -45,7 +85,15 @@ end
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    result = ReleaseMetadata.check()
-    status = result.unreleased ? "unreleased" : result.date_released
-    println("Release metadata consistent: $(result.version) ($status). This does not verify publication.")
+    for arg in ARGS
+        arg in ("-h", "--help") || throw(ArgumentError("unknown argument: $arg"))
+    end
+    if isempty(ARGS)
+        result = ReleaseMetadata.check()
+        status = result.unreleased ? "unreleased" : result.date_released
+        println("Release metadata consistent: $(result.version) ($status). This does not verify publication.")
+    else
+        println("Usage: julia --startup-file=no scripts/release_metadata.jl")
+        println("Check Project.toml, CITATION.cff and NEWS.md using standard libraries only.")
+    end
 end

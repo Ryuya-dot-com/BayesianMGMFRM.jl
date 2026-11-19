@@ -1,5 +1,10 @@
 # Paired ordinal ratings with event association
 
+The recipe needs an actual paired-criterion panel in the documented row schema,
+with criterion metadata and explicit priors. Inspect that input before calling
+`fit`, which starts estimation. The model distinguishes person/response correlation
+from event association; these parameters do not all measure the same phenomenon.
+
 Use `BayesianMGMFRM.Experimental.JointRatings.OrdinalAssociation` to describe
 two ordinal traits measured on the same productions, while separating variation
 between persons, between productions, and within an assessment event. For

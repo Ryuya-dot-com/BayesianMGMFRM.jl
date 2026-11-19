@@ -2,6 +2,13 @@ module BayesianMGMFRMCairoMakieExt
 
 using BayesianMGMFRM, CairoMakie
 const B = BayesianMGMFRM
+include("concurrent_plot.jl")
+include("additive_plot.jl")
+include("bounded_plot.jl")
+include("count_plot.jl")
+include("mixed_outcome_plot.jl")
+include("explanatory_comparison.jl")
+include("explanatory_power.jl")
 
 function plot_rater_drift(saved; rater, size=(1000,550), annotation_io=stdout)
     d=B.Experimental.RaterDrift.trajectory(saved;rater)
@@ -579,6 +586,8 @@ function _wright_caption(data)
 end
 
 include("criterion_collapse.jl")
+include("frequentist_mfrm.jl")
+include("stan_adapter.jl")
 include("prior_sensitivity.jl")
 include("prior_predictive_sensitivity.jl")
 

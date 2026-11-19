@@ -1,9 +1,19 @@
 # Bayesian Fitting
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
+
+**Before running code:** prepare `data`, `spec` and an explicit prior through
+[data validation](data-validation.md) and [the connected workflow](bayesian-workflow.md#connected-analysis).
+Read the calculation route and scalar example first. Parallel chains, detailed
+sampler controls and specialized models are optional sections. A call to `fit`
+starts estimation; reopening an existing fit does not.
+
+Figure recipes below use a compatible existing `fit`. A saved computed report can
+be drawn without new predictions; creating a fresh predictive check generates
+new responses even though it does not refit the model.
 
 `BayesianMGMFRM.jl` fits identified MFRM/RSM/PCM designs and exposes the
 [documented multidimensional and generalized configurations](scope.md#Current-Support)
@@ -11,107 +21,6 @@ behind explicit experimental opt-in. Validate data
 before sampling; inspect the compiled design when reviewing identification or
 model structure. The [minimal example](examples.md#Minimal-MFRM-Workflow) runs
 the ordinary fit, diagnostics, figures and save/reload sequence.
-
-## Running chains concurrently
-
-Scalar MFRM and the shared independent generalized AdvancedHMC routes accept
-`chain_execution=:threads`. Start Julia with several worker threads, for example
-`julia --threads=4 --project=your-analysis-project`. Then use your chosen model,
-prior and sampling settings:
-
-```julia
-monitor = SamplingProgress()
-fitted = fit(spec; prior, backend=:advancedhmc, chains=4,
-    warmup=1500, ndraws=4000, seed=42,
-    chain_execution=:threads, max_parallel_chains=4, progress=monitor)
-```
-
-The default `chain_execution=:serial` preserves the previous random-number
-stream and sampler settings. Threaded mode derives a distinct MersenneTwister
-seed for each chain in chain order, records the seeds and actual worker count,
-and gives each active chain its own target, derivative workspace and adaptation.
-On the same source/environment, changing `max_parallel_chains` preserves those
-chain streams and output order. Using threaded mode with a cap of one provides
-a serial reference for that mode; its draws differ from legacy serial mode even
-with the same top-level seed. This is not a different posterior target.
-
-Actual concurrency is the minimum of `chains`, `max_parallel_chains` and Julia's
-default-pool thread count. The cap defaults to the requested number of chains.
-A one-thread Julia session therefore runs one chain at a time. Each concurrent
-chain requires working memory, so lower the cap for large data. Sampling can
-speed up when cores and memory are available; initialization, diagnostics and
-saving still take time. More cores do not guarantee proportional speedup.
-If BLAS is independently multithreaded, choose its thread count in your analysis
-environment to avoid competing thread pools; the package does not change it.
-
-The experimental shared routes include independent GMFRM/MGMFRM and normalized
-MGMFRM, including the D1 slope-restriction/mean-profile wrappers. Correlated
-wrappers, fixed-coefficient multidimensional MFRM, separate experimental modules,
-Turing and CmdStan do not expose this concurrency option. Ordinary `fit(spec)`
-still defaults to random-walk sampling; request `backend=:advancedhmc` explicitly.
-
-Warmup, diagnostics and saved draws retain chain/iteration identity. On failure
-or interruption, running workers cooperate to stop at a transition boundary and
-are joined before the call exits; no partial fit is returned. This is not a
-checkpoint/resume mechanism. Automatic cache requests distinguish threaded RNG
-partitioning from legacy serial mode; worker caps do not change the cache key.
-A cache hit retains the actual execution metadata of the fit that produced it.
-
-## Sampling progress
-
-For a compact bar across all chains, pass a [`SamplingProgress`](@ref) object
-to the AdvancedHMC fitter. Use the model, prior and sampling settings chosen
-for your analysis; the progress option does not choose them:
-
-```julia
-monitor = SamplingProgress(path="sampling-progress.json")
-fitted = fit(spec; prior, backend=:advancedhmc, chains=4,
-    warmup=1500, ndraws=4000, seed=42, progress=monitor)
-progress_snapshot(monitor)
-```
-
-An illustrative intermediate display is:
-
-```text
-Sampling [######--------------] 31.4% | chain 2/4 | warmup 1408/1500 | ... | running
-```
-
-The denominator is `chains * (warmup + ndraws)`: 22,000 transitions in this
-example. Warmup adapts the sampler and is separate from retained posterior
-draws. The percentage is **iteration completion**, not a convergence score or
-the percentage of elapsed time. Initialization, diagnostics and saving have
-no invented iteration counts. `sampling_complete` at 100% means sampling has
-finished; the fit can still be processing its output. Review diagnostics and
-precision before interpretation.
-
-For concurrent chains, the percentage sums the completed transitions of every
-chain; `chain_completed` contains the immutable per-chain counts. The displayed
-chain and phase identify the latest event, not the only active chain. Boolean
-`progress=true` in threaded mode selects this aggregate monitor.
-
-The same option reaches the shared AdvancedHMC runner used by
-`BayesianMGMFRM.Experimental.fit`, including normalized mean-profile fits.
-Structured monitoring is currently unavailable for random-walk, Turing and
-CmdStan fits; these reject the monitor. Boolean `progress=true/false` keeps
-the original backend behavior. Separate experimental modules have their own
-interfaces and are not covered by this shared-runner guarantee.
-
-Use `SamplingProgress(io=nothing)` for an in-memory monitor without printing,
-or also supply `path` for another process to read. The optional JSON file is a
-last-event snapshot, replaced atomically; it contains counts, phase, elapsed
-seconds, update timestamp and status, without posterior parameter values.
-Its destination must be new. In another Julia task, call
-[`progress_snapshot`](@ref) while fitting. The monitor itself does not launch
-an asynchronous fit, resume a fit, or attach to an already running process.
-
-Output is throttled to once per second by default (`interval=1.0`), with phase
-boundaries and termination always shown. Terminals update a single line;
-redirected logs use plain lines. A failed output disables that destination and
-records an `output_errors` entry while sampling continues. Sampling exceptions
-retain the completed count and record `failed` or `interrupted`. A killed
-process cannot publish a final status: an old timestamp is not proof of a live
-sampler. Create a new monitor for each fit. Cache hits perform no sampling and
-leave an unused monitor `idle`; monitor settings do not enter fit cache keys.
 
 ## [From a rating model to posterior draws](@id calculation-route)
 
@@ -196,7 +105,7 @@ Inspect [`constraint_table`](@ref), [`identification_declarations`](@ref), and
 
 ## Posterior interval figures
 
-Install the optional renderer once with `Pkg.add("CairoMakie")`. It is not
+Install the optional renderer once with `import Pkg; Pkg.add("CairoMakie")`. It is not
 required for fitting, summaries, or saved reports. With the fit above:
 
 ```julia
@@ -700,7 +609,114 @@ in category usage rows as `observed_flag = :skipped`, while item-specific step
 rows continue to cover the complete declared scale. This is a review prompt,
 not authorization to narrow the scale or collapse the category.
 
+## Running chains concurrently
+
+Scalar MFRM and the shared independent generalized AdvancedHMC routes accept
+`chain_execution=:threads`. Start Julia with several worker threads, for example
+`julia --threads=4 --project=your-analysis-project`. Then use your chosen model,
+prior and sampling settings:
+
+```julia
+monitor = SamplingProgress()
+fitted = fit(spec; prior, backend=:advancedhmc, chains=4,
+    warmup=1500, ndraws=4000, seed=42,
+    chain_execution=:threads, max_parallel_chains=4, progress=monitor)
+```
+
+The default `chain_execution=:serial` preserves the previous random-number
+stream and sampler settings. Threaded mode derives a distinct MersenneTwister
+seed for each chain in chain order, records the seeds and actual worker count,
+and gives each active chain its own target, derivative workspace and adaptation.
+On the same source/environment, changing `max_parallel_chains` preserves those
+chain streams and output order. Using threaded mode with a cap of one provides
+a serial reference for that mode; its draws differ from legacy serial mode even
+with the same top-level seed. This is not a different posterior target.
+
+Actual concurrency is the minimum of `chains`, `max_parallel_chains` and Julia's
+default-pool thread count. The cap defaults to the requested number of chains.
+A one-thread Julia session therefore runs one chain at a time. Each concurrent
+chain requires working memory, so lower the cap for large data. Sampling can
+speed up when cores and memory are available; initialization, diagnostics and
+saving still take time. More cores do not guarantee proportional speedup.
+If BLAS is independently multithreaded, choose its thread count in your analysis
+environment to avoid competing thread pools; the package does not change it.
+
+The experimental shared routes include independent GMFRM/MGMFRM and normalized
+MGMFRM, including the D1 slope-restriction/mean-profile wrappers. Correlated
+wrappers, fixed-coefficient multidimensional MFRM, separate experimental modules,
+Turing and CmdStan do not expose this concurrency option. Ordinary `fit(spec)`
+still defaults to random-walk sampling; request `backend=:advancedhmc` explicitly.
+
+Warmup, diagnostics and saved draws retain chain/iteration identity. On failure
+or interruption, running workers cooperate to stop at a transition boundary and
+are joined before the call exits; no partial fit is returned. This is not a
+checkpoint/resume mechanism. Automatic cache requests distinguish threaded RNG
+partitioning from legacy serial mode; worker caps do not change the cache key.
+A cache hit retains the actual execution metadata of the fit that produced it.
+
+## Sampling progress
+
+For a compact bar across all chains, pass a [`SamplingProgress`](@ref) object
+to the AdvancedHMC fitter. Use the model, prior and sampling settings chosen
+for your analysis; the progress option does not choose them:
+
+```julia
+monitor = SamplingProgress(path="sampling-progress.json")
+fitted = fit(spec; prior, backend=:advancedhmc, chains=4,
+    warmup=1500, ndraws=4000, seed=42, progress=monitor)
+progress_snapshot(monitor)
+```
+
+An illustrative intermediate display is:
+
+```text
+Sampling [######--------------] 31.4% | chain 2/4 | warmup 1408/1500 | ... | running
+```
+
+The denominator is `chains * (warmup + ndraws)`: 22,000 transitions in this
+example. Warmup adapts the sampler and is separate from retained posterior
+draws. The percentage is **iteration completion**, not a convergence score or
+the percentage of elapsed time. Initialization, diagnostics and saving have
+no invented iteration counts. `sampling_complete` at 100% means sampling has
+finished; the fit can still be processing its output. Review diagnostics and
+precision before interpretation.
+
+For concurrent chains, the percentage sums the completed transitions of every
+chain; `chain_completed` contains the immutable per-chain counts. The displayed
+chain and phase identify the latest event, not the only active chain. Boolean
+`progress=true` in threaded mode selects this aggregate monitor.
+
+The same option reaches the shared AdvancedHMC runner used by
+`BayesianMGMFRM.Experimental.fit`, including normalized mean-profile fits.
+Structured monitoring is currently unavailable for random-walk, Turing and
+CmdStan fits; these reject the monitor. Boolean `progress=true/false` keeps
+the original backend behavior. Separate experimental modules have their own
+interfaces and are not covered by this shared-runner guarantee.
+
+Use `SamplingProgress(io=nothing)` for an in-memory monitor without printing,
+or also supply `path` for another process to read. The optional JSON file is a
+last-event snapshot, replaced atomically; it contains counts, phase, elapsed
+seconds, update timestamp and status, without posterior parameter values.
+Its destination must be new. In another Julia task, call
+[`progress_snapshot`](@ref) while fitting. The monitor itself does not launch
+an asynchronous fit, resume a fit, or attach to an already running process.
+
+Output is throttled to once per second by default (`interval=1.0`), with phase
+boundaries and termination always shown. Terminals update a single line;
+redirected logs use plain lines. A failed output disables that destination and
+records an `output_errors` entry while sampling continues. Sampling exceptions
+retain the completed count and record `failed` or `interrupted`. A killed
+process cannot publish a final status: an old timestamp is not proof of a live
+sampler. Create a new monitor for each fit. Cache hits perform no sampling and
+leave an unused monitor `idle`; monitor settings do not enter fit cache keys.
+
 ## Backends and Sampler Controls
+
+For a complete parameter, default-value, and diagnostic crosswalk from **`brms`**,
+**`rstan`**, and **`cmdstanr`** (`adapt_delta` ↔ `target_accept`,
+`max_treedepth` ↔ `max_depth`, `iter` vs. post-warmup `ndraws`, and `E-BFMI`
+`min_bfmi = 0.30` qualification), see
+[Migrating from Stan and brms: Controls, Defaults, and Diagnostics](migration-stan-brms.md).
 
 Backend choice does not by itself establish statistical accuracy. Compare the
 same likelihood, identified scale and normalized prior, including Jacobians,
@@ -1022,8 +1038,9 @@ Both configurations require no anchors and no fitted DFF terms. Scalar GMFRM
 uses `discrimination = :rater`; fixed-Q MGMFRM uses the compatibility selector
 `discrimination = :none`. Use
 `BayesianMGMFRM.Experimental.GeneralizedPrior` to vary the independent normal
-scales on raw unconstrained coordinates. Direct-scale generalized priors remain
-unsupported. Run `BayesianMGMFRM.Experimental.prior_predictive_check` before
+scales on raw unconstrained coordinates. `GeneralizedPrior` does not accept
+arbitrary direct-scale distributions. Separate normalized/profile-prior routes
+have their own [explicit contracts](experimental.md#MGMFRM-prior-choice-and-comparable-scales). Run `BayesianMGMFRM.Experimental.prior_predictive_check` before
 fitting to inspect score, category-use, and facet-range implications.
 The legacy
 `fit(spec; experimental = true)` form remains source-compatible, but
@@ -1059,7 +1076,9 @@ itself does not certify a valid partition or matching source dataset. Plan row
 indices are positional: supply the data and row order used to define the plan.
 This validation does not add new-level prediction or extend automatic refitting
 to recorded normalized/correlated MGMFRM or fixed-coefficient multidimensional
-MFRM results. Those common-refit connections remain separate work.
+MFRM results. For those supported routes, use the separate
+[common refit-plan and saved-fold scoring workflow](common_prediction_comparison.md);
+it prepares requests but does not automatically execute all fits.
 
 ## Reports and Reproducibility
 

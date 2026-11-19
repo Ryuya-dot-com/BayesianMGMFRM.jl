@@ -1,5 +1,16 @@
 # Would a different prior change my answer?
 
+For person/facet regressions and estimated residual SDs, use the separate
+[explanatory power-scaling walkthrough](explanatory-diagnostics.md#How-much-do-the-priors-affect-the-answer?).
+Its positive-SD hyperprior measure differs from the fixed-scale PCM factors below.
+
+**Select the applicable route:** saved normalized-MGMFRM loading-prior fits,
+saved fixed-one PCM mean-profile fits, or the bounded PCM power reweighting below.
+For Star models, use their [separate sensitivity method](star-association.md#Reference).
+These are different supported targets, not a universal sensitivity switch.
+Prior predictive checks generate parameters and responses; saved-fit comparisons
+and reweighting do not run MCMC.
+
 This workflow compares **already fitted prior variants**, and can
 reweight a saved baseline for the bounded PCM factors described below.
 Start with a scientific question: for example, whether one
@@ -71,6 +82,9 @@ log densities. The step factor includes all item-owned zero-sum residual blocks;
 this increment does not power an individual owner's steps separately.
 
 ```julia
+using BayesianMGMFRM
+const B = BayesianMGMFRM
+# baseline, saved_wider_fit and observation_ids belong to your saved analysis.
 factors = B.logprior(baseline; components=:factors)
 result = B.prior_sensitivity(baseline;
     powers=["Wider judge prior" =>
@@ -466,7 +480,7 @@ rule across categories, persons, items and raters.
 
 The next figures use the same preselected B01/R1 design as the posterior example:
 50 persons, five items, five raters and 1,250 rating rows. Each prior receives
-exactly 500 newly generated IID prior/response draws, with seeds 41251–41253.
+exactly 500 recorded IID prior/response draws, with seeds 41251–41253.
 There are **zero new MCMC fits and zero new independent recovery replications**.
 All three actual prior/target identities agree with the saved posterior
 comparison. The observed data are simulated, not empirical ratings.
@@ -525,7 +539,7 @@ connectivity, dimensionality or item–rater interactions.
 
 Download the [numerical summaries, priors, seeds and linked-result hash](assets/prior-predictive-sensitivity/summary.json).
 
-## Candidate API reference
+## [Function reference](@id Candidate-API-reference)
 
 ```@docs
 BayesianMGMFRM.prior_sensitivity

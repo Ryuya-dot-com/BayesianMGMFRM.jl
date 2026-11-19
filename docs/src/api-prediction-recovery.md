@@ -1,9 +1,9 @@
 # Prediction and Recovery API
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
 
 These functions operate on existing data specifications, saved fits, or
 evaluation records and are not yet part of a registered release. Use

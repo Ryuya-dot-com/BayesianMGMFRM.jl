@@ -1,5 +1,10 @@
 # Correlations among three declared traits
 
+The example requires a three-dimensional pure-Q specification and all prior
+scales. Constructing `target` is inspection only. `generate` creates artificial
+responses; `fit` starts MCMC. Run those stages deliberately, or use a compatible
+saved result for reporting. One generated dataset is not a recovery or SBC study.
+
 Use `BayesianMGMFRM.Experimental.Correlated3D` when item content specifies three
 traits and the question concerns their population correlations. This opt-in
 workflow estimates item discriminations and rater consistencies, reports named

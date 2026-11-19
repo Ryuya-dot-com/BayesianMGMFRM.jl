@@ -49,9 +49,14 @@ function execution(c;available_threads=Threads.nthreads(:default))
         min(c.chains,c.max_parallel_chains,available_threads),available_threads,
         rng_partition=:prepared_chain_seeds)
 end
-function prepare(t;ndraws::Int,warmup::Int,seed,chains::Int=4,target_accept=.9,
-        max_depth::Int=10,step_size=.03,init_jitter=.1,initial=nothing,
+function prepare(t;ndraws::Int,warmup::Int,seed,chains::Int=4,
+        target_accept::Union{Nothing,Real}=nothing,adapt_delta::Union{Nothing,Real}=nothing,
+        max_depth::Union{Nothing,Int}=nothing,max_treedepth::Union{Nothing,Int}=nothing,
+        step_size=.03,init_jitter=.1,initial=nothing,
         chain_execution::Symbol=:serial,max_parallel_chains::Int=chains,parameterization::Symbol=:native)
+    ta_res,md_res=B._resolve_stan_nuts_aliases(;target_accept,adapt_delta,default_target_accept=.9,
+        max_depth,max_treedepth,default_max_depth=10,caller="fit",backend=:advancedhmc)
+    target_accept=ta_res;max_depth=md_res
     C.check_target(t)
     coordinates=coordinate_contract(parameterization)
     kernel=parameterization===:native ? t : K.Target(t)

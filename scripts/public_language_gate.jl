@@ -21,6 +21,8 @@ export DEVELOPER_DOCUMENTATION_PAGES,
 
 const PUBLIC_DOCUMENTATION_PAGES = (
     "index.md",
+    "first-analysis.md",
+    "installation.md",
     "learning-guide.md",
     "visualization-gallery.md",
     "score-information.md",
@@ -31,9 +33,17 @@ const PUBLIC_DOCUMENTATION_PAGES = (
     "model-equations.md",
     "bayesian-workflow.md",
     "fitting.md",
+    "stan-adapter.md",
+    "frequentist-mfrm.md",
     "experimental.md",
     "joint-ratings.md",
     "additive-facets.md",
+    "explanatory-ratings.md",
+    "bounded-scores.md", "count-scores.md", "random-slopes.md", "distributional-scores.md", "mixed-outcomes.md",
+    "repeated-performances.md",
+    "person-testlet.md",
+    "explanatory-diagnostics.md",
+    "criterion-effects.md",
     "ordinal-association.md",
     "star-association.md",
     "correlated-3d.md",
@@ -44,6 +54,7 @@ const PUBLIC_DOCUMENTATION_PAGES = (
     "examples.md",
     "common_prediction_comparison.md",
     "design-planning.md",
+    "migration-stan-brms.md",
     "migration-facets-conquest.md",
     "scope.md",
     "roadmap.md",
@@ -606,7 +617,7 @@ function release_workflow_violations(root::AbstractString)
     isfile(workflow_path) || error("CI workflow does not exist: $workflow_path")
     workflow_text = read(workflow_path, String)
     release_gate_path = joinpath(normalized_root, "scripts",
-        "pre_registration_gate.jl")
+        "check_release.jl")
     isfile(release_gate_path) ||
         error("release-verification gate does not exist: $release_gate_path")
     release_gate_text = read(release_gate_path, String)
@@ -626,14 +637,14 @@ function release_workflow_violations(root::AbstractString)
         ))
     end
     active_release_gate = occursin(
-        r"(?m)^\s*julia(?:\s|$)[^#\n]*\bscripts/pre_registration_gate\.jl\b",
+        r"(?m)^\s*julia(?:\s|$)[^#\n]*\bscripts/check_release\.jl\b",
         workflow_run_text)
     if !active_release_gate
         push!(violations, (;
             rule = :ci_missing_release_verification_gate,
             path = relpath(workflow_path, normalized_root),
             line = 0,
-            excerpt = "no active CI run command invokes scripts/pre_registration_gate.jl",
+            excerpt = "no active CI run command invokes scripts/check_release.jl",
             guidance = "invoke the release-verification script from an active CI run block",
         ))
     end
@@ -782,6 +793,14 @@ function assert_runtime_public_report_language(outputs)
 end
 
 function main()
+    for arg in ARGS
+        arg in ("-h", "--help", "--rendered") || throw(ArgumentError("unknown argument: $arg"))
+    end
+    if any(arg -> arg in ("-h", "--help"), ARGS)
+        println("Usage: julia --startup-file=no scripts/public_language_gate.jl [--rendered]")
+        println("Scan public source text and CI wiring; --rendered also scans built HTML.")
+        return nothing
+    end
     root = abspath(normpath(joinpath(@__DIR__, "..")))
     result = assert_public_language(root)
     println("Public language gate passed for $(result.n_public_files) files.")

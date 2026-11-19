@@ -21,7 +21,11 @@ function compare_saved_rater_drift(static_path,static_sha256,rw1_path,rw1_sha256
     (;comparison,answer,receipt)
 end
 
-if abspath(PROGRAM_FILE)==@__FILE__
+if abspath(PROGRAM_FILE)==abspath(@__FILE__)
+    if isempty(ARGS) || ARGS==["--help"]
+        println("Usage: julia --project=. examples/compare_saved_rater_drift.jl STATIC.json STATIC_SHA256 RW1.json RW1_SHA256 NEW_OUTPUT.json")
+        exit(0)
+    end
     length(ARGS)==5 || error("Usage: compare_saved_rater_drift.jl STATIC.json STATIC_SHA256 RW1.json RW1_SHA256 NEW_OUTPUT.json")
     compare_saved_rater_drift(ARGS...)
 end

@@ -75,9 +75,9 @@ include("../scripts/public_language_gate.jl")
         @test isempty(PublicLanguageGate.runtime_language_violations(["fit" => sprint(show, fit)]))
         @test isempty(PublicLanguageGate.runtime_language_violations(["spec" => sprint(show, correlated)]))
         for name in (:correlated, :CorrelatedMFRMSpec, :CorrelatedMFRMFit)
-            help = sprint(show, MIME("text/plain"), Base.Docs.doc(getfield(B.Experimental, name)))
+            help = sprint(show, MIME("text/plain"), B._binding_doc(B.Experimental, name))
             @test isempty(PublicLanguageGate.runtime_language_violations(["help" => help]))
-            binding_help = sprint(show, MIME("text/plain"), Base.Docs.doc(Base.Docs.Binding(B.Experimental, name)))
+            binding_help = sprint(show, MIME("text/plain"), B._binding_doc(B.Experimental, name))
             @test isempty(PublicLanguageGate.runtime_language_violations(["help binding" => binding_help]))
         end
         mktempdir() do directory

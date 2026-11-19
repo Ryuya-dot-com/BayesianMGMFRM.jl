@@ -19,7 +19,11 @@ function review_saved_rater_drift(input, sha256, output; rater=:panel)
     (;saved,result,data,receipt)
 end
 
-if abspath(PROGRAM_FILE)==@__FILE__
+if abspath(PROGRAM_FILE)==abspath(@__FILE__)
+    if isempty(ARGS) || ARGS==["--help"]
+        println("Usage: julia --project=. examples/review_saved_rater_drift.jl INPUT.json SHA256 NEW_OUTPUT.json [JUDGE_ID]")
+        exit(0)
+    end
     length(ARGS) in (3,4) || error("Usage: review_saved_rater_drift.jl INPUT.json SHA256 NEW_OUTPUT.json [JUDGE_ID]")
     review_saved_rater_drift(ARGS[1],ARGS[2],ARGS[3];rater=length(ARGS)==4 ? ARGS[4] : :panel)
 end

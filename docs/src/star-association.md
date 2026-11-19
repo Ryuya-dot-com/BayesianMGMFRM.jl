@@ -1,9 +1,15 @@
 # Star-Factorized Multi-Criterion Ordinal Association
 
-!!! note "Unreleased documentation preview — 30 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+**Use this model when:** several criteria rate the same event and you want to
+model association between a declared root criterion and the others. It allows
+mixed binary/ordinal supports. First follow the practitioner example to see the
+required event rows and explicit priors. Fitting begins only at `fit`; the
+numerical parameterization section explains advanced choices and their limits.
+
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This is a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
 
 When raters evaluate each performance or entity across $D \ge 2$ criteria that
 may have **different numbers of score categories** ($K_c \ge 2$, including
@@ -22,95 +28,6 @@ estimates:
    operations per rating event while retaining exact analytical gradients.
 4. **Optional unit-Jacobian reference-profile prior transport** on the root
    criterion margin when `reference_prior = true`.
-
-## Parameterization, numerical defaults and their limits
-
-Unbalanced multi-facet rating designs often combine heavily observed panel
-raters or entities with sparsely observed ones. By default:
-
-- `ParameterizationConfig()` orders facet levels by descending observation count
-  (`basis_order = :descending_schur`) and uses a dimensionless working-information
-  rule (`entity_mode = :cp_ncp`, `rater_mode = :cp_ncp`, cutoff `8.0`) to choose
-  centered or standardized noncentered contrast coordinates.
-- Fitting uses independent dispersed initialization (`init = :overdispersed`),
-  Stan-style three-stage windowed adaptation (`adaptation = :stan`) and a diagonal
-  reference approximation based on design counts and prior scales
-  (`initial_metric = :prior_fisher`). The metric does not use observed scores.
-
-These choices are motivated by centered/noncentered theory and bounded engineering
-checks. They are not a proof of optimal NUTS mixing or scientific prior defaults.
-In particular, [Papaspiliopoulos, Roberts and Sköld (2007)](https://arxiv.org/pdf/0708.3797)
-explain complementary parametrizations and partial noncentering; they do not
-derive the package's PCM/NUTS cutoff of eight. Select priors for the application
-and inspect both whole-fit diagnostics and focal mean/interval Monte Carlo error.
-
-### Exact identities and working approximations
-
-For a single Gaussian working facet with positive count weights
-``W=\operatorname{diag}(c)``, total ``N=\sum c_i`` and an orthonormal sum-zero
-basis ``H``, the Schur identity is
-
-```math
-\{H^\top(W-cc^\top/N)H\}^{-1}=H^\top W^{-1}H.
-```
-
-The reciprocal diagonal defines the effective counts used here. Sorted counts
-make these values invariant to relabeling and isolate the most observed levels
-in early contrasts. This identity does not give the full crossed ordinal model's
-marginal posterior curvature: the other facet, thresholds, scales, correlations
-and within-event association also matter.
-
-At a reference PCM profile, the exact natural-parameter information is the score
-variance. With maximum canonical score ``m=K-1``, the implementation uses
-
-```math
-\widetilde{\mathcal I}
-=\min\{\max[\operatorname{Var}_{p^{(0)}}(Y),10^{-6}],m(m+2)/12\},
-\qquad
-\kappa_j=e^{2\mu_{\log\sigma}}\min_{c}\widetilde{\mathcal I}_{c}\,n_{\mathrm{eff},j}.
-```
-
-Binary support uses `0.25`. The upper bound is the uniform-profile variance,
-not the largest possible variance on the support. Negative step spacing can
-activate that cap; concentrated profiles can activate the floor. The scale is
-the squared prior median SD, not the prior mean variance. Thus this is a routing
-proxy, not exact posterior information. Contrasts with ``\kappa_j\ge8`` use CP;
-others use NCP. The cutoff, clipping and diagonal initial metric remain disclosed
-engineering choices. They retain their bounded stress-test support; they do not
-establish efficiency for all sparse designs, scales or associations.
-
-The exact target density, CP/NCP transformations and Jacobians are separate from
-this routing choice. Changing coordinates must preserve the physical likelihood
-and joint prior. The Glass-Box functions below expose those identities. Choosing
-a different coordinate partition is not a change to the scientific model.
-
-### Step-size search and failures
-
-For `adaptation=:stan`, a finite positive step size returned by the initial search
-is used without an extra package floor/cap. A nonfinite/nonpositive search result
-raises an error; it is not replaced by a seemingly successful fixed step. Inspect
-the initial state, prior scales and metric before retrying. An explicit
-`step_size` is validated and used as requested. The opt-in
-`adaptation=:clamped_regularized` still applies its declared bounds and records a
-warning. Removing a silent fallback does not establish posterior qualification;
-the normal diagnostic and focal-precision requirements remain.
-
-## What qualification covers
-
-`qualify(fitted; max_rhat=1.01, min_ess=400.0, min_bfmi=0.3)` checks all raw and
-transformed coordinates and every retained sampler record. The original names
-`rhat_max`, `ess_min`, and `ebfmi_min` remain aliases; do not pass both spellings.
-A partial check with `check_transformed=false` reports the omitted gate as missing
-and cannot return whole-fit or overall qualification.
-
-The additional focal gates apply only to `result.focal_parameters`: the finite
-entity correlations `cor_entity_direct[branch]`, pairing each branch with the root.
-The default MCSE limits are 0.01 for the mean and 0.02 for the 2.5%/97.5% interval
-endpoints. They do not qualify all population correlations, residual associations,
-contrasts, ranks or predicted event probabilities. Those require their own
-reported MCSE and a justified precision criterion. Changing the graph root also
-changes this focal list. Passing these numerical gates does not establish prior
-adequacy, fit, identification or scientific validity; source warnings remain.
 
 ## Unified Practitioner Workflow Example
 
@@ -219,6 +136,95 @@ draws**, conditional on the fitted entities and raters. It displays observed and
 expected proportions with 95% replicated intervals, separately by criterion;
 these are predictive intervals, not credible intervals for the expected rates.
 Use `seed` to reproduce this check. Figure notes are printed outside the image.
+
+## Parameterization, numerical defaults and their limits
+
+Unbalanced multi-facet rating designs often combine heavily observed panel
+raters or entities with sparsely observed ones. By default:
+
+- `ParameterizationConfig()` orders facet levels by descending observation count
+  (`basis_order = :descending_schur`) and uses a dimensionless working-information
+  rule (`entity_mode = :cp_ncp`, `rater_mode = :cp_ncp`, cutoff `8.0`) to choose
+  centered or standardized noncentered contrast coordinates.
+- Fitting uses independent dispersed initialization (`init = :overdispersed`),
+  Stan-style three-stage windowed adaptation (`adaptation = :stan`) and a diagonal
+  reference approximation based on design counts and prior scales
+  (`initial_metric = :prior_fisher`). The metric does not use observed scores.
+
+These choices are motivated by centered/noncentered theory and bounded engineering
+checks. They are not a proof of optimal NUTS mixing or scientific prior defaults.
+In particular, [Papaspiliopoulos, Roberts and Sköld (2007)](https://arxiv.org/pdf/0708.3797)
+explain complementary parametrizations and partial noncentering; they do not
+derive the package's PCM/NUTS cutoff of eight. Select priors for the application
+and inspect both whole-fit diagnostics and focal mean/interval Monte Carlo error.
+
+### Exact identities and working approximations
+
+For a single Gaussian working facet with positive count weights
+``W=\operatorname{diag}(c)``, total ``N=\sum c_i`` and an orthonormal sum-zero
+basis ``H``, the Schur identity is
+
+```math
+\{H^\top(W-cc^\top/N)H\}^{-1}=H^\top W^{-1}H.
+```
+
+The reciprocal diagonal defines the effective counts used here. Sorted counts
+make these values invariant to relabeling and isolate the most observed levels
+in early contrasts. This identity does not give the full crossed ordinal model's
+marginal posterior curvature: the other facet, thresholds, scales, correlations
+and within-event association also matter.
+
+At a reference PCM profile, the exact natural-parameter information is the score
+variance. With maximum canonical score ``m=K-1``, the implementation uses
+
+```math
+\widetilde{\mathcal I}
+=\min\{\max[\operatorname{Var}_{p^{(0)}}(Y),10^{-6}],m(m+2)/12\},
+\qquad
+\kappa_j=e^{2\mu_{\log\sigma}}\min_{c}\widetilde{\mathcal I}_{c}\,n_{\mathrm{eff},j}.
+```
+
+Binary support uses `0.25`. The upper bound is the uniform-profile variance,
+not the largest possible variance on the support. Negative step spacing can
+activate that cap; concentrated profiles can activate the floor. The scale is
+the squared prior median SD, not the prior mean variance. Thus this is a routing
+proxy, not exact posterior information. Contrasts with ``\kappa_j\ge8`` use CP;
+others use NCP. The cutoff, clipping and diagonal initial metric remain disclosed
+engineering choices. They retain their bounded stress-test support; they do not
+establish efficiency for all sparse designs, scales or associations.
+
+The exact target density, CP/NCP transformations and Jacobians are separate from
+this routing choice. Changing coordinates must preserve the physical likelihood
+and joint prior. The Glass-Box functions below expose those identities. Choosing
+a different coordinate partition is not a change to the scientific model.
+
+### Step-size search and failures
+
+For `adaptation=:stan`, a finite positive step size returned by the initial search
+is used without an extra package floor/cap. A nonfinite/nonpositive search result
+raises an error; it is not replaced by a seemingly successful fixed step. Inspect
+the initial state, prior scales and metric before retrying. An explicit
+`step_size` is validated and used as requested. The opt-in
+`adaptation=:clamped_regularized` still applies its declared bounds and records a
+warning. Removing a silent fallback does not establish posterior qualification;
+the normal diagnostic and focal-precision requirements remain.
+
+## What qualification covers
+
+`qualify(fitted; max_rhat=1.01, min_ess=400.0, min_bfmi=0.3)` checks all raw and
+transformed coordinates and every retained sampler record. The original names
+`rhat_max`, `ess_min`, and `ebfmi_min` remain aliases; do not pass both spellings.
+A partial check with `check_transformed=false` reports the omitted gate as missing
+and cannot return whole-fit or overall qualification.
+
+The additional focal gates apply only to `result.focal_parameters`: the finite
+entity correlations `cor_entity_direct[branch]`, pairing each branch with the root.
+The default MCSE limits are 0.01 for the mean and 0.02 for the 2.5%/97.5% interval
+endpoints. They do not qualify all population correlations, residual associations,
+contrasts, ranks or predicted event probabilities. Those require their own
+reported MCSE and a justified precision criterion. Changing the graph root also
+changes this focal list. Passing these numerical gates does not establish prior
+adequacy, fit, identification or scientific validity; source warnings remain.
 
 ## Glass-Box Researcher Inspection
 

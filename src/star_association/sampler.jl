@@ -44,8 +44,10 @@ function _build_sampler_config(;
     init_radius::Real = 2.0,
     adaptation::Symbol = :stan,
     initial_metric::Symbol = :prior_fisher,
-    target_accept::Real = 0.85,
-    max_depth::Int = 10,
+    target_accept::Union{Nothing,Real} = nothing,
+    adapt_delta::Union{Nothing,Real} = nothing,
+    max_depth::Union{Nothing,Int} = nothing,
+    max_treedepth::Union{Nothing,Int} = nothing,
     max_energy_error::Real = 1000.0,
     step_size::Union{Nothing, Real} = nothing,
     step_size_bounds::Union{Nothing, Tuple{<:Real, <:Real}} = nothing,
@@ -60,6 +62,12 @@ function _build_sampler_config(;
     mu_max_ratio::Real = 4.0,
     checkpoint_every::Int = 25,
 )
+    ta_resolved, md_resolved = B._resolve_stan_nuts_aliases(;
+        target_accept, adapt_delta, default_target_accept = 0.85,
+        max_depth, max_treedepth, default_max_depth = 10,
+        caller = "fit", backend = :advancedhmc)
+    target_accept = ta_resolved
+    max_depth = md_resolved
     (ndraws >= 5 && warmup >= 5 && chains >= 1) ||
         throw(ArgumentError("ndraws >= 5, warmup >= 5, chains >= 1 required"))
     init in (:overdispersed, :prior, :stan_uniform, :multipath_lbfgs, :shared_warmstart) ||
@@ -1017,7 +1025,10 @@ end
 
 Sample the joint posterior of `m` via `AdvancedHMC` NUTS.
 
-Default sampler configuration is 100% literature-grounded:
+The default configuration combines standard NUTS adaptation with the following
+initialization and design/prior preconditioning choices. The cited methods motivate
+parts of this configuration; they do not prove that every implementation choice is
+optimal or robust for every crossed ordinal design:
 - `init = :overdispersed` (`init_radius = 2.0`): independent per-chain overdispersed draws
   free of outcome data snooping (Gelman & Rubin, 1992; Vehtari et al., 2021).
 - `adaptation = :stan`: unmodified `AdvancedHMC.StanHMCAdaptor` (Stan 3-stage Welford diagonal

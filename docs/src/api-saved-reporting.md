@@ -39,6 +39,12 @@ model guide alongside the result. In particular, `reference_group` and `practica
 scientific choices, not automatic defaults. A portable report cannot be used to
 change an interval, prior, reference, or conditioning set that requires draws.
 
+**When does saving generate predictions?** In the first example, passing a common
+fit to `save_report` computes `fit_report`; default sections can generate replicated
+ratings. It does not rerun MCMC. To avoid new predictive generation, use the explicit
+report controls in [the preservation recipe](#Preserve-enough-information-to-reopen-the-fit),
+or pass an already computed report.
+
 You may also pass a previously computed report to `save_report`. This retains
 its calculation without recomputing a summary. For sample records, summary
 keywords follow `posterior_summary`; unsupported writer/reader/summary controls
@@ -184,14 +190,12 @@ the recipient only needs the computed results.
 
 ### What the development version has actually verified
 
-This manual describes an unpublished local source that follows development
-commit `88bd6b422bb8afeb43a4a936376efad9ea2070c8`. Both that public preview and
-later local sources use version `0.1.2`; the version string alone does not
-identify the code. Keep the exact source archive or revision, as explained in
+This manual describes snapshot `20261119-distribution-ci-freeze`. Several development
+snapshots use version `0.1.2`; the version string alone does not identify the code. Keep the exact source archive or revision, as explained in
 [Versions and Saved Results](registration.md).
 
 The table separates checks on earlier source snapshots from saved-result checks
-on the source used by this manual. Actual fitting, installation and restoration
+on specified reporting snapshots. Actual fitting, installation and restoration
 were checked in separate stages, with their original failures retained and
 resolved separately. These results do not constitute a single successful run
 of every model on the current source. The declared Julia minimum is 1.10.8;
@@ -201,14 +205,16 @@ model/backend/environment combination.
 | Environment or transfer | Verified scope | Limit that remains |
 | --- | --- | --- |
 | Julia 1.10.8, macOS on Apple Silicon: first MFRM analysis | An earlier local source completed the supplied 72-rating scalar PCM example: AdvancedHMC fitting, reporting and fresh-process native/JSON restoration with compiled modules enabled. | One model, explicit prior and retained dependency selection. It does not verify every MFRM threshold/backend choice, another platform or general calibration. |
-| Julia 1.10.8, macOS on Apple Silicon: normalized D2 MGMFRM | Earlier local sources completed the supplied 1,000-rating example with an explicit normalized prior, four-chain AdvancedHMC fitting, reporting and fresh-process restoration. Compiled-mode fitting was checked separately after the original uncompiled run. The present reporting source also reopens, summarizes and re-saves this retained fit. | These are distinct execution stages. The same-seed compiled run is not an independent statistical replication. This does not verify other priors, model combinations or all current-source fitting routes. |
-| Julia 1.12.5, macOS on Apple Silicon: eight common saved-fit types | The present reporting source loads the original fits, recomputes summaries, re-saves native caches and reopens native/JSON summaries in separate processes. Earlier published-source checks separately cover saved comparison and reporting. | The eight-type check was completed in stages under recorded launch options. Historical fits have only 16 retained draws each and retain numerical warnings; successful restoration does not make them adequate for inference. |
+| Julia 1.10.8, macOS on Apple Silicon: normalized D2 MGMFRM | Earlier local sources completed the supplied 1,000-rating example with an explicit normalized prior, four-chain AdvancedHMC fitting, reporting and fresh-process restoration. Compiled-mode fitting was checked separately after the original uncompiled run. A subsequent reporting snapshot also reopens, summarizes and re-saves this retained fit. | These are distinct execution stages. The same-seed compiled run is not an independent statistical replication. This does not verify other priors, model combinations or all current-source fitting routes. |
+| Julia 1.12.5, macOS on Apple Silicon: eight common saved-fit types | An earlier reporting snapshot loads the original fits, recomputes summaries, re-saves native caches and reopens native/JSON summaries in separate processes. Earlier published-source checks separately cover saved comparison and reporting. | The eight-type check was completed in stages under recorded launch options. Historical fits have only 16 retained draws each and retain numerical warnings; successful restoration does not make them adequate for inference. |
 | Julia 1.10.8, macOS on Apple Silicon: installation and startup | Earlier local sources separately completed fresh dependency resolution/source loading/input inspection with precompilation disabled, then normal startup using the same dependency selection and an initially empty compilation cache. Later MFRM and D2 fitting used those retained dependencies. | The startup stage reused verified dependency sources. These are not one cold-install-to-fit run, a new installation of every later source or installation checks for optional plotting. |
 | JointRatings, Julia 1.12.5/macOS, original dependencies | Separate saved-result operations use JointRatings' own result, report and restoration interfaces. | Its minimum-version fitting and broader-platform compatibility remain unverified. It is not a ninth common `load_fit_cache` result type. |
 | Earlier Julia 1.10.8 postprocessing checks | Bounded classification/ranking, slope/profile arithmetic and synthetic-cache reconstruction were checked on earlier sources. | Artificial fixtures and saved postprocessing do not establish actual fitting for those model/prior routes. |
 | JSON reports produced on 1.12.5, read on 1.10.8 | Eight earlier actual-fit bundles and separately checked slope/profile reports preserve their computed values and warnings. | No fitted object, posterior chain, new interval or new analysis is reconstructed. Older text remains older text. |
 | Native cache from 1.12.5, read on 1.10.8 | The attempted downgrade was refused by native deserialization. | This reconstruction route is unsupported. Use the original Julia environment or an exported report. |
 | Same Julia version, different dependencies or launch options | One native-cache refusal was resolved by restoring the original dependencies. In a separate check with unchanged source and input, `-O0` changed the last bits of R-hat, while `-O2` reproduced the saved values. | Preserve the original launch options as well as the manifest. This finding does not make `-O2` a universal repair; retain unresolved mismatches and integrity checks. |
+| Julia 1.12.6/macOS, `20261110-scalar-explanatory` local successor | Scalar owner regressions/estimated severity SD: independent dense Julia/AD and finite native-Stan checks, two small four-chain fits under different SD priors, native/portable reopening and posterior/PPC plots. | One artificial 48-speaker/10-rater example. This is not SBC, general calibration, a Stan posterior comparison, a cold install, new-owner prediction or qualification on every supported Julia/OS. Prior producer evidence retains its original scope. |
+| Julia 1.12.6/macOS, `20261109-visualization` distribution | Extracted-source installation, saved scalar report/figure reading, optional Concurrent figure rendering, fresh report reopening and the 38-page manual passed scoped checks. | A populated dependency depot was reused; this is not a cold install, new MCMC or a check of every model. The documentation successor preserves numerical code and saved assets; its changed documentation has a separate build. |
 | Windows, Linux or another machine | No complete current-source fitting/persistence acceptance is established here. | Unverified, not demonstrated broken. A CI configuration or a local Mac check is not execution evidence for another platform. |
 
 These are engineering boundaries. The separate [scientific scope](scope.md)

@@ -31,10 +31,10 @@ function finite_checks()
     @test S.coordinates(t,q).correlation_status.response.partial_saturation
     @test_throws ArgumentError J.Numerics.checked_count(true,"count")
     for name in (:model,:fit,:load_result,:save_result,:report,:contrast,:predict,:score,:save_report,:verified_stan,:contract)
-        @test Base.Docs.doc(getfield(J,name))!==nothing
+        @test BayesianMGMFRM._binding_doc(J,name)!==nothing
     end
-    @test occursin("not an error bound",string(Base.Docs.doc(J.score)))
-    @test occursin("No fitting",string(Base.Docs.doc(J.model)))
+    @test occursin("not an error bound",string(BayesianMGMFRM._binding_doc(J,:score)))
+    @test occursin("No fitting",string(BayesianMGMFRM._binding_doc(J,:model)))
     contrast_checks()
 end
 

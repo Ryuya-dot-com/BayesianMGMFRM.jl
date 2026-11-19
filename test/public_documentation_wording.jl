@@ -19,7 +19,7 @@ include(joinpath(@__DIR__, "..", "scripts", "public_language_gate.jl"))
     end
     root = normpath(joinpath(@__DIR__, ".."))
     @test policy.check_public_language(root).passed
-    help(name) = replace(sprint(show, MIME"text/plain"(), Docs.doc(getfield(BayesianMGMFRM,name))), r"\s+" => " ")
+    help(name) = replace(sprint(show, MIME"text/plain"(), BayesianMGMFRM._binding_doc(BayesianMGMFRM, name)), r"\s+" => " ")
     fitting = help(:mgmfrm_response_stress_fit_attempts)
     @test occursin("not implemented in this version", fitting)
     @test occursin("four retained draws in one chain", fitting)

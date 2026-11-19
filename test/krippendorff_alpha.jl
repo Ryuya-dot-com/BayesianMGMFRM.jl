@@ -105,7 +105,7 @@ function finite_checks()
         truth=oracle(y,3,level)
         @test ismissing(truth) ? ismissing(result.alpha) : result.alpha≈Float64(truth)
     end
-    @test Base.Docs.doc(B.krippendorff_alpha)!==nothing
+    @test B._binding_doc(B,:krippendorff_alpha)!==nothing
     @test :krippendorff_alpha ∉ names(B)
 end
 end

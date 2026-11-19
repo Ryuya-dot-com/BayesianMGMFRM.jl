@@ -14,7 +14,7 @@ score on one item from one rater. Pass column names as Julia symbols, such as
 For responses without a rater facet, explicitly pass `rater = nothing`; no
 rater column is needed. Use the scalar unit-slope `mfrm_spec` entry: binary
 categories `0:1` give Rasch/1PL, and ordered categories give PCM or RSM.
-The internal single `"no_rater"` reference has fixed zero severity and no free
+The synthetic single `"no_rater"` reference has fixed zero severity and no free
 rater parameter. It is not an observed judge. `data.columns.rater === nothing`
 records this choice; rater anchors and rater bias terms are not applicable.
 Use `category_levels` to preserve the complete intended consecutive integer
@@ -1374,7 +1374,8 @@ optional anchor-axis sensitivity coverage check from
 This is a report and design-review helper. It does not fit hard anchors, turn
 soft anchors into priors, estimate linking constants, or create sensitivity
 refits. Use it to document whether declared anchors are internally consistent
-and whether raters are connected strongly enough for a planned analysis.
+and describe rater overlap under the declared link rule. Connectivity alone does
+not establish adequate information, precision or a suitable rating design.
 `unit = :testlet_id` and `:person_testlet` are descriptive coverage units and
 are rejected here; use `rater_overlap` to inspect them without a linking claim.
 The compatibility default `view = :full` retains the complete design-review
@@ -3023,8 +3024,9 @@ support, multidimensional support, Bayesian workflow support, diagnostics and
 sensitivity coverage, and report-artifact support.
 
 This is a scope-governance artifact, not validation evidence and not a
-superiority claim. Overlap comparisons against R packages or Facets remain a
-post-v0.2.0 known-truth simulation task where model targets genuinely overlap.
+superiority claim. Its historical positioning statements are not a current
+feature audit or evidence of non-support in another package. Consult the migration
+guide and model-specific comparison evidence for the actual overlapping target.
 The compatibility default `view = :full` retains the original governance
 record. Use `view = :public` for a reader-facing capability matrix that keeps
 the substantive comparison axes and external sources without local workflow

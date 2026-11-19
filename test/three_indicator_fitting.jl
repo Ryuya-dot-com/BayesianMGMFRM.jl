@@ -69,8 +69,8 @@ function checks(out)
         @test_throws ArgumentError W.report(partial)
         tampered=deepcopy(partial.chains[1]);tampered.run.draws[1,1]+=.1
         @test_throws ArgumentError W.check_chain(fixture,tampered)
-        for op in (T.prepare,T.fit,T.load_fit,T.summarize)
-            @test Base.Docs.doc(op)!==nothing
+        for name in (:prepare,:fit,:load_fit,:summarize)
+            @test BayesianMGMFRM._binding_doc(T,name)!==nothing
         end
     end
 end
@@ -102,7 +102,7 @@ function context_checks()
         @test a.status===:unobserved_context && a.observations==0
         @test a.lower===nothing && a.upper===nothing
         @test occursin("no observations",only(T._support_warnings([a])))
-        @test Base.Docs.doc(T.report)!==nothing
+        @test BayesianMGMFRM._binding_doc(T,:report)!==nothing
     end
 end
 end

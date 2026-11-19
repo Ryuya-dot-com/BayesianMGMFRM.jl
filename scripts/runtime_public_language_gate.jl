@@ -1,8 +1,24 @@
 #!/usr/bin/env julia
 
+if abspath(PROGRAM_FILE) == @__FILE__
+    for arg in ARGS
+        arg in ("-h", "--help") || throw(ArgumentError("unknown argument: $arg"))
+    end
+    if !isempty(ARGS)
+        print("""
+Usage: julia --startup-file=no --project=. scripts/runtime_public_language_gate.jl
+
+Checks runtime outputs using synthetic inputs, short fits and temporary reports.
+-h, --help prints this message without loading inference dependencies.
+""")
+        exit(0)
+    end
+end
+
 using BayesianMGMFRM
 using JSON3
 using Random
+BayesianMGMFRM._ensure_docs_doc_loaded()
 
 include(joinpath(@__DIR__, "public_language_gate.jl"))
 using .PublicLanguageGate
@@ -49,7 +65,7 @@ function experimental_documented_names()
         startswith(text, "_") && return false
         startswith(text, "#") && return false
         binding = Docs.Binding(BayesianMGMFRM.Experimental, name)
-        Docs.doc(binding) !== nothing
+        Base.invokelatest(Docs.doc, binding) !== nothing
     end; by = String)
 end
 
@@ -89,18 +105,18 @@ function exported_docstring_outputs()
             all = false, imported = false)); by = String)
         name in LEGACY_MAINTENANCE_EXPORTS && continue
         binding = Docs.Binding(BayesianMGMFRM, name)
-        doc = Docs.doc(binding)
+        doc = Base.invokelatest(Docs.doc, binding)
         doc === nothing && continue
         text = sprint(show, MIME"text/plain"(), doc)
         push!(outputs, "docstring:$(String(name))" => text)
     end
     module_binding = Docs.Binding(BayesianMGMFRM, :Experimental)
-    module_doc = Docs.doc(module_binding)
+    module_doc = Base.invokelatest(Docs.doc, module_binding)
     module_doc === nothing || push!(outputs,
         "docstring:Experimental" =>
             sprint(show, MIME"text/plain"(), module_doc))
     vs_binding = Docs.Binding(BayesianMGMFRM, :ValidationSuite)
-    vs_doc = Docs.doc(vs_binding)
+    vs_doc = Base.invokelatest(Docs.doc, vs_binding)
     vs_doc === nothing || push!(outputs,
         "docstring:ValidationSuite" =>
             sprint(show, MIME"text/plain"(), vs_doc))
@@ -109,7 +125,7 @@ function exported_docstring_outputs()
         error("no public Experimental docstrings were discovered")
     for name in experimental_names
         binding = Docs.Binding(BayesianMGMFRM.Experimental, name)
-        doc = Docs.doc(binding)
+        doc = Base.invokelatest(Docs.doc, binding)
         doc === nothing && error(
             "missing public Experimental docstring for $(String(name))")
         text = sprint(show, MIME"text/plain"(), doc)

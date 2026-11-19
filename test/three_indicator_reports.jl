@@ -131,9 +131,9 @@ function checks()
             @test_throws ArgumentError T.load_report(receipt.path;expected_sha256=receipt.sha256,
                 comparison_path=path,comparison_sha256=digest)
         end
-        @test Base.Docs.doc(T.load_report)!==nothing
-        @test Base.Docs.doc(T.report)!==nothing
-        @test Base.Docs.doc(T.save_report)!==nothing
+        @test BayesianMGMFRM._binding_doc(T,:load_report)!==nothing
+        @test BayesianMGMFRM._binding_doc(T,:report)!==nothing
+        @test BayesianMGMFRM._binding_doc(T,:save_report)!==nothing
     end
 end
 

@@ -392,7 +392,7 @@ function has_doc(mod, name::Symbol)
     binding = Base.Docs.Binding(mod, name)
     haskey(Base.Docs.meta(mod), binding) && return true
     try
-        return Base.Docs.doc(getfield(mod, name)) !== nothing
+        return BayesianMGMFRM._binding_doc(mod, name) !== nothing
     catch error
         error isa MethodError || rethrow()
         return false
@@ -26971,6 +26971,8 @@ end
 @static if test_group_enabled(:fitting_core)
 include("first_analysis.jl")
 FirstAnalysisChecks.checks()
+include("first_analysis_figures.jl")
+FirstAnalysisFigureChecks.checks()
 include("normalized_mgmfrm_example.jl")
 NormalizedExampleChecks.checks()
 include("refit_plan_integrity.jl")
@@ -30386,7 +30388,9 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     @test psis_result.looic ≈ -2 * psis_result.elpd_loo
     @test psis_result.se_looic ≈ 2 * psis_result.se_elpd_loo
     @test all(isfinite, psis_result.pointwise.elpd_loo)
-    @test all(isfinite, psis_result.pointwise.pareto_k)
+    # Short random-walk Metropolis chains with rejected proposals can exhibit a
+    # constant tail (`pareto_k == Inf`) under Zhang-Stephens PSIS (`common_psis.jl`).
+    @test all(k -> isfinite(k) || k == Inf, psis_result.pointwise.pareto_k)
     @test all(ess -> 0 < ess,
         psis_result.pointwise.effective_sample_size)
     @test all(draws -> 1 <= draws <= psis_result.n_draws - 1,
@@ -31735,12 +31739,27 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
         [row.model for row in loo_comparison]
     @test [row.looic for row in pair_loo_comparison] ≈
         [row.looic for row in loo_comparison]
-    psis_comparison = compare_models(result, hmc_result;
+    @test_throws ArgumentError compare_models(result, hmc_result;
+        names = [:main, :hmc],
+        criterion = :psis_loo)
+    hmc_psis_result = fit(design;
+        prior,
+        backend = :advancedhmc,
+        ndraws = 8,
+        warmup = 4,
+        chains = 2,
+        step_size = 0.03,
+        max_depth = 3,
+        target_accept = 0.8,
+        init,
+        rng = MersenneTwister(20260620))
+    @test all(k -> isfinite(k) || k == Inf, psis_loo(hmc_psis_result).pointwise.pareto_k)
+    psis_comparison = compare_models(result, hmc_psis_result;
         names = [:main, :hmc],
         criterion = :psis_loo)
     psis_comparison_stats = Dict(
         "main" => psis_loo(result),
-        "hmc" => psis_loo(hmc_result),
+        "hmc" => psis_loo(hmc_psis_result),
     )
     @test length(psis_comparison) == 2
     @test [row.rank for row in psis_comparison] == [1, 2]
@@ -31757,7 +31776,7 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
         @test row.looic ≈ stat.looic
         @test row.looic_difference ≈ stat.looic - best_psis_stat.looic
         @test row.p_loo ≈ stat.p_loo
-        @test row.max_pareto_k ≈ stat.max_pareto_k
+        @test isequal(row.max_pareto_k, stat.max_pareto_k)
         @test row.bad_pareto_k_count == stat.bad_pareto_k_count
         @test row.min_effective_sample_size ≈ stat.min_effective_sample_size
     end
@@ -31776,7 +31795,7 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
         loo_sensitivity_candidate.elpd_loo - loo_sensitivity_baseline.elpd_loo
     @test loo_sensitivity_candidate.information_criterion_difference_from_baseline ≈
         loo_sensitivity_candidate.looic - loo_sensitivity_baseline.looic
-    psis_sensitivity = sensitivity_comparison(:main => result, :hmc => hmc_result;
+    psis_sensitivity = sensitivity_comparison(:main => result, :hmc => hmc_psis_result;
         axis = :sampler,
         baseline = :main,
         criterion = :psis_loo)
@@ -33244,6 +33263,8 @@ if test_group_enabled(:fitting_reports)
     ThreeIndicatorConcurrentPredictiveChecks.checks()
 include("three_indicator_concurrent_prior_predictive.jl")
 ThreeIndicatorConcurrentPriorPredictiveChecks.checks()
+include("concurrent_plot.jl")
+ConcurrentPlotChecks.checks()
 include("three_indicator_coordinates.jl")
 ThreeIndicatorCoordinateChecks.checks()
 include("three_indicator_adaptation.jl")
@@ -33273,11 +33294,31 @@ ThreeIndicatorAdaptationChecks.checks()
     include("rater_item_interactions.jl")
     include("additive_facets.jl")
     include("additive_facets_workflow.jl")
+    include("explanatory_facets.jl")
+    include("bounded_facets.jl")
+    include("count_facets.jl")
+    include("location_slopes.jl")
+include("bounded_distributional.jl")
+    include("mixed_outcomes.jl")
+    include("person_testlet_reuse.jl")
+    include("predictive_representation.jl")
+    include("repeated_explanatory.jl")
+    include("criterion_explanatory.jl")
+include("additive_patterns.jl")
+    if Base.get_extension(BayesianMGMFRM,:BayesianMGMFRMCairoMakieExt)!==nothing
+        include("additive_caption.jl")
+    end
+    include("explanatory_facets_workflow.jl")
+    include("additive_plot_reports.jl")
     include("rater_group_effects.jl")
     include("criterion_collapse.jl")
     include("criterion_collapse_prediction.jl")
     include("criterion_collapse_loo.jl")
     include("criterion_collapse_plots.jl")
+    include("criterion_collapse_lifecycle.jl")
+    include("frequentist_mfrm.jl")
+    include("stan_adapter_and_handoff.jl")
+    include("api_contract_freeze.jl")
     include("rater_group_categories.jl")
     include("rater_group_predictive.jl")
     include("rater_group_example.jl")
@@ -33290,13 +33331,27 @@ end
 test_group_enabled(:generalized) && RUN_RESEARCH_EVIDENCE_TESTS &&
     include("full_paper_reproduction_archive_contract.jl")
 
-include("correlated_3d.jl")
-include("unified_api_and_star_association.jl")
-include("star_prior_identity.jl")
-include("unified_api_review_fixes.jl")
-include("mathematical_api_contract.jl")
-include("unified_persistence.jl")
-include("comparison_api_contract.jl")
-include("qualification_prediction_contract.jl")
+# Each shared check belongs to one shard and remains part of the full run.
+if test_group_enabled(:generalized)
+    include("correlated_3d.jl")
+    include("unified_api_and_star_association.jl")
+    include("star_prior_identity.jl")
+    include("mathematical_api_contract.jl")
+    include("explanatory_power.jl")
+end
 
-include("common_psis.jl")
+if test_group_enabled(:fitting_reports)
+    include("unified_api_review_fixes.jl")
+    include("unified_persistence.jl")
+    include("comparison_api_contract.jl")
+    include("qualification_prediction_contract.jl")
+    include("common_psis.jl")
+    include("explanatory_comparison.jl")
+    include("prediction_criteria_adapter.jl")
+    include("stan_brms_aliases.jl")
+end
+
+if test_group_enabled(:core)
+    include("review_json.jl")
+    include("distribution_archive_boundary.jl")
+end

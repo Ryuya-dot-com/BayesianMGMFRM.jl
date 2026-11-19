@@ -1,23 +1,19 @@
 # Reading Results and Comparing Models
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    This snapshot is not an accepted stable release. Use the [matching source](installation.md)
+    and each model's stated support and scientific acceptance.
 
-See the [Visualization Gallery](visualization-gallery.md) for Wright Maps,
-Pathway Maps and MGMFRM response surfaces with worked reading guidance.
+After [Your First Rating Analysis](first-analysis.md), check diagnostics,
+uncertainty, predictive adequacy and assumption sensitivity for the quantity you
+report. Compare models for a specified prediction task.
 
-A completed fit produces numbers, but an analysis needs an answer supported by
-those numbers. Read the output in this order: computational diagnostics,
-uncertainty for the quantity of interest, predictive adequacy, and sensitivity
-to defensible assumptions. Model comparison then addresses a specified question.
-
-## Separate three kinds of uncertainty
+## [Distinguish uncertainty in estimates, predictions and computation](@id Separate-three-kinds-of-uncertainty)
 
 | Quantity | What it describes | What it does not establish |
 | --- | --- | --- |
 | Posterior interval | Uncertainty about a parameter or contrast conditional on the model, prior and observed data. | Repeated-study coverage at every possible fixed truth. |
+| Posterior predictive interval | Variation in a future replicated statistic, including parameter uncertainty under the stated conditioning. | A credible interval for a parameter, a confidence interval for the observed statistic, or held-out predictive validation. |
 | Monte Carlo standard error, or MCSE | Numerical uncertainty in an estimated posterior summary due to a finite MCMC run. | Small measurement uncertainty or a correct model. |
 | Simulation replication standard error | Uncertainty in an average performance measure across independently generated datasets. | Precision obtained by treating many parameters or correlated draws as independent datasets. |
 
@@ -117,15 +113,16 @@ that supply it:
 | --- | --- | --- | --- |
 | **1. Data & Rating Design (Methods)** | Total ratings, number of examinees, items/tasks, and raters; intended score category range; missing-data policy (unobserved combinations omitted, never coded as zero); rating-network connectedness and category counts. | `design_summary(data)`, `validate_design(data)` (`validation.passed`, `validation.issues`), `coverage_summary(data)` | Graph connectivity permits joint scale linking under the model assumptions; it does not guarantee high precision for sparsely rated individuals or raters. |
 | **2. Model, Identification & Priors (Methods)** | Model family (e.g., 1D RSM/PCM MFRM, or the specific `Experimental` extension), sign convention (`+` ability, `-` difficulty, `-` severity), identification rule (reference level such as `R1 = 0`, sum-to-zero, or hard anchors), threshold owner, and full joint prior distributions on the declared parameter scale. | `contract(spec)`, `model_equation(spec)`, `constraint_table(spec)`, `identification_declarations(spec)`, `prior_predictive_check(spec; prior = ...)` | Reference levels and hard anchors fix the origin without propagating external anchor uncertainty. Changing from a reference level to sum-to-zero with the same marginal prior SDs changes the induced joint prior. |
-| **3. MCMC Sampling & Whole-Fit Qualification (Methods / Results)** | Package version and exact source revision, sampler backend (`AdvancedHMC` NUTS or `CmdStan`), chains, warmup and retained draws per chain, retained-draw sampler telemetry (divergences, max-treedepth hits, nonfinite log-densities, minimum `E-BFMI`), and worst-case parameter diagnostics (`max rank-normalized split R-hat`, `min bulk ESS`, `min tail ESS`). | `qualify(fit)` (`.qualified`, `.diagnostics`), `diagnostics(fit; view = :public)`, `sampler_diagnostics(fit; phase = :retained)` / `phase = :warmup`, `sampler_controls(fit)` | Passing numerical diagnostics shows that the Markov chains mixed adequately on the fitted target; it does not establish model adequacy, construct validity, or repeated-sampling coverage. Report warmup issues separately rather than hiding them. |
+| **3. MCMC Sampling & Whole-Fit Qualification (Methods / Results)** | Package version and exact source revision, sampler backend (`AdvancedHMC` NUTS or `CmdStan`), chains, warmup and retained draws per chain, retained-draw sampler telemetry (divergences, max-treedepth hits, nonfinite log-densities, minimum `E-BFMI`), and worst-case parameter diagnostics (`max rank-normalized split R-hat`, `min bulk ESS`, `min tail ESS`). | `qualify(fit)` (`.qualified`, `.diagnostics`), `diagnostics(fit; view = :public)`, `sampler_diagnostics(fit; phase = :retained)` / `phase = :warmup`, `sampler_controls(fit)` | Passing numerical diagnostics means these checks found no flagged sampling failure; it is not proof that all modes were explored or convergence was achieved, and it does not establish model adequacy, construct validity, or repeated-sampling coverage. Report warmup issues separately rather than hiding them. |
 | **4. Focal Estimates, Contrasts & MCSE (Results)** | Posterior mean/median and equal-tailed credible interval (stating the probability mass, e.g., 90% or 95% ETI, and the logit or probability unit), directional or ROPE probabilities (`P(left - right > 0)`), **and the Monte Carlo standard error (MCSE) of both the mean and the interval endpoints**. | `posterior_summary(fit; scale = :model)`, `posterior_mcse(fit)`, `contrast(fit; left = ..., right = ...)` (`.summary.mean`, `.summary.lower`, `.summary.upper`, `.summary.precision`), `reliability(fit)`, `ranking(fit)`, `classification(fit; cutoff = ...)` | Compute differences within each joint posterior draw (`contrast`), never by subtracting marginal interval endpoints. An interval crossing zero leaves the direction unresolved; it does not prove two raters or items are equivalent unless a justified equivalence region (ROPE) is established. |
 | **5. Predictive Fit, Comparison & Prior Sensitivity (Results)** | Posterior predictive discrepancy checks (stating what is conditioned on), leave-one-out cross-validation (`PSIS-LOO` `elpd_loo`, `se_elpd_loo`, and `pareto_k` tail warnings) or observation-bound `compare_models`, and sensitivity of focal conclusions across defensible alternative priors. | `predictive_check(fit)`, `criteria(fit)`, `compare_models(...)`, `prior_sensitivity(...)`, `BayesianMGMFRM.plot(fit; kind = ...)` | Predictive agreement on observed counts can occur by construction when free parameters match those counts. Small LOO differences relative to their SE do not decisively select a mechanism. |
 | **6. Reproducibility & Archival Artifacts (Data/Code Availability)** | Julia version, `Project.toml` and `Manifest.toml`, package source commit/digest, random seeds, and portable computed JSON reports with their SHA-256 receipts. | `save_fit` / `load_fit` (same-environment native cache), `save_report("report.json", fit; return_receipt = true)` / `load_report(path; expected_sha256 = ...)` | Native `.jls` files require the original Julia and package environment; share computed JSON reports and their SHA-256 receipts for cross-platform inspection. |
 
 ### Illustrative reporting template (1D partial-credit MFRM)
 
-The template below shows how the numbers from the [first MFRM analysis](examples.md#First-MFRM-analysis)
-translate into prose while keeping numerical precision and substantive uncertainty distinct:
+This template uses the 72 **artificial teaching ratings** from the
+[first MFRM analysis](first-analysis.md). Replace its design,
+prior, settings and results with your own; it is not an empirical study.
 
 > **Methods excerpt:** We fitted a one-dimensional Bayesian partial-credit
 > many-facet Rasch model (`BayesianMGMFRM.jl`, development snapshot) to 72
@@ -146,9 +143,9 @@ translate into prose while keeping numerical precision and substantive uncertain
 > and minimum bulk and tail ESS ≥ 400). For the focal severity
 > contrast between Rater R2 and Rater R1 (`R2 - R1`, where
 > positive values indicate greater severity for R2), the posterior mean was
-> 0.180 logits with a 90% equal-tailed credible interval of [-0.511, 0.889].
-> Monte Carlo standard errors were 0.0069 logits for the posterior mean and
-> 0.0171 and 0.0156 logits for the lower and upper interval endpoints,
+> 0.166 logits with a 90% equal-tailed credible interval of [-0.495, 0.840].
+> Monte Carlo standard errors were 0.0067 logits for the posterior mean and
+> 0.0132 and 0.0120 logits for the lower and upper interval endpoints,
 > confirming that finite-sample MCMC error was negligible relative to the
 > posterior uncertainty. Because the 90% credible interval spanned both negative
 > and positive values, these ratings did not establish a clear directional
@@ -647,8 +644,8 @@ that matters:
 
 These are tests of the formula, not fitted posterior samples or a universal
 replacement definition. They prevent treating the result as an established
-measure of rank resolution. No reporting Strata API was found, and applying
-`(4G+1)/3` to this historical screen would inherit its unresolved meaning.
+measure of rank resolution. This legacy screen does not supply a validated
+Strata estimator; applying `(4G+1)/3` would inherit its unresolved meaning.
 
 The candidate now provides [`BayesianMGMFRM.posterior_reliability`](@ref) for an
 explicit finite-cohort target, described below. This does not make it a general
@@ -867,6 +864,50 @@ No observed-rate CI, realized predictive interval, kappa, automatic cutoff or
 reliability correction is produced. The observed-minus-expected mean difference
 is descriptive, not a p-value or a chance-corrected agreement coefficient.
 
+An observed rate outside the expected-rate posterior interval is not, by itself,
+a calibrated lack-of-fit test: that interval excludes realized-score variation,
+and these same ratings were used to fit the model.
+All original retained draws are used. Explicit prediction-cell and rater-pair
+budgets reject oversized jobs before extraction; the API never silently samples
+draws or drops pairs to meet those budgets.
+
+High observed agreement beyond a model's expectation warrants investigation;
+it does not uniquely diagnose copying or halo. Report uncertainty at the
+response/person level when pairs share responses. ICC or weighted kappa may be
+useful complementary summaries when their design, scale and agreement target
+are appropriate, but cannot be substituted for facet separation. For pass/fail
+or ranking decisions, report the relevant posterior decision probabilities and
+conditional precision near the cutoff, not Strata alone.
+
+#### Saved simulation example
+
+This example reuses the same B01/R1, loading-prior SD `0.50` fit used above:
+4,000 retained draws for 50 persons, five items and five raters. The recorded
+generator draws one score per person–item–rater cell on one simulated occasion.
+We explicitly declare each simulated person–item cell a common assessment;
+that declaration would require evidence from data collection in an empirical file.
+All 1,250 ratings are matched. Ten rater pairs each contribute 250 opportunities,
+giving 2,500 overall opportunities; each rater participates in 1,000.
+
+| Agreement definition | Observed rate | Model-expected mean | 95% posterior interval for expected rate |
+| --- | ---: | ---: | --- |
+| Exact (911 of 2,500) | 0.364400 | 0.375509 | [0.361266, 0.389984] |
+| Within one category, including exact (2,003 of 2,500) | 0.801200 | 0.802674 | [0.783463, 0.820635] |
+
+The optional observed-rate person-cluster SEs are `0.015176` and `0.012846`,
+respectively. Numerical MCSEs for the two model-expected means are much smaller:
+`0.000125` and `0.000164`. The distinction matters: additional MCMC draws may
+reduce numerical error but do not create additional independent persons or
+ratings. Expected-rate intervals represent posterior parameter uncertainty;
+neither these intervals nor the observed SEs are a realized predictive interval.
+
+This single saved simulation demonstrates the workflow, not empirical rater
+quality, predictive calibration or a recommended prior. The original assessment
+retains its full denominator of 192 planned/completed fits, 184 qualified;
+this example adds no fit or independent replication. It was selected as the first
+planned R1 block at the middle prior width, not for favorable agreement.
+[Download the numerical summary, all pair rows and source provenance](assets/rater-agreement/summary.json).
+
 ### Choosing an ICC
 
 An ICC answers a different question from the proportion of exactly matching
@@ -986,50 +1027,6 @@ severity-adjusted agreement, an ICC, a posterior reliability ratio or proof of
 construct validity. No SE, confidence interval, missingness correction or
 automatic acceptable-value cutoff is provided; population uncertainty needs a
 separately justified sampling design and resampling method.
-An observed rate outside the expected-rate posterior interval is not, by itself,
-a calibrated lack-of-fit test: that interval excludes realized-score variation,
-and these same ratings were used to fit the model.
-All original retained draws are used. Explicit prediction-cell and rater-pair
-budgets reject oversized jobs before extraction; the API never silently samples
-draws or drops pairs to meet those budgets.
-
-High observed agreement beyond a model's expectation warrants investigation;
-it does not uniquely diagnose copying or halo. Report uncertainty at the
-response/person level when pairs share responses. ICC or weighted kappa may be
-useful complementary summaries when their design, scale and agreement target
-are appropriate, but cannot be substituted for facet separation. For pass/fail
-or ranking decisions, report the relevant posterior decision probabilities and
-conditional precision near the cutoff, not Strata alone.
-
-#### Saved simulation example
-
-This example reuses the same B01/R1, loading-prior SD `0.50` fit used above:
-4,000 retained draws for 50 persons, five items and five raters. The recorded
-generator draws one score per person–item–rater cell on one simulated occasion.
-We explicitly declare each simulated person–item cell a common assessment;
-that declaration would require evidence from data collection in an empirical file.
-All 1,250 ratings are matched. Ten rater pairs each contribute 250 opportunities,
-giving 2,500 overall opportunities; each rater participates in 1,000.
-
-| Agreement definition | Observed rate | Model-expected mean | 95% posterior interval for expected rate |
-| --- | ---: | ---: | --- |
-| Exact (911 of 2,500) | 0.364400 | 0.375509 | [0.361266, 0.389984] |
-| Within one category, including exact (2,003 of 2,500) | 0.801200 | 0.802674 | [0.783463, 0.820635] |
-
-The optional observed-rate person-cluster SEs are `0.015176` and `0.012846`,
-respectively. Numerical MCSEs for the two model-expected means are much smaller:
-`0.000125` and `0.000164`. The distinction matters: additional MCMC draws may
-reduce numerical error but do not create additional independent persons or
-ratings. Expected-rate intervals represent posterior parameter uncertainty;
-neither these intervals nor the observed SEs are a realized predictive interval.
-
-This single saved simulation demonstrates the workflow, not empirical rater
-quality, predictive calibration or a recommended prior. The original assessment
-retains its full denominator of 192 planned/completed fits, 184 qualified;
-this example adds no fit or independent replication. It was selected as the first
-planned R1 block at the middle prior width, not for favorable agreement.
-[Download the numerical summary, all pair rows and source provenance](assets/rater-agreement/summary.json).
-
 ### Category functioning across model families
 
 Use `BayesianMGMFRM.category_report` to ask whether the declared categories are

@@ -1,5 +1,15 @@
 # User-Named Additive Facets
 
+Start by declaring your observed facet columns, category support, threshold owner
+and priors. Model construction and design inspection do not estimate anything.
+The separate prior/simulation calls generate random values, and `fit` starts MCMC.
+Here *white coordinates* are standardized coordinates used internally for sampling;
+reported facet effects are transformed back to the model's units.
+
+For person/response predictors, rater-experience regressions and estimated
+population severity SDs, use [Explain ratings and rater severity](explanatory-ratings.md).
+The finite sum-zero specification below remains available with its original priors.
+
 !!! warning "Experimental scalar additive workflow"
     This route fits a scalar additive model with any number of user-named facets.
     Shared workflow verbs provide joint summaries, MCSE, known-level probabilities
@@ -210,10 +220,24 @@ does not certify prior suitability, recovery or calibration.
 
 The model assumes conditional independence given the declared effects. It has
 no shared performance effect, halo or time process. An effect named `session`
-is a static contrast, not learner growth or rater drift. The probability method
-above conditions on fixed q and the original rows; it is not a posterior
-predictive distribution. New-level prediction, interactions, mixed supports,
+is a static contrast, not learner growth or rater drift.
+`predictive_probabilities(spec, q)` conditions on fixed `q` and original rows.
+The fitted-result overload described above instead averages the joint posterior;
+neither overload generates replicated scores. New-level prediction, interactions, mixed supports,
 hard-anchor equating, multidimensional loadings and free slopes are not supported
 by this compiler. Scientific recovery/calibration and practical model adoption
-remain open. Model comparison, posterior replicated-outcome checks and new-level
-prediction are not supplied by this bounded fitted workflow.
+remain open. Model comparison and new-level prediction are not supplied by this
+bounded fitted workflow. `predictive_check(result; seed, ndraws=500, groupby=nothing)`
+generates known-owner posterior replicate category counts and group mean ratings;
+select a declared facet or `:person` to group. These are pointwise replicated-data
+intervals with no endpoint-MCSE qualification, not parameter credible intervals.
+`plot(fit_report(result); kind=:posterior)` and `plot(ppc; kind=:predictive)` use
+CairoMakie; saved computed reports can be redrawn without sampling.
+
+### Outcome warnings and interval colors
+
+`validate_design(spec).response_patterns` adds support-aware unused-category and
+constant-score warnings; `validate_design(spec).identified` remains a structural screen.
+`plot(report; kind=:posterior, reference=0.0)` optionally colors CrIs relative to
+an explicit value. See [warnings and reference colors](criterion-effects.md#Check-unused-categories-and-constant-ratings)
+for IDs/counts, mixed supports, fixed values and interpretation limits.

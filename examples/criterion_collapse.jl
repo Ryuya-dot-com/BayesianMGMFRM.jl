@@ -76,4 +76,10 @@ function main(args=ARGS;chain_execution=:serial,max_parallel_chains=4)
     (;result,report,categories,assessment=checked,comparison,prediction,heldout)
 end
 end
-abspath(PROGRAM_FILE)==abspath(@__FILE__) && CriterionCollapseExample.main()
+if abspath(PROGRAM_FILE)==abspath(@__FILE__)
+    if isempty(ARGS) || ARGS==["--help"]
+        println("Usage: julia --project=. examples/criterion_collapse.jl OUTPUT [--saved-fit PATH]")
+        exit(0)
+    end
+    CriterionCollapseExample.main()
+end

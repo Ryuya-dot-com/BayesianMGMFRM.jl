@@ -5,10 +5,16 @@
 
 # Saved Prediction, Model Comparison and Recovery
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
+
+**These are separate recipes, not a single script.** Begin with saved-fit
+comparison if you have compatible fits and persistent rating IDs. K-fold recipes
+prepare requests without fitting, but their explicit `fit` calls start MCMC.
+Known-truth recovery and SBC address simulation questions; they are not required
+to read a model comparison for observed data.
 
 Use this workflow to compare predictions for the same ratings and evaluate
 named parameters against generating truths. The common operations cover eight
@@ -17,14 +23,15 @@ fixed-coefficient multidimensional MFRM, correlated MFRM and exchangeable-rater
 MFRM. Their model, prior and fitting restrictions remain different; see the
 [scope and operation table](scope.md#common-operation-support).
 
-Run the examples with the candidate project loaded through `julia --project=.`.
+Use the matching package in your analysis project. A shell command with
+`julia --project=.` assumes you are in that project directory.
 Saved-result evaluation does not fit a posterior. K-fold scoring additionally
 requires a fit trained separately on each fold's training data. The
 [API reference](api-prediction-recovery.md) documents arguments and return values.
 
 | Your question | Route | What the output establishes |
 | --- | --- | --- |
-| How do models predict the same observed ratings? | `compare_predictions` | Descriptive WAIC or raw IS-LOO comparison from fitted training data. |
+| How do models predict the same observed ratings? | `compare_predictions` | Descriptive WAIC, standard PSIS-LOO or explicitly selected raw/Hill LOO, with their diagnostics. |
 | How do models predict ratings excluded from fitting? | `prediction_refit_plan` → `prediction_fold_observations` → `prediction_kfold` → `compare_kfold_predictions` | K-fold comparison of saved training fits, conditional on existing facet levels. |
 | How close are estimates to generating truths? | `recovery_quantities` → `recovery_evaluation` | Named-quantity evaluation and MCMC MCSE for one dataset. |
 | What happens across independent datasets with the same design and truths? | `recovery_replications` | Quantity-specific summaries retaining every planned replication; replication SE requires evidence of dataset independence. |
@@ -284,7 +291,7 @@ request = prepared.folds[1]
 serialize("fold-1-request.jls", request)
 
 # Scalar MFRM example; use the sampler settings from the analysis plan.
-training_fit = fit(request.model; prior=request.prior,
+training_fit = fit(request.model; prior=request.prior, backend=:advancedhmc,
     chains=4, warmup=1000, ndraws=1000)
 save_fit_cache("fold-1-fit.jls", training_fit)
 

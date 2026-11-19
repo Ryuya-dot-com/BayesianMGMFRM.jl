@@ -1,5 +1,10 @@
 # Expected scores and conditional information
 
+The recipe requires an existing ordinary scalar MFRM fit with the intended
+item/rater labels, persistent observation IDs in fitted-row order, and a declared
+assessment design. It evaluates saved draws; it does not fit a model or create
+new test responses. Start with the first MFRM example if you do not yet have a fit.
+
 An expected-score curve answers: *how would the mean score change with ability,
 for these items and raters?* An information curve answers: *where would that
 specified assessment distinguish nearby abilities, conditional on the fitted

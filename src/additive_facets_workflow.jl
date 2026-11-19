@@ -6,7 +6,7 @@ struct Fit
     record::NamedTuple
 end
 
-B._check_source_fixture_raw_vector(t::Target,q::AbstractVector)=_check(t,q)
+B._check_source_fixture_raw_vector(t::AbstractTarget,q::AbstractVector)=_check(t,q)
 
 function checked(f::Fit;full=false)
     r=f.record
@@ -26,14 +26,23 @@ function checked(f::Fit;full=false)
     t
 end
 
-function fit(target::Target;ndraws::Int,warmup::Int,chains::Int,seed,
-        target_accept=.9,max_depth=10,step_size=.03,init_jitter=.1,metric=:diagonal,
+allocation_error(t)="additive facet design has rank $(t.allocation.rank)/$(t.dimension); inspect design_summary"
+prediction_conditioning(t)=:known_finite_panel_levels
+contrast_unit(t,left,right)=:unit_logit
+
+function fit(target::AbstractTarget;ndraws::Int,warmup::Int,chains::Int,seed,
+        target_accept::Union{Nothing,Real}=nothing,adapt_delta::Union{Nothing,Real}=nothing,
+        max_depth::Union{Nothing,Int}=nothing,max_treedepth::Union{Nothing,Int}=nothing,
+        step_size=.03,init_jitter=.1,metric=:diagonal,
         progress=false,chain_execution=:serial,max_parallel_chains=chains)
+    ta_res,md_res=B._resolve_stan_nuts_aliases(;target_accept,adapt_delta,default_target_accept=.9,
+        max_depth,max_treedepth,default_max_depth=10,caller="fit",backend=:advancedhmc)
+    target_accept=ta_res;max_depth=md_res
     t=restore(record(target))
-    t.allocation.identified || throw(ArgumentError(
-        "additive facet design has rank $(t.allocation.rank)/$(t.dimension); inspect design_summary"))
+    t.allocation.identified || throw(ArgumentError(allocation_error(t)))
     seed isa Integer && !(seed isa Bool) && 0<=seed<=typemax(Int) ||
         throw(ArgumentError("seed must be a nonnegative integer representable as Int"))
+    warn_patterns(t)
     run=B._run_generalized_candidate_advancedhmc(t,zeros(t.dimension);ndraws,warmup,chains,
         seed=Int(seed),target_accept,max_depth,step_size,init_jitter,metric,progress,
         chain_execution,max_parallel_chains,ad_backend=:analytic,record_warmup=true)
@@ -52,14 +61,17 @@ function model_draws(t,raw)
     for (i,q) in enumerate(eachrow(raw))
         v=coordinates(t,q)
         values[i,:]=[v.person;reduce(vcat,(v.facets[b.name] for b in t.facets);init=Float64[]);
-            vec(permutedims(v.steps))]
+            _step_values(t,v.steps)]
     end
     fixed=Set{String}();offset=length(t.people)
     for b in t.facets
         length(b.levels)==1 && push!(fixed,labels[offset+1])
         offset+=length(b.levels)
     end
-    length(t.categories)==2 && union!(fixed,labels[offset+1:end])
+    for (g,r) in enumerate(t.steps)
+        _step_count(t,g)==1 && push!(fixed,labels[offset+1])
+        offset+=_step_count(t,g)
+    end
     (;names=labels,values,fixed)
 end
 
@@ -101,11 +113,13 @@ function interval_bounds(interval)
     lo,1-lo
 end
 
+summary_unit(t,scale)=scale===:model ? :unit_logit : :white_standard_normal
+
 function summary(f::Fit;scale=:model,parameters=nothing,interval=.95)
     t=checked(f);m=selected(t,f.record.run;scale,parameters);lo,hi=interval_bounds(interval)
     rows=B._posterior_summary_rows(m.values,m.names;lower=lo,upper=hi,intervals=(interval,),
         reference=0.,rope=nothing,rope_probability_threshold=.95)
-    (;scale,unit=scale===:model ? :unit_logit : :white_standard_normal,interval,
+    (;scale,unit=summary_unit(t,scale),interval,
       rows=[(;r.parameter,r.mean,r.sd,r.median,r.lower,r.upper,
           structurally_fixed=r.parameter in m.fixed) for r in rows],
       source_sample_content_hash=f.record.content_hash,scientific_acceptance=false)
@@ -122,7 +136,7 @@ function contrast(f::Fit;left,right,interval=.95,rope=nothing)
     t=checked(f);m=selected(t,f.record.run;parameters=[left,right])
     result=B.posterior_contrast(m.values[:,1],m.values[:,2];
         chains=f.record.run.controls.chains,interval,rope)
-    (;left,right,unit=:unit_logit,result,source_sample_content_hash=f.record.content_hash,
+    (;left,right,unit=contrast_unit(t,left,right),result,source_sample_content_hash=f.record.content_hash,
       qualification=qualify(f),conditioning=:joint_posterior_same_draws,scientific_acceptance=false)
 end
 
@@ -135,6 +149,7 @@ function prediction_target(t,data)
         table[col]=col==t.columns.score ? fill(first(t.categories),n) : collect(B._column(data,col))
         B._check_length!(n,table[col],col)
     end
+    table[t.columns.score]=_prediction_scores(t,table,n)
     perf,assessment=t.columns.performance,t.columns.assessment
     if perf!==nothing
         links=Dict(zip(t.table[perf],t.table[t.columns.person]))
@@ -151,52 +166,81 @@ function prediction_target(t,data)
         levels=r.levels,prior_sd=r.prior_sd)
 end
 
-function predict(f::Fit;data=nothing,rows=nothing,interval=.95)
-    t=checked(f);p=prediction_target(t,data);m=model_draws(t,f.record.run.draws)
+response_shift(t,p,values,s,n)=0.
+
+function predict(f::Fit;data=nothing,rows=nothing,interval=.95,metrics=nothing,outcomes=nothing,
+        mode::Symbol=:known_owners,new_owners=(),seed=nothing,include_predictive::Bool=false)
+    t=checked(f)
+    if t isa MixedOutcomeTarget
+        metrics===nothing || throw(ArgumentError("metrics selection is for scalar BoundedTarget; use outcomes=(...) on MixedOutcomeTarget"))
+        return mixed_predict(t,f;data,rows,outcomes,interval,mode,new_owners,seed,include_predictive)
+    end
+    outcomes===nothing || throw(ArgumentError("outcomes selection applies to MixedOutcomeTarget fits"))
+    !include_predictive || throw(ArgumentError("include_predictive applies to MixedOutcomeTarget fits"))
+    mode in (:known_owners,:new_owners) || throw(ArgumentError("prediction mode must be :known_owners or :new_owners"))
+    if mode===:new_owners
+        t isa ExplanatoryTarget && return explanatory_new_owner_predict(t,f;data,rows,interval,new_owners,seed)
+        t isa Union{BoundedTarget,CountTarget} || throw(ArgumentError("mode=:new_owners requires iid population owners (ExplanatoryTarget, BoundedTarget, CountTarget, or MixedOutcomeTarget)"))
+        return scalar_new_owner_predict(t,f;data,rows,interval,new_owners,seed,metrics)
+    end
+    isempty(new_owners) && seed===nothing || throw(ArgumentError("new_owners and seed apply only when mode=:new_owners (or include_predictive=true on MixedOutcomeTarget)"))
+    t isa BoundedTarget && return bounded_predict(t,f;data,rows,interval,metrics=metrics===nothing ? BOUNDED_DEFAULT_METRICS : metrics)
+    metrics===nothing || throw(ArgumentError("metrics selection is currently available for bounded-score predictions"))
+    t isa CountTarget && return count_predict(t,f;data,rows,interval)
+    p=prediction_target(t,data);m=model_draws(t,f.record.run.draws)
     ix=rows===nothing ? collect(eachindex(p.person)) : collect(rows)
     !isempty(ix) && all(i->i isa Integer && !(i isa Bool) && 1<=i<=length(p.person),ix) ||
         throw(ArgumentError("rows must select existing prediction rows"))
     lo,hi=interval_bounds(interval);K=length(t.categories);S=size(m.values,1)
     means=zeros(length(ix),K);lower=similar(means);upper=similar(means);precision=NamedTuple[]
     offsets=cumsum([length(t.people);[length(b.levels) for b in t.facets]])
-    a=zeros(S,K)
+    a=zeros(S,K);step_offsets=cumsum([last(offsets);[_step_count(t,g) for g in eachindex(t.steps)]])
     for (j,n) in enumerate(ix)
         for s in 1:S
-            eta=m.values[s,p.person[n]]
+            eta=m.values[s,p.person[n]]+response_shift(t,p,m.values,s,n)
             for (b,off) in zip(p.facets,offsets)
                 eta-=m.values[s,off+b.index[n]]
             end
-            a[s,1]=0.
-            for k in 2:K
-                a[s,k]=a[s,k-1]+eta-m.values[s,last(offsets)+(p.group[n]-1)*(K-1)+k-1]
+            g=p.group[n];support=p.supports[g]
+            a[s,:].=-Inf;a[s,first(support)]=0.
+            for (h,k) in enumerate(support[2:end])
+                a[s,k]=a[s,k-1]+eta-m.values[s,step_offsets[g]+h]
             end
             z=B._logsumexp(view(a,s,:));a[s,:].=exp.(view(a,s,:).-z)
         end
         means[j,:]=vec(mean(a;dims=1))
         for k in 1:K;lower[j,k]=quantile(view(a,:,k),lo);upper[j,k]=quantile(view(a,:,k),hi);end
-        append!(precision,[(;row=Int(n),category=p.categories[k],r...) for (k,r) in enumerate(
+        fixed=Set("category[$(t.categories[k])]" for k in 1:K if !(k in p.supports[p.group[n]]))
+        append!(precision,[(;row=Int(n),category=p.categories[k],structural_zero=!(k in p.supports[p.group[n]]),r...) for (k,r) in enumerate(
             B._posterior_mcse_rows(a,["category[$k]" for k in t.categories],f.record.run.controls.chains;
-                probabilities=(lo,hi),parameter_space=:category_probability))])
+                probabilities=(lo,hi),parameter_space=:category_probability,structurally_fixed_parameters=fixed))])
     end
-    (;rows=Int.(ix),category_levels=copy(p.categories),mean=means,lower,upper,interval,mcse=precision,
+    cells=[(;position=j,row=Int(n),category=p.categories[k],mean=means[j,k],lower=lower[j,k],upper=upper[j,k],
+        structural_zero=!(k in p.supports[p.group[n]])) for (j,n) in enumerate(ix) for k in 1:K]
+    d=design(t)
+    (;schema=PREDICTION_SCHEMA,kind=:prediction,cells,rows=Int.(ix),category_levels=copy(p.categories),mean=means,lower,upper,interval,mcse=precision,
+      response_patterns=d.response_patterns,warnings=d.warnings,target_identity=f.record.target_identity,
+      category_support=[copy(p.categories[p.supports[p.group[n]]]) for n in ix],
       selected_columns=Dict(col=>copy(values[ix]) for (col,values) in p.table if col!=p.columns.score),
-      conditioning=:known_finite_panel_levels,interval_target=:posterior_category_probability,
+      conditioning=prediction_conditioning(t),interval_target=:posterior_category_probability,
       observation_prediction=:posterior_mean_probabilities,qualification=qualify(f),
       source_sample_content_hash=f.record.content_hash,scientific_acceptance=false)
 end
 
 # JSON reports retain typed label encodings; they do not reconstruct native fits.
-label_encoding(x)=(;kind=x isa Symbol ? :symbol : x isa AbstractString ? :string :
+label_encoding(x)=(ismissing(x) || x===nothing) ? (;kind=:missing,value="missing",julia_type=string(typeof(x))) :
+    (;kind=x isa Symbol ? :symbol : x isa AbstractString ? :string :
     x isa Integer ? :integer : :float,
     value=string(x),julia_type=string(typeof(x)))
-function report(f::Fit;scale=:model,parameters=nothing,interval=.95)
-    t=checked(f);lo,hi=interval_bounds(interval)
-    (;schema=REPORT_SCHEMA,api=contract(t),summary=summary(f;scale,parameters,interval),
+function report(f::Fit;scale=:model,parameters=nothing,interval=.95,include_draws::Bool=false)
+    t=checked(f);lo,hi=interval_bounds(interval);d=design(t)
+    rep=(;schema=REPORT_SCHEMA,api=contract(t),summary=summary(f;scale,parameters,interval),
       mcse=mcse(f;scale,parameters,probabilities=(lo,.5,hi)),qualification=qualify(f),
       controls=deepcopy(f.record.run.controls),producer=f.record.producer,
       source_sample_content_hash=f.record.content_hash,target_identity=f.record.target_identity,
       input_labels=Dict(col=>label_encoding.(values) for (col,values) in t.table),
-      warnings=design(t).warnings,scientific_acceptance=false)
+      response_patterns=d.response_patterns,warnings=d.warnings,scientific_acceptance=false)
+    include_draws ? merge(rep,(;traces=trace_payload(t,f.record.run;scale,parameters))) : rep
 end
 
 function save_result(path,f::Fit)
@@ -206,6 +250,7 @@ function load_result(f::Fit)
     checked(f;full=true);f
 end
 function save_computed(path,rep)
+    check_plot_report(rep)
     (ispath(path) || islink(path)) && throw(ArgumentError("report already exists: $path"))
     mkpath(dirname(path))
     mktemp(dirname(path)) do temporary,io

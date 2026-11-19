@@ -292,7 +292,7 @@ function public_checks(output)
     @test all(x->x.integration_status===:not_applicable,rr.trajectory)
     @test all(isequal(x.summary,y.summary) for (x,y) in zip(rr.trajectory,rr.original_report.trajectory))
     for name in (:prepare,:fit,:load_fit,:summarize)
-        @test Base.Docs.doc(getproperty(D,name))!==nothing
+        @test BayesianMGMFRM._binding_doc(D,name)!==nothing
     end
 end
 end

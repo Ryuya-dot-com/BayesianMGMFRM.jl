@@ -23,6 +23,7 @@ function _sample_schema_symbol(x)
     s == "bayesianmgmfrm.rater_group_effect_samples.v1" && return :rater_group_effects
     s == "bayesianmgmfrm.rater_item_interaction_samples.v1" && return :rater_item_interactions
     s == "bayesianmgmfrm.criterion_collapse_samples.v1" && return :criterion_collapse
+    s == "bayesianmgmfrm.criterion_collapse_masked_samples.v1" && return :criterion_collapse_masked
     return nothing
 end
 
@@ -59,6 +60,8 @@ end
 validate_design(spec::FacetSpec) = spec.validation
 validate_design(design::FacetDesign) = design.spec.validation
 validate_design(m::_SA_MOD.StarModel; kwargs...) = _SA_MOD.validate_design(m; kwargs...)
+validate_design(t::_CC_MOD.Target) = (; passed = true, identified = true, _CC_MOD.design(t)...)
+validate_design(t::_CC_MOD.MaskedTarget) = (; passed = true, identified = true, model = t.model, profile = t.profile, heldout = copy(t.heldout), retained_n = length(t.retained), _CC_MOD.design(t.base)...)
 
 function design_summary(spec::FacetSpec)
     val = spec.validation
@@ -84,6 +87,7 @@ design_summary(m::_SA_MOD.StarModel) = _SA_MOD.design_summary(m)
 design_summary(t::_RGE_MOD.Target) = _RGE_MOD.design(t)
 design_summary(t::_RII_MOD.Target) = _RII_MOD.design(t)
 design_summary(t::_CC_MOD.Target) = _CC_MOD.design(t)
+design_summary(t::_CC_MOD.MaskedTarget) = merge(_CC_MOD.design(t.base), (; masked_model = t.model, profile = t.profile, heldout_rows = copy(t.heldout), retained_rows = length(t.retained)))
 design_summary(t::_RD_MOD.M.Target; kwargs...) = _RD_MOD.design_review(t; kwargs...)
 
 function design_summary(t::_C3D_MOD.Target)
@@ -270,6 +274,7 @@ fit(t::_OA_MOD.Target; kwargs...) = _OA_MOD.fit(t; kwargs...)
 fit(t::_RGE_MOD.Target; kwargs...) = _RGE_MOD.fit(t; kwargs...)
 fit(t::_RII_MOD.Target; kwargs...) = _RII_MOD.fit(t; kwargs...)
 fit(t::_CC_MOD.Target; kwargs...) = _CC_MOD.fit(t; kwargs...)
+fit(t::_CC_MOD.MaskedTarget; kwargs...) = _CC_MOD.fit(t; kwargs...)
 
 """
     prepare_fit(workspace_dir, model; kwargs...)
@@ -333,6 +338,9 @@ function diagnostics(r::NamedTuple)
     elseif tag === :criterion_collapse
         rep = _CC_MOD.report(r)
         return rep.diagnostics
+    elseif tag === :criterion_collapse_masked
+        mt = _CC_MOD._restore_masked(r)
+        return _RII_MOD._diagnostics(mt, r.run, _CC_MOD._masked_draws(mt, r.run.draws))
     end
     throw(ArgumentError("unsupported NamedTuple record for diagnostics"))
 end
@@ -367,11 +375,12 @@ qualify(res::_SA_MOD.StarResult; kwargs...) = _SA_MOD.qualify(res; kwargs...)
 function qualify(fit::_SupportedCommonFit;
         max_rhat::Real = 1.01,
         min_ess::Real = 400.0,
-        min_bfmi::Real = 0.30)
+        min_bfmi::Union{Nothing,Real} = nothing,
+        ebfmi_min::Union{Nothing,Real} = nothing,
+        bfmi_min::Union{Nothing,Real} = nothing)
     min_ess isa Bool && throw(ArgumentError("min_ess must be a finite positive real number"))
     checked = _check_diagnostic_thresholds(max_rhat, min_ess)
-    min_bfmi isa Bool && throw(ArgumentError("min_bfmi must be a finite positive real number"))
-    isfinite(min_bfmi) && isfinite(Float64(min_bfmi)) && min_bfmi > 0 || throw(ArgumentError("min_bfmi must be finite and positive"))
+    resolved_bfmi = _resolve_bfmi_alias(; min_bfmi, ebfmi_min, bfmi_min, default_min_bfmi = 0.30, caller = "qualify")
     diag = if fit isa Union{GMFRMFit, MGMFRMFit}
         stored = fit.diagnostic_surface.summary
         diagnostics(fit; split_chains = stored.split_chains_requested,
@@ -417,7 +426,7 @@ function qualify(fit::_SupportedCommonFit;
     else
         coverage.e_bfmi_complete && all(samp) do row
             isequal(row.n_divergences, 0) && isequal(row.n_max_treedepth, 0) &&
-                finite(row.e_bfmi) && row.e_bfmi >= min_bfmi
+                finite(row.e_bfmi) && row.e_bfmi >= resolved_bfmi
         end
     end
     return (;
@@ -433,19 +442,23 @@ function qualify(fit::_SupportedCommonFit;
         n_max_treedepth = n_td,
         telemetry_complete,
         coverage...,
-        thresholds = (; max_rhat = Float64(max_rhat), min_ess = Float64(min_ess), min_bfmi = Float64(min_bfmi)),
+        thresholds = (; max_rhat = Float64(max_rhat), min_ess = Float64(min_ess), min_bfmi = resolved_bfmi),
         diagnostics = diag,
         sampler = samp,
     )
 end
 
-function qualify(r::NamedTuple; max_rhat::Real = 1.01, min_ess::Real = 400.0, min_bfmi::Real = 0.30)
+function qualify(r::NamedTuple;
+        max_rhat::Real = 1.01,
+        min_ess::Real = 400.0,
+        min_bfmi::Union{Nothing,Real} = nothing,
+        ebfmi_min::Union{Nothing,Real} = nothing,
+        bfmi_min::Union{Nothing,Real} = nothing)
     min_ess isa Bool && throw(ArgumentError("min_ess must be a finite positive real number"))
     checked = _check_diagnostic_thresholds(max_rhat, min_ess)
-    min_bfmi isa Bool && throw(ArgumentError("min_bfmi must be a finite positive real number"))
-    isfinite(min_bfmi) && isfinite(Float64(min_bfmi)) && min_bfmi > 0 || throw(ArgumentError("min_bfmi must be finite and positive"))
+    resolved_bfmi = _resolve_bfmi_alias(; min_bfmi, ebfmi_min, bfmi_min, default_min_bfmi = 0.30, caller = "qualify")
     d = diagnostics(r)
-    return _qualify_experimental_diagnostics(d, r.run, checked, Float64(min_bfmi))
+    return _qualify_experimental_diagnostics(d, r.run, checked, resolved_bfmi)
 end
 
 function _qualify_experimental_diagnostics(d, run, checked, min_bfmi)
@@ -506,6 +519,12 @@ function posterior_summary(r::NamedTuple; kwargs...)
     tag === :rater_item_interactions && return _RII_MOD.report(r; kwargs...)
     tag === :criterion_collapse && return _CC_MOD.report(r; kwargs...)
     throw(ArgumentError("unsupported NamedTuple record for posterior_summary"))
+end
+
+function fit_report(r::NamedTuple; kwargs...)
+    _sample_schema_symbol(r) !== nothing ||
+        throw(ArgumentError("unsupported NamedTuple record for fit_report"))
+    return posterior_summary(r; kwargs...)
 end
 
 """
@@ -840,14 +859,20 @@ function _correlated_3d_psis_loo(ll::Matrix{Float64}, n_ch::Int)
 end
 
 function waic(r::NamedTuple)
-    _sample_schema_symbol(r) === :correlated_3d ||
+    tag = _sample_schema_symbol(r)
+    tag === :criterion_collapse && throw(ArgumentError(
+        "waic is undefined for CriterionCollapse because persistent rater classes couple rows across criteria; use criteria(fit; unit = :performance_rater, model = :mixture)"))
+    tag === :correlated_3d ||
         throw(ArgumentError("waic is not defined for this record schema"))
     ll, _ = _correlated_3d_ll_matrix(r)
     return waic(ll)
 end
 
 function psis_loo(r::NamedTuple)
-    _sample_schema_symbol(r) === :correlated_3d ||
+    tag = _sample_schema_symbol(r)
+    tag === :criterion_collapse && throw(ArgumentError(
+        "row-wise psis_loo is undefined for CriterionCollapse because persistent rater classes couple rows across criteria; use criteria(fit; unit = :performance_rater, model = :mixture)"))
+    tag === :correlated_3d ||
         throw(ArgumentError("psis_loo is not defined for this record schema"))
     ll, n_ch = _correlated_3d_ll_matrix(r)
     return _correlated_3d_psis_loo(ll, n_ch)
@@ -872,6 +897,11 @@ documented criterion contracts. CriterionCollapse requires
 `unit=:performance_rater`, accepts `model=:mixture` or `:all_ordinary`, and
 returns conditional profile PSIS scores, not WAIC. See
 `Experimental.CriterionCollapse.criteria` for prior, precision and scope.
+
+Explanatory additive fits require `unit=:performance, integrate=:your_facet`.
+They return prior-integrated joint-profile PSIS scores and computational MCSE,
+with optional validated saved refits; no population SE, WAIC or new-owner
+prediction is inferred. See the explanatory `criteria` method below.
 """
 criteria(res::_SA_MOD.StarResult; kwargs...) = _SA_MOD.criteria(res; kwargs...)
 
@@ -979,6 +1009,8 @@ function predictive_check(r::NamedTuple; kwargs...)
     throw(ArgumentError("predictive_check is not defined for this record schema"))
 end
 
+posterior_predictive_check(r::NamedTuple; kwargs...) = predictive_check(r; kwargs...)
+
 """
     compare_models(result::NamedTuple)
 
@@ -1005,8 +1037,31 @@ function compare_models(primary::Pair{<:Any,_SA_MOD.StarResult}, baseline::Pair{
     haskey(kwargs,:names) && throw(ArgumentError("model names are supplied by the pair labels"))
     return _SA_MOD.compare_models(last(primary),last(baseline);names=(first(primary),first(baseline)),kwargs...)
 end
-compare_models(primary::NamedTuple,baseline::NamedTuple;kwargs...) =
-    _SA_MOD.compare_models(primary,baseline;kwargs...)
+function compare_models(primary::NamedTuple, baseline::NamedTuple; names = ("primary", "baseline"), kwargs...)
+    if string(get(primary, :kind, "")) == "criterion_collapse_heldout_criteria" ||
+       string(get(baseline, :kind, "")) == "criterion_collapse_heldout_criteria"
+        length(names) == 2 || throw(ArgumentError("names must be a 2-element tuple of labels"))
+        return _CC_MOD.compare_heldout_criteria([names[1] => primary, names[2] => baseline]; kwargs...)
+    end
+    return _SA_MOD.compare_models(primary, baseline; names, kwargs...)
+end
+
+function compare_models(fits::AbstractVector{<:Pair}; kwargs...)
+    if !isempty(fits) && any(p -> last(p) isa FrequentistMFRM.Fit, fits)
+        return FrequentistMFRM.compare_mmle_models(collect(fits); kwargs...)
+    end
+    if !isempty(fits) && any(p -> last(p) isa Union{StanAdapter.Fit, PortableHandoff.Handoff}, fits)
+        all(p -> last(p) isa Union{StanAdapter.Fit, PortableHandoff.Handoff}, fits) ||
+            throw(ArgumentError("all compared models with StanAdapter/PortableHandoff must be StanAdapter.Fit or PortableHandoff.Handoff"))
+        unwrapped = [first(p) => (last(p) isa PortableHandoff.Handoff ? PortableHandoff.to_fit(last(p)) : last(p)) for p in fits]
+        return StanAdapter.compare_models(unwrapped; kwargs...)
+    end
+    if !isempty(fits) && any(p -> last(p) isa NamedTuple && string(get(last(p), :kind, "")) == "criterion_collapse_heldout_criteria", fits)
+        return _CC_MOD.compare_heldout_criteria(collect(fits); kwargs...)
+    end
+    length(fits) == 2 && all(p -> last(p) isa _SA_MOD.StarResult, fits) && return compare_models(fits[1], fits[2]; kwargs...)
+    return compare_models(fits...; kwargs...)
+end
 compare_models(primary::_SA_MOD.StarResult, baseline::_SA_MOD.StarResult; kwargs...) =
     _SA_MOD.compare_models(primary, baseline; kwargs...)
 
@@ -1034,6 +1089,7 @@ function save_fit(path::AbstractString, r::NamedTuple)
     tag === :rater_group_effects && return _RGE_MOD.save_result(path, r)
     tag === :rater_item_interactions && return _RII_MOD.save_result(path, r)
     tag === :criterion_collapse && return _CC_MOD.save_result(path, r)
+    tag === :criterion_collapse_masked && return _CC_MOD.save_masked_result(path, r)
     throw(ArgumentError("unsupported NamedTuple record for save_fit"))
 end
 
@@ -1075,6 +1131,14 @@ function load_fit(path::AbstractString; kwargs...)
         isempty(kwargs) || throw(ArgumentError("unsupported additive fit reader controls: $(keys(kwargs))"))
         return AdditiveFacets.load_result(raw)
     end
+    if raw isa FrequentistMFRM.Fit
+        isempty(kwargs) || throw(ArgumentError("unsupported frequentist fit reader controls: $(keys(kwargs))"))
+        return FrequentistMFRM.load_result(raw)
+    end
+    if raw isa StanAdapter.Fit
+        isempty(kwargs) || throw(ArgumentError("unsupported StanAdapter fit reader controls: $(keys(kwargs))"))
+        return StanAdapter.load_result(raw)
+    end
     tag = _sample_schema_symbol(raw)
     tag === :correlated_3d && return _C3D_MOD.load_result(path; kwargs...)
     tag === :joint_ratings && return _JR_MOD.load_result(path; kwargs...)
@@ -1082,6 +1146,7 @@ function load_fit(path::AbstractString; kwargs...)
     tag === :rater_group_effects && return _RGE_MOD.load_result(path; kwargs...)
     tag === :rater_item_interactions && return _RII_MOD.load_result(path; kwargs...)
     tag === :criterion_collapse && return _CC_MOD.load_result(path; kwargs...)
+    tag === :criterion_collapse_masked && return _CC_MOD.load_masked_result(path; kwargs...)
     return load_fit_cache(path; kwargs...)
 end
 
@@ -1092,14 +1157,21 @@ Write a portable computed report without overwriting existing files. Pass a
 computed report or a fitted result. Common fits use `save_fit_report`; Star and
 experimental sample records use `posterior_summary` with the supplied keywords.
 For rater-by-item records, `practical_threshold` is required; rater-group records
-also require `reference_group`. No inference or
-predictive generation occurs. Keep model-specific warnings and report structure.
+also require `reference_group`. No MCMC is run. Saving an already computed report
+performs no predictive generation. Passing a common fitted object first computes
+`fit_report`, whose default checks can generate replicated ratings; choose explicit
+report controls or pass a previously computed report when generation is not intended.
+Keep model-specific warnings and report structure.
 
 With `return_receipt=true`, return `(path, sha256)` for every supported writer;
 keep this receipt separately and pass its digest to `load_report`. Otherwise
 the return value remains the existing writer's path or receipt. Reports contain
 computed values, not draws for new analyses. Use `save_fit` for native draws.
 Unsupported writer or summary controls raise an error.
+
+Concurrent `plot(...; return_data=true).data` is a compact computed report.
+Saving it preserves selected numerical rows, source identities, reference
+definitions and whole-report warnings for redraw without native chains.
 """
 function save_report(path::AbstractString, rep; return_receipt::Bool=false, kwargs...)
     saved = _save_report(path, rep; kwargs...)
@@ -1107,6 +1179,39 @@ function save_report(path::AbstractString, rep; return_receipt::Bool=false, kwar
 end
 
 function _save_report(path::AbstractString, rep; kwargs...)
+    if hasproperty(rep,:schema) && rep.schema in _EXPLANATORY_COMPARISON_SCHEMAS
+        isempty(kwargs) || throw(ArgumentError("unsupported explanatory comparison writer controls"))
+        _check_explanatory_comparison_report(rep)
+        return _SA_MOD._save_atomic_json(path,rep)
+    end
+    if hasproperty(rep,:schema) && rep.schema in AdditiveFacets.REPORT_SCHEMAS
+        isempty(kwargs) || throw(ArgumentError("unsupported additive report controls: $(keys(kwargs))"))
+        return AdditiveFacets.save_computed(path,rep)
+    end
+    if rep isa FrequentistMFRM.Fit
+        isempty(kwargs) || throw(ArgumentError("unsupported frequentist report controls: $(keys(kwargs))"))
+        return FrequentistMFRM.save_computed(path, FrequentistMFRM.report(rep))
+    end
+    if hasproperty(rep, :schema) && rep.schema in (FrequentistMFRM.REPORT_SCHEMA, FrequentistMFRM.COMPARISON_SCHEMA)
+        isempty(kwargs) || throw(ArgumentError("unsupported frequentist report controls: $(keys(kwargs))"))
+        return FrequentistMFRM.save_computed(path, rep)
+    end
+    if rep isa PortableHandoff.Handoff
+        isempty(kwargs) || throw(ArgumentError("unsupported portable handoff writer controls: $(keys(kwargs))"))
+        return PortableHandoff.save_handoff(path, rep)
+    end
+    if rep isa StanAdapter.Fit
+        return StanAdapter.save_computed(path, StanAdapter.report(rep; kwargs...))
+    end
+    if hasproperty(rep, :schema) && rep.schema in (StanAdapter.REPORT_SCHEMA, StanAdapter.COMPARISON_SCHEMA, StanAdapter.PRIOR_SENSITIVITY_SCHEMA)
+        isempty(kwargs) || throw(ArgumentError("unsupported StanAdapter report writer controls: $(keys(kwargs))"))
+        return StanAdapter.save_computed(path, rep)
+    end
+    if hasproperty(rep,:schema) && rep.schema == _CONCURRENT_PLOT_SCHEMA
+        isempty(kwargs) || throw(ArgumentError("saved plot data accept no extra writer controls"))
+        _check_concurrent_plot_data(rep)
+        return _SA_MOD._save_atomic_json(path,rep)
+    end
     if hasproperty(rep,:schema) && rep.schema in _TI_MOD.ConcurrentPriorPredictive.SCHEMAS
         isempty(kwargs) || throw(ArgumentError("prior predictive reports accept no extra writer controls"))
         return _TI_MOD.ConcurrentPriorPredictive.save(path,rep)
@@ -1138,10 +1243,6 @@ function _save_report(path::AbstractString, rep; kwargs...)
         return _TI_MOD.save_report(path, rep; kwargs...)
     elseif rep isa NamedTuple && hasproperty(rep, :schema) && rep.schema isa AbstractString
         s = rep.schema
-        if s == AdditiveFacets.REPORT_SCHEMA
-            isempty(kwargs) || throw(ArgumentError("unsupported additive report controls: $(keys(kwargs))"))
-            return AdditiveFacets.save_computed(path,rep)
-        end
         s == _SA_MOD.REPORT_SCHEMA && return _SA_MOD.save_report(path, rep; kwargs...)
         s == "bayesianmgmfrm.joint_rating_api_report.v1" && return _JR_MOD.save_report(path, rep; kwargs...)
         s == "bayesianmgmfrm.ordinal_association_report.v1" && return _OA_MOD.save_report(path, rep; kwargs...)
@@ -1174,7 +1275,7 @@ warnings and source metadata are retained.
 
 `expected_sha256` checks the file against a separately retained lowercase SHA-256
 receipt. It remains required for criterion-collapse, RaterDrift and ThreeIndicator
-reports and is optional for other supported reports. Internal hash validation,
+reports and is optional for other supported reports. Embedded hash validation,
 where present, is independent of this file check. A digest does not authenticate
 a producer or establish statistical validity. Normalized PCM prior-power
 reports also require this receipt and return computed JSON without recomputation.
@@ -1187,6 +1288,8 @@ Concurrent model specifications return a `ConcurrentTarget`. Concurrent fixed-po
 probability reports return their saved JSON object: inspect `.rows`, `.comparisons`
 or `.recordings`/`.speakers` according to `.operation`. These require a checksum
 receipt, accept no reader controls and contain no posterior uncertainty.
+Compact Concurrent plot reports also require a checksum receipt. They return
+validated saved numerical data accepted by `plot`, without new prediction.
 """
 function load_report(path::AbstractString; expected_sha256=nothing, kwargs...)
     isfile(path) || throw(ArgumentError("report file does not exist: $path"))
@@ -1203,6 +1306,11 @@ function load_report(path::AbstractString; expected_sha256=nothing, kwargs...)
     end
     s = get(parsed, :schema, nothing)
     s isa AbstractString || throw(ArgumentError("computed report has no supported schema"))
+    if s == _CONCURRENT_PLOT_SCHEMA
+        expected_sha256 !== nothing || throw(ArgumentError("a separately retained expected_sha256 is required"))
+        isempty(kwargs) || throw(ArgumentError("saved plot data accept no extra reader controls"))
+        return _check_concurrent_plot_data(parsed)
+    end
     if s in _TI_MOD.ConcurrentPriorPredictive.SCHEMAS
         expected_sha256 === nothing && throw(ArgumentError("expected_sha256 is required for prior predictive reports"))
         isempty(kwargs) || throw(ArgumentError("prior predictive reports accept no extra reader controls"))
@@ -1212,6 +1320,11 @@ function load_report(path::AbstractString; expected_sha256=nothing, kwargs...)
         expected_sha256!==nothing || throw(ArgumentError("a separately retained expected_sha256 is required"))
         isempty(kwargs) || throw(ArgumentError("unsupported posterior predictive reader controls"))
         return _TI_MOD.ConcurrentPredictive.check_report(parsed)
+    end
+    if s in _EXPLANATORY_COMPARISON_SCHEMAS
+        expected_sha256 !== nothing || throw(ArgumentError("a separately retained expected_sha256 is required"))
+        isempty(kwargs) || throw(ArgumentError("unsupported explanatory comparison reader controls"))
+        return _check_explanatory_comparison_report(parsed)
     end
     if s == _PRIOR_POWER_SCHEMA
         expected_sha256 !== nothing || throw(ArgumentError("a separately retained expected_sha256 is required"))
@@ -1231,9 +1344,20 @@ function load_report(path::AbstractString; expected_sha256=nothing, kwargs...)
         isempty(kwargs) || throw(ArgumentError("unsupported concurrent reader controls: $(keys(kwargs))"))
         return s==_TI_MOD.ConcurrentReports.SCHEMA ? _TI_MOD.ConcurrentReports.check(parsed) :
             _TI_MOD.ConcurrentTarget(path;expected_sha256)
-    elseif s == AdditiveFacets.REPORT_SCHEMA
+    elseif s in AdditiveFacets.REPORT_SCHEMAS
         isempty(kwargs) || throw(ArgumentError("unsupported additive report reader controls: $(keys(kwargs))"))
-        return parsed
+        return AdditiveFacets.check_plot_report(parsed)
+    elseif s in (FrequentistMFRM.REPORT_SCHEMA, FrequentistMFRM.COMPARISON_SCHEMA)
+        isempty(kwargs) || throw(ArgumentError("unsupported frequentist report reader controls: $(keys(kwargs))"))
+        return FrequentistMFRM.check_loaded_report(parsed)
+    elseif s == PortableHandoff.HANDOFF_SCHEMA
+        expected_sha256 !== nothing ||
+            throw(ArgumentError("a separately retained expected_sha256 receipt is required for portable joint-draw handoffs"))
+        isempty(kwargs) || throw(ArgumentError("unsupported portable handoff reader controls: $(keys(kwargs))"))
+        return PortableHandoff.load_handoff(parsed)
+    elseif s in (StanAdapter.REPORT_SCHEMA, StanAdapter.COMPARISON_SCHEMA, StanAdapter.PRIOR_SENSITIVITY_SCHEMA)
+        isempty(kwargs) || throw(ArgumentError("unsupported StanAdapter report reader controls: $(keys(kwargs))"))
+        return StanAdapter.check_loaded_report(parsed)
     elseif s == _SA_MOD.JSON_ENVELOPE_SCHEMA
         return _SA_MOD.load_report(path; kwargs...)
     elseif startswith(s, "bayesianmgmfrm.fit_report")
@@ -1265,10 +1389,27 @@ end
 Unified visualization dispatcher across all package figure types (requires
 loading `CairoMakie`).
 
+For validated Concurrent saved reports, use `kind=:predictive` with
+`view=:marginal` (default) or `:joint`, or `kind=:posterior` for the saved
+contrasts/ENG speaker profiles (view inferred from the report). Focal plots use
+means and pointwise credible intervals. These routes draw saved values, without
+sampling or predictive generation. `return_data=true` returns `(figure, data)`;
+retain `data` with `save_report` and reopen with its checksum receipt. Compact
+data retain the original full-report qualification/failure scope, not just the
+displayed rows. `annotation_io` writes the external title/note (stdout by default).
+These keywords do not add Concurrent fit, prior-PPC, trace or model-comparison
+plot support. Available inputs depend on `kind`; see the visualization gallery.
+
+For additive/explanatory posterior fits or saved reports, `reference=0.0` colors
+CrIs by inclusive reference containment; `interval_colors=(contains=..., excludes=...)`
+overrides the palette. Circles/squares distinguish the two states; fixed values
+remain diamonds. This optional display does not change summaries or qualification
+and is refused for PPC. Reference units must match the selected parameters.
+
 Supported `kind` values:
 - `:posterior` — posterior medians and credible intervals (`plot_posterior`)
 - `:diagnostics` — chain trace and rank-histogram plots (`plot_diagnostics`)
-- `:predictive` — posterior predictive category checks (`plot_predictive`)
+- `:predictive` — prior or posterior predictive category checks (`plot_predictive`)
 - `:wright` — shared-logit Wright / ridge map (`plot_wright`)
 - `:pathway` — location-by-infit/outfit Pathway map (`plot_pathway`)
 - `:response_surface` — multidimensional category probability surfaces (`plot_response_surface`)
@@ -1277,15 +1418,69 @@ Supported `kind` values:
 - `:prior_predictive_sensitivity` — prior-predictive sensitivity summaries (`plot_prior_predictive_sensitivity`)
 - `:rater_drift` — dynamic rater-severity trajectories (`Experimental.RaterDrift.plot_trajectory`)
 - `:criterion_collapse_classes` — rater latent-class probabilities (`Experimental.CriterionCollapse.plot_classes`)
-- `:criterion_collapse_categories` — class-specific category curves (`Experimental.CriterionCollapse.plot_categories`)
+- `:criterion_collapse_categories` — observed and mixture-expected category proportions (`Experimental.CriterionCollapse.plot_categories`)
+
+Additive/explanatory fits also support `:diagnostics` with explicit `parameters`, and
+`:prediction` with selected `rows`/known-owner `data`. Computed prior or posterior
+predictive reports both use `:predictive`, with distinct labels and meanings.
+Trace reports require `fit_report(...; include_draws=true)`; prediction reports
+come from `predictive_probabilities`. All four computed report routes can be
+saved/reopened without fitting or predictive generation.
 """
 function plot(x; kind::Symbol = :posterior, kwargs...)
+    if hasproperty(x,:schema) && x.schema in _EXPLANATORY_COMPARISON_SCHEMAS
+        kind===:comparison || throw(ArgumentError("use kind=:comparison for held-performance scores"))
+        _check_explanatory_comparison_report(x)
+        extension=Base.get_extension(@__MODULE__,:BayesianMGMFRMCairoMakieExt)
+        extension===nothing && throw(ArgumentError("plot requires CairoMakie"))
+        return extension.plot_explanatory_comparison(x;kwargs...)
+    end
+    if hasproperty(x,:schema) && x.schema==_PRIOR_POWER_SCHEMA && string(x.scope) in ("scalar_explanatory","scalar_explanatory_zoib","scalar_explanatory_count","mixed_outcome_joint_explanatory")
+        kind===:prior_sensitivity || throw(ArgumentError("use kind=:prior_sensitivity for a power report"))
+        extension=Base.get_extension(@__MODULE__,:BayesianMGMFRMCairoMakieExt)
+        extension===nothing && throw(ArgumentError("plot requires CairoMakie"))
+        return extension.plot_explanatory_power(x;kwargs...)
+    end
+    if hasproperty(x,:schema) && x.schema in AdditiveFacets.REPORT_SCHEMAS
+        return _plot_additive_report(x;kind,kwargs...)
+    end
+    if hasproperty(x, :schema) && x.schema in (FrequentistMFRM.REPORT_SCHEMA, FrequentistMFRM.COMPARISON_SCHEMA)
+        extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
+        extension === nothing && throw(ArgumentError("plot requires CairoMakie"))
+        return extension.plot_frequentist_mfrm(x; kind, kwargs...)
+    end
+    if hasproperty(x, :schema) && x.schema in (StanAdapter.REPORT_SCHEMA, StanAdapter.COMPARISON_SCHEMA, StanAdapter.PRIOR_SENSITIVITY_SCHEMA)
+        extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
+        extension === nothing && throw(ArgumentError("plot requires CairoMakie"))
+        return extension.plot_stan_adapter(x; kind, kwargs...)
+    end
+    if _is_concurrent_plot_input(x)
+        return _plot_concurrent_report(x; kind, kwargs...)
+    end
     if x isa _SA_MOD.StarResult
         extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
         extension === nothing && throw(ArgumentError(
             "BayesianMGMFRM.plot requires CairoMakie; install it with Pkg.add(\"CairoMakie\") and run `using CairoMakie`",
         ))
         return extension.plot_star_result(x; kind, kwargs...)
+    end
+    if hasproperty(x, :scope) && hasproperty(x.scope, :mechanism) && string(x.scope.mechanism) == "criterion_collapse"
+        extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
+        extension === nothing && throw(ArgumentError("plot requires CairoMakie"))
+        if hasproperty(x, :kind)
+            kx = string(x.kind)
+            if kx == "criterion_collapse_predictive_check"
+                kind === :predictive || throw(ArgumentError("use kind = :predictive for CriterionCollapse predictive_check reports"))
+                return extension.plot_criterion_predictive(x; kwargs...)
+            elseif kx in ("criterion_collapse_heldout_criteria", "criterion_collapse_heldout_comparison", "criterion_collapse_heldout_pair_comparison")
+                kind === :comparison || throw(ArgumentError("use kind = :comparison for CriterionCollapse held-out criteria or comparison reports"))
+                return extension.plot_criterion_comparison(x; kwargs...)
+            end
+        elseif hasproperty(x, :classes) && kind in (:posterior, :criterion_collapse_classes)
+            return _CC_MOD.plot_classes(x; kwargs...)
+        elseif hasproperty(x, :rows) && hasproperty(x, :categories) && kind === :criterion_collapse_categories
+            return _CC_MOD.plot_categories(x; kwargs...)
+        end
     end
     kind === :posterior && return plot_posterior(x; kwargs...)
     kind === :diagnostics && return plot_diagnostics(x; kwargs...)

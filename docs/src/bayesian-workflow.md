@@ -1,18 +1,18 @@
 # Bayesian Workflow
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
 
-A many-facet analysis is more than a sampling call. The rating design,
-identification constraints, priors, sampler behavior, predictive performance,
-and reporting scope all affect what can be interpreted.
+For the first example and its figures, use [Your First Rating Analysis](first-analysis.md).
+This guide explains individual API operations and decisions for adapting an
+analysis to your own study. You need not run it after completing the tutorial.
 
 ## [Follow one analysis through the APIs](@id connected-analysis)
 
 Keep one question in view: **is R2 more severe than R1 after accounting for the
-people and tasks they rated?** The [first analysis](examples.md#First-MFRM-analysis)
+people and tasks they rated?** The [first analysis](first-analysis.md)
 already implements this workflow. The steps below expose its connections; they
 are an alternative way to run the same example, not another fit to perform after
 `FirstMFRMAnalysis.main()`.
@@ -89,7 +89,7 @@ identity, combines global diagnostics with the R2−R1 mean and interval-endpoin
 MCSE limits, and withholds interpretation when those conditions fail. The
 helper's 90% interval and computational limits belong to this example; define
 your own estimand and reporting precision before a new analysis.
-Use the [walkthrough](examples.md#Read-the-answer) to read the stored estimates,
+Use the [walkthrough](first-analysis.md#read-the-answer) to read the stored estimates,
 MCSE and sampler warnings. An interval containing zero does not establish
 equivalence, and a precise contrast does not establish model fit.
 
@@ -106,6 +106,10 @@ an already exported answer, read its text/JSON or a portable report bundle;
 those files do not reconstruct draws for a new contrast. The example's
 [`main(["--saved-fit", path])` mode](examples.md#Save-and-reopen-without-refitting)
 writes the answer into a new folder without refitting.
+
+The [saved three-figure walkthrough](first-analysis.md)
+opens this same teaching analysis without fitting: contrast interval, chain
+diagnostics, posterior predictive distribution check, then portable reopening.
 
 ### [Know which operations do more work](@id workflow-operation-costs)
 
@@ -176,7 +180,8 @@ Create an [`mfrm_spec`](@ref) and inspect:
 - optionally, [`getdesign`](@ref) for the identified parameter vector;
 - [`model_manifest`](@ref) for a portable summary of data, model, and design.
 
-For stable one-dimensional MFRM, call `fit(spec)` when no separate design
+For stable one-dimensional MFRM, use an explicit backend and chains, for example
+`fit(spec; prior, backend=:advancedhmc, chains=4, seed=42)`, when no separate design
 inspection is needed. Multidimensional MFRM and GMFRM/MGMFRM use
 `BayesianMGMFRM.Experimental.fit(spec)`. An estimated correlation requires
 `BayesianMGMFRM.Experimental.correlated(spec)` first, within the documented
@@ -211,9 +216,11 @@ before transferring numeric widths between these routes. `person_sd` fixes the m
 ability prior scale; it is not an estimated hyperparameter. The experimental
 prior check exposes raw/direct draws, replicated scores, and implication
 warnings. See [prior conventions](experimental.md#Workflow) before choosing
-scales or comparing them across models. Posterior sensitivity requires actual
-refits under defensible alternatives; repeatedly summarizing one saved fit
-does not evaluate it.
+scales or comparing them across models. Posterior sensitivity needs defensible
+alternative priors. [Supported importance-reweighting routes](prior-sensitivity.md)
+can assess some alternatives from saved draws, provided their weight and precision
+diagnostics are adequate; unsupported changes or unreliable weights require
+separate fits. Repeating an unchanged summary is not a sensitivity analysis.
 
 ## 4. Fit and Diagnose
 

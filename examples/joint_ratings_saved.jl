@@ -1,4 +1,4 @@
-if ARGS == ["--help"]
+if isempty(ARGS) || ARGS == ["--help"]
     println("Usage: julia --project=. examples/joint_ratings_saved.jl SAMPLES.jls REQUEST.json NEW_OUTPUT.json")
     println("Request: operation ('predict' or 'score'), response_effect ('existing' or 'new'), rows.")
     println("Rows: seven rating IDs and fitted numeric predictors; score additionally requires integer raw score.")

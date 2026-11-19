@@ -155,8 +155,8 @@ tests=@testset "Source-bound common heldout scoring (no MCMC)" begin
     @test bytes(frozen)==snapshot
     changedreq=deepcopy(req);changedreq.source_spec.data.score[1]=99
     @test_throws ArgumentError B.prediction_fold_observations(a.fit,changedreq)
-    @test Base.Docs.doc(B.prediction_refit_plan)!==nothing
-    @test Base.Docs.doc(B.prediction_fold_observations)!==nothing
+    @test B._binding_doc(B,:prediction_refit_plan)!==nothing
+    @test B._binding_doc(B,:prediction_fold_observations)!==nothing
     # Missing fitted levels still remain absent; holding out a new person is not supported.
     held=kfold_plan(a.case.model.data;k=2,group_by=:person).fold_rows[1]
     training=B._loo_refit_training_data(a.case.model.data,held.training_observations)

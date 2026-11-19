@@ -93,7 +93,8 @@ and from the realized proportion of classes in the panel.
 rater/criterion cell, integrating over the joint posterior and the class learned
 from all ratings of that rater. Means and their MCSE are returned. These are
 in-sample conditional expectations; there are no replicated-count intervals,
-heldout scores or predictive tail tests in this route. Marginal row probabilities
+heldout scores or predictive tail tests in this category report. The separate
+profile-LOO and joint-count predictive operations are described below. Marginal row probabilities
 must not be multiplied to form a joint probability: the shared class induces
 dependence. The explicit workspace budget bounds the category accumulation;
 restored samples, per-draw probabilities and diagnostics require further memory.
@@ -235,7 +236,34 @@ comparison = compare_models(result; criterion=:loo, unit=:performance_rater)
 comparison.difference  # mixture minus induced all-ordinary log score
 receipt = save_report("heldout.json", comparison; return_receipt=true)
 restored = load_report(receipt.path; expected_sha256=receipt.sha256)
+
+# Explicit training-posterior masked refit for a high-Pareto-k profile (no automatic refitting):
+plan = loo_refit_plan(result, 1; unit=:performance_rater, model=:all_ordinary)
+masked_fit = fit(plan.target; ndraws=1000, warmup=1000, chains=4, seed=911)
+save_fit("masked-profile-1.jls", masked_fit)
+ordinary_repaired = criteria(result; unit=:performance_rater, model=:all_ordinary,
+    refits=[1 => masked_fit], independent_refit_rng=true)
+paired_repaired = compare_models(result; criterion=:loo, unit=:performance_rater,
+    ordinary_refits=[1 => masked_fit], independent_refit_rng=true)
+
+# Two-report comparison across prior or model variants binding the same profiles:
+pair_cmp = compare_models("primary" => heldout, "ordinary_repaired" => ordinary_repaired;
+    criterion=:loo, independent_model_rng=false)
 ```
+
+When PSIS smoothing leaves one or more profiles `diagnostic_only` (for example under
+`model=:all_ordinary`), `loo_refit_plan` builds a training-posterior `MaskedTarget`
+holding out that profile's observed criteria while keeping the original finite-panel
+Helmert bases `Qp`, `Qr`, marginal-SD scaling, and `Prior` unchanged. Supplying
+`independent_refit_rng=true` requires distinct sample hashes and combines shared-draw
+PSIS covariance across remaining profiles with independent direct-refit variances;
+leaving `independent_refit_rng=false` retains the repaired log score while marking
+computational covariance unassessed (`:unassessed_refit_covariance`). Row-wise
+`waic(result)` and `psis_loo(result)` are explicitly refused because persistent
+rater classes couple rows across criteria. Layer-2 inspection verbs (`validate_design`,
+`getdesign`, `contract`, `initial_params`, `parameter_names`, `coordinates`,
+`logprior`, `loglikelihood`, `logposterior`, `logdensity_and_gradient`) dispatch on
+both `Target` and `MaskedTarget` as well as saved sample records.
 
 The unit is required. A profile contains its explicitly listed observed criteria;
 missing scores are never filled with zero. A fold that leaves its person or
@@ -303,15 +331,18 @@ The optional CairoMakie extension displays the two questions separately:
 ```julia
 using CairoMakie
 class_note = IOBuffer()
-fig = C.plot_classes(report; annotation_io=class_note)
+fig = BayesianMGMFRM.plot(report; kind=:posterior, annotation_io=class_note)
 save("class-probabilities.png", fig)
 write("class-probabilities.txt", String(take!(class_note)))
 
 category_note = IOBuffer()
 # Match the actual rater label and its type in your data.
-profiles = C.plot_categories(categories; rater="R2", annotation_io=category_note)
+profiles = BayesianMGMFRM.plot(categories; kind=:criterion_collapse_categories, rater="R2", annotation_io=category_note)
 save("category-profiles.svg", profiles)
 write("category-profiles.txt", String(take!(category_note)))
+
+ppc_fig = BayesianMGMFRM.plot(ordinary; kind=:predictive, annotation_io=IOBuffer())
+cmp_fig = BayesianMGMFRM.plot(comparison; kind=:comparison, annotation_io=IOBuffer())
 ```
 
 The first figure uses a common 0–1 scale for every rater's posterior class
@@ -407,8 +438,9 @@ Optional facets, group effects, free slopes, multidimensional ability, shared
 response effects, time processes, new-rater/person prediction and arbitrary
 cross-family model comparison are not combined with this model. The induced-
 submodel comparison and same-design joint count check above do not establish
-replicated classification validation, held-out prediction or independent user
-acceptance; those remain separate work.
+replicated classification validation or independent user acceptance. Conditional
+held-out profile PSIS scores are available as described above, but do not establish
+general predictive performance, reliable classification or new-level prediction.
 
 ## Julia help
 

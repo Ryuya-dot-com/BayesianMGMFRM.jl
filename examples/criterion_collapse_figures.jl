@@ -1,3 +1,8 @@
+if abspath(PROGRAM_FILE)==abspath(@__FILE__) && (isempty(ARGS) || ARGS==["--help"] || Base.find_package("CairoMakie")===nothing)
+    println("Usage: julia --project=. examples/criterion_collapse_figures.jl OUTPUT CLASS_REPORT CLASS_SHA256 CATEGORY_REPORT CATEGORY_SHA256")
+    println("Use an analysis environment with CairoMakie installed to render figures.")
+    exit(0)
+end
 module CriterionCollapseFiguresExample
 using BayesianMGMFRM,CairoMakie
 const C=BayesianMGMFRM.Experimental.CriterionCollapse

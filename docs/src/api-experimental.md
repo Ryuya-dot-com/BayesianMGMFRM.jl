@@ -1,9 +1,9 @@
 # Experimental Model API
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
 
 These entries describe the callable experimental model types and functions.
 Their availability does not establish scientific support beyond the documented
@@ -45,7 +45,7 @@ BayesianMGMFRM.Experimental.cached_fit
 
 ## Joint ratings
 
-Local candidate; see the [workflow guide](joint-ratings.md).
+Experimental model included in this snapshot; see the [workflow guide](joint-ratings.md).
 
 ```@docs
 BayesianMGMFRM.Experimental.JointRatings

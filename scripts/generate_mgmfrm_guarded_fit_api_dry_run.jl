@@ -118,121 +118,20 @@ function package_record()
     )
 end
 
-function parse_json_string_literal(chars::Vector{Char}, index::Int)
-    chars[index] == '"' || error("expected JSON string at character $index")
-    io = IOBuffer()
-    escaped = false
-    index += 1
-    while index <= length(chars)
-        char = chars[index]
-        if escaped
-            if char == '"' || char == '\\' || char == '/'
-                print(io, char)
-            elseif char == 'n'
-                print(io, '\n')
-            elseif char == 'r'
-                print(io, '\r')
-            elseif char == 't'
-                print(io, '\t')
-            else
-                error("unsupported JSON escape sequence \\$char")
-            end
-            escaped = false
-        elseif char == '\\'
-            escaped = true
-        elseif char == '"'
-            return String(take!(io)), index + 1
-        else
-            print(io, char)
-        end
-        index += 1
-    end
-    error("unterminated JSON string")
-end
-
-function skip_ws(chars::Vector{Char}, index::Int)
-    while index <= length(chars) && chars[index] in (' ', '\n', '\r', '\t')
-        index += 1
-    end
-    return index
-end
-
-function json_value_end(chars::Vector{Char}, index::Int)
-    if chars[index] == '"'
-        _, next_index = parse_json_string_literal(chars, index)
-        return next_index - 1
-    end
-    depth = 0
-    in_string = false
-    escaped = false
-    while index <= length(chars)
-        char = chars[index]
-        if in_string
-            if escaped
-                escaped = false
-            elseif char == '\\'
-                escaped = true
-            elseif char == '"'
-                in_string = false
-            end
-        elseif char == '"'
-            in_string = true
-        elseif char == '{' || char == '['
-            depth += 1
-        elseif char == '}' || char == ']'
-            depth == 0 && return index - 1
-            depth -= 1
-        elseif char == ',' && depth == 0
-            return index - 1
-        end
-        index += 1
-    end
-    return length(chars)
-end
-
-function json_value_span(text::AbstractString, key::AbstractString)
-    chars = collect(text)
-    index = skip_ws(chars, 1)
-    chars[index] == '{' || error("expected JSON object")
-    index += 1
-    while index <= length(chars)
-        index = skip_ws(chars, index)
-        index > length(chars) && break
-        chars[index] == '}' && break
-        parsed_key, index = parse_json_string_literal(chars, index)
-        index = skip_ws(chars, index)
-        chars[index] == ':' || error("expected ':' after JSON key $parsed_key")
-        index = skip_ws(chars, index + 1)
-        value_start = index
-        value_stop = json_value_end(chars, value_start)
-        parsed_key == key && return value_start:value_stop
-        index = skip_ws(chars, value_stop + 1)
-        if index <= length(chars) && chars[index] == ','
-            index += 1
-        end
-    end
-    return nothing
-end
+include(joinpath(@__DIR__, "review_json.jl"))
+using .ReviewJSON: json_value_for_key
 
 function json_string(text::AbstractString, key::AbstractString)
-    span = json_value_span(text, key)
-    span === nothing && return ""
-    value = strip(String(text[span]))
+    value = json_value_for_key(text, key)
+    value === nothing && return ""
     startswith(value, "\"") || return value
-    parsed, _ = parse_json_string_literal(collect(value), firstindex(value))
-    return parsed
+    return ReviewJSON.json_string(text, key)
 end
 
-function json_summary(text::AbstractString)
-    span = json_value_span(text, "summary")
-    span === nothing && return nothing
-    return String(text[span])
-end
+json_summary(text::AbstractString) = json_value_for_key(text, "summary")
 
 function json_optional_bool(text::AbstractString, key::AbstractString)
-    span = json_value_span(text, key)
-    span === nothing && return missing
-    value = strip(String(text[span]))
+    value = json_value_for_key(text, key)
     value == "true" && return true
     value == "false" && return false
     return missing

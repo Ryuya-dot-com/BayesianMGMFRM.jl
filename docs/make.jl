@@ -50,24 +50,32 @@ makedocs(;
     format = Documenter.HTML(;
         edit_link = nothing,
         repolink = "https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl",
-        # Shared navigation counts toward page size; retain an early warning.
-        size_threshold = 128 * 2^10,
+        # Shared navigation and multi-method API help count toward size.
+        # Current largest reference is 129.3 KiB; retain the 100 KiB warning.
+        size_threshold = 144 * 2^10,
         size_threshold_warn = 100 * 2^10,
     ),
     pagesonly = true,
     pages = [
         "Home" => "index.md",
-        "Getting Started and Workflow" => [
-            "Getting Started" => "learning-guide.md",
+        "Start Here" => [
+            "Your First Rating Analysis" => "first-analysis.md",
+            "Installation" => "installation.md",
+        ],
+        "Task Guides" => [
             "Bayesian Workflow" => "bayesian-workflow.md",
-            "Examples" => "examples.md",
+            "Task Recipes" => "examples.md",
             "Data Validation" => "data-validation.md",
             "Bayesian Fitting" => "fitting.md",
+            "Custom Stan Adapter & Handoffs" => "stan-adapter.md",
+            "Frequentist 1D JMLE & MMLE" => "frequentist-mfrm.md",
             "Reading Results and Comparing Models" => "interpreting-results.md",
             "Visualization Gallery" => "visualization-gallery.md",
+            "Migrating from Stan and brms" => "migration-stan-brms.md",
             "Migrating from FACETS and ConQuest" => "migration-facets-conquest.md",
         ],
         "Model Guides and Theory" => [
+            "Facets and Model Choices" => "learning-guide.md",
             "How Rating Models Work" => "rating-model-theory.md",
             "Model Equations" => "model-equations.md",
             "Expected Scores and Information" => "score-information.md",
@@ -78,6 +86,16 @@ makedocs(;
         "Experimental Model Extensions" => [
             "Experimental Models Overview" => "experimental.md",
             "User-Named Additive Facets" => "additive-facets.md",
+            "Explain Ratings and Rater Severity" => "explanatory-ratings.md",
+            "Analyze Bounded Scores" => "bounded-scores.md",
+            "Analyze Correct Counts" => "count-scores.md",
+        "Random slopes" => "random-slopes.md",
+        "Distributional scores" => "distributional-scores.md",
+            "Mixed-Outcome Speaking Models" => "mixed-outcomes.md",
+            "Repeated Performances" => "repeated-performances.md",
+            "Person-by-Testlet Dependence" => "person-testlet.md",
+            "Check Explanatory Models" => "explanatory-diagnostics.md",
+            "Compare Criterion Effects" => "criterion-effects.md",
             "Correlations among Three Traits" => "correlated-3d.md",
             "Shared-response Joint Ratings" => "joint-ratings.md",
             "Paired Ordinal Association" => "ordinal-association.md",

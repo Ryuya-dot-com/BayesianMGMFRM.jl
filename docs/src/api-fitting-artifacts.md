@@ -1,9 +1,14 @@
 # Fitting and Artifact API
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
+
+This reference assumes a prepared specification or an existing fit. Start with
+[the fitting guide](fitting.md) for a complete route. “No fitting” means no MCMC;
+it does not by itself rule out random prior/predictive generation. Preserve whole
+joint rows and their original chain/iteration order for uncertainty and MCSE.
 
 ## Stable fitting and shared artifacts
 
@@ -137,8 +142,9 @@ fits, select a smaller set of exact parameter names or explicitly increase
 
 ## Experimental model-scale summaries
 
-Use this qualified function for transformed GMFRM/MGMFRM parameters.
-`posterior_summary` retains its raw-coordinate meaning for those fits.
+Use `posterior_summary(fit; scale=:model)` or the qualified function below for
+transformed GMFRM/MGMFRM parameters. The default `posterior_summary(fit)` retains
+its raw-coordinate meaning for those fits; always label the requested scale.
 
 ```@docs
 BayesianMGMFRM.direct_posterior_summary
@@ -215,9 +221,8 @@ print(delta.mean(), np.quantile(delta, [0.025, 0.975]))
 Check that the intended IDs exist and read the diagnostic/MCSE information
 before interpreting the interval. Differences, predictions and decision
 probabilities must be computed row by row; subtracting interval endpoints or
-independently sorting/resampling columns destroys joint uncertainty. Sorting
-rows within each chain is legitimate only if every parameter and its row index
-move together. Preserve iteration order when computing autocorrelation or MCSE.
+independently sorting/resampling columns destroys joint uncertainty. Keep original chain/iteration order for autocorrelation and MCSE; do not
+sort draws for reporting. Derived quantities must retain the same joint row pairing.
 Fixed reference effects are constants, not missing sampled columns; follow the
 saved constraints when a requested contrast includes one.
 

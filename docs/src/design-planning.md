@@ -1,5 +1,11 @@
 # Plan a Rating Study
 
+**First pass:** prepare one score-free allocation, inspect its model and prior,
+and follow the fixed-truth workflow for one explicitly planned job. Generation
+and fitting are separate calls. The later SBC and relocation sections are
+research/recovery references; they are not prerequisites for inspecting a design.
+A saved study can be reviewed without rerunning it.
+
 Suppose three raters will assess speeches, and you can afford 72 ratings.
 Should all three raters assess a few common speakers, or should pairs of raters
 share more speakers? Equal numbers of ratings need not provide equal information:
@@ -180,8 +186,8 @@ P.review(plan, outcome.ledger)
 
 A failed stage retains its kind/reason and is terminal. An interrupted process
 may leave a `:started` checkpoint without a final outcome. Inspect the latest
-readable checkpoint and any partial artifact; neither state is permission to
-retry, regenerate data or continue an interrupted chain. Existing directories
+readable checkpoint and any partial artifact. This executor does not retry
+failed stages, regenerate their data or continue interrupted chains. Existing directories
 are refused. All-one-category responses are saved before fitting rejects them,
 so they remain failed planned outcomes rather than being silently redrawn.
 If storage fails, the failure record itself may be unavailable; keep the partial

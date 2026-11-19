@@ -28,7 +28,7 @@ function checks(directory)
         R.run_job(plan,record,dataset;through,output_dir=joinpath(directory,output))
     end
     @testset "Explicit recovery execution: no generation or MCMC" begin
-        @test Base.Docs.doc(R.run_job)!==nothing
+        @test BayesianMGMFRM._binding_doc(R,:run_job)!==nothing
         @test R.fit_keywords(plan,first(plan.jobs)).seed==first(plan.jobs).fit_seed
         @test !haskey(R.fit_keywords(plan,first(plan.jobs)),:algorithm)
         @test !haskey(R.fit_keywords(plan,first(plan.jobs)),:gradient_backend)

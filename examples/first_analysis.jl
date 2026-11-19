@@ -111,7 +111,7 @@ function main(args=String[]; output_parent="results/first_analysis")
     fitted = isempty(args) ? fit(prepared.spec; prior=prepared.prior, prepared.controls...) : load_fit_cache(args[2])
     cache = joinpath(out,"fit.jls")
     save_fit_cache(cache,fitted)
-    println("Saved fit: ",abspath(cache))
+    println("Saved fit: ",isabspath(output_parent) ? abspath(cache) : normpath(cache))
     flush(stdout)
     answer = result(fitted, prepared)
     restored = load_fit_cache(cache)
@@ -125,7 +125,7 @@ function main(args=String[]; output_parent="results/first_analysis")
     end
     JSON3.read(read(json_path,String)).mean == answer.mean || error("Saved JSON answer differs.")
     print_result(stdout,answer)
-    println("Saved fit.jls, answer.txt and answer.json in ",abspath(out))
+    println("Saved fit.jls, answer.txt and answer.json in ",isabspath(output_parent) ? abspath(out) : normpath(out))
     return (; directory=out, answer)
 end
 

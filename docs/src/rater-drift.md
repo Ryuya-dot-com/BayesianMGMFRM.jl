@@ -1,5 +1,10 @@
 # Rater Drift: Fitting, Static Comparison and Saved Results
 
+Choose your entry: construct and inspect a time-linked design; call `prepare`
+and `fit` to estimate it; or use `load_report` to read an already computed result.
+Only the fitting route starts MCMC. Keep the same performance identity when
+linking time points; a new performance from the same person is a different object.
+
 Did a judge become harsher when judging the same performances over time?
 `BayesianMGMFRM.Experimental.RaterDrift` checks a scalar random-walk (RW1)
 rating design, fits RW1 and matched static models, and reviews their saved reports. It preserves the

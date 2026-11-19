@@ -6,11 +6,18 @@ exact source revision, Julia version and complete dependency environment with
 an analysis. The [supported scope](scope.md) describes model/prior/backend
 combinations; an experimental interface remains experimental after publication.
 
+The source archive and manual in this distribution share snapshot name
+`20261119-distribution-ci-freeze`; the package remains `0.1.2 (unreleased)`. Preserve the
+archive and its separate SHA-256 receipt. The archive includes the supplied
+computed result and figures, but excludes the developer's `Manifest.toml` and
+private working results. Your own analysis project records its resolved
+dependencies; it does not inherit the original native-fit environment.
+
 ## Pin an analysis environment
 
 Use a separate Julia project for an analysis and preserve its `Project.toml`
 and `Manifest.toml`. For a development version, also record the Git revision.
-The [installation instructions](index.md#Install-this-development-preview)
+The [installation instructions](installation.md)
 identify the source described by this manual. Do not infer the available methods from the
 version number alone.
 
@@ -50,9 +57,9 @@ Then:
 ```julia
 using BayesianMGMFRM
 # The legacy MFRM category section also generates replicated ratings.
-legacy_options = fit isa MFRMFit ?
+legacy_options = fit_result isa MFRMFit ?
     (; include_category_functioning=false, include_rater_homogeneity=false) : (;)
-report = fit_report(fit; legacy_options...,
+report = fit_report(fit_result; legacy_options...,
     include_prior_predictive=false,
     include_posterior_predictive=false,
     on_section_error=:throw)

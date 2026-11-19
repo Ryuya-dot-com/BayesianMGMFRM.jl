@@ -11,7 +11,11 @@ loglikelihood(t::_TIC.AssociationTarget,q::AbstractVector{<:Real})=sum(_TIC.poin
 pointwise_loglikelihood(t::_TIC.AssociationTarget,q::AbstractVector{<:Real})=_TIC.pointwise(t,q)
 design_summary(t::_TIC.AssociationTarget)=merge(design_summary(t.base),
     (;free_parameters=LogDensityProblems.dimension(t),association=:plackett))
-parameter_names(t::_TIC.AssociationTarget)=vcat(parameter_names(t.base),"ac_log_psi")
+function parameter_names(t::_TIC.AssociationTarget; scale::Symbol = :raw)
+    scale === :raw && return _TICW.raw_names(t)
+    scale === :model && return _TICW.model_values(t, _TIC.initial(t)).names
+    throw(ArgumentError("scale must be :raw or :model"))
+end
 stan_data(t::_TIC.AssociationTarget)=_TIC.stan_data(t)
 _save_report(path::AbstractString,t::_TIC.AssociationTarget)=_TIC.save_model(path,t)
 prepare_fit(t::_TIC.AssociationTarget;kwargs...)=_TICW.prepare(t;kwargs...)

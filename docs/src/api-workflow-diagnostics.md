@@ -1,9 +1,16 @@
 # Workflow and Diagnostics API
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
+
+Use `diagnostics`/`qualify` for numerical computation, `contrast` for a substantive
+difference, and `predictive_check` for model-implied replicated ratings.
+These answer different questions. `category_functioning_summary` also generates
+replicated responses; `category_report` instead summarizes expected probabilities
+without predictive RNG. See [Reading Results](interpreting-results.md) before
+interpreting flags or choosing among the detailed references below.
 
 ```@docs
 diagnostics
@@ -25,6 +32,11 @@ loo_refit_comparison
 loo_refit_plan
 kfold
 kfold_diagnostics
+```
+
+## Refitted prediction and comparison
+
+```@docs
 kfold_plan
 kfold_plan_diagnostics
 kfold_refit
@@ -35,6 +47,12 @@ sensitivity_comparison
 sensitivity_comparison_summary
 kfold_sensitivity_comparison
 prior_likelihood_sensitivity
+```
+
+## Prior and posterior prediction
+
+```@docs
+predict
 posterior_predict
 posterior_predictive_check
 prior_predict
@@ -46,6 +64,11 @@ expected_scores
 predictive_variances
 predictive_residuals
 predictive_standardized_residuals
+```
+
+## Residual association and calibration
+
+```@docs
 local_dependence_contract
 local_dependence_summary
 calibration_table
@@ -62,6 +85,11 @@ residual_summary
 fit_stats
 facets_report
 facets_compatibility_stats
+```
+
+## Shared summary and decision operations
+
+```@docs
 qualify
 facet_summary
 category_summary

@@ -1,9 +1,16 @@
 # Experimental Models
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
+
+**Choose the model before its controls.** Use [additive facets](additive-facets.md)
+for additional scalar main effects; the fixed-coefficient sections here for
+separate traits; [joint ratings](joint-ratings.md) for shared-response effects;
+and [star association](star-association.md) for mixed-support event association.
+[Scope](scope.md) lists the admitted combinations. The sections below are separate
+recipes: their specifications, priors and saved results are not interchangeable.
 
 `BayesianMGMFRM.Experimental` contains multidimensional MFRM and generalized models executable
 only in the limited configurations documented below. They are not part of the
@@ -21,6 +28,10 @@ and `Experimental.fit` connect three bounded experimental routes:
 and [Star-Factorized Multi-Criterion Association](star-association.md) (`Experimental.StarAssociation`).
 For two-study 9/9/2 ratings with a binary exact-match indicator, see
 [Concurrent Three-Outcome Study](concurrent-three-outcome.md) (`Experimental.ThreeIndicator`).
+For heterogeneous speaking and performance events mixing ordinal, bounded
+`[lo, hi]` slider, and correct-count outcomes (including partial-outcome
+missingness, matrix-driven owner loadings, and new-owner prediction), see
+[Mixed-Outcome Speaking Models](mixed-outcomes.md) (`mfrm_spec(...; outcomes = ...)`).
 
 For scalar rater-mechanism and longitudinal extensions, see
 [Group Differences in Rater Severity](rater-group-effects.md) (`Experimental.RaterGroupEffects`),
@@ -208,10 +219,9 @@ Explicit prediction calls continue to return the requested observation and
 category arrays; those outputs can still be large. This memory change does not
 alter the model, prior, sampling accuracy, cache format or precision criteria.
 
-**Local candidate:** `Experimental.MeanProfilePrior` adds explicit fixed means
+**Experimental option:** `Experimental.MeanProfilePrior` adds explicit fixed means
 on the independent D1, item-owned PCM route with item slopes and rater
-consistency both fixed at one. This option is not in the published
-`fe523ff8f50c6f0d1b3ba57263731e9c80a3422f` preview. Other models retain their
+consistency both fixed at one. This snapshot includes the option. Other models retain their
 existing priors; this is neither a scalar MFRM prior replacement nor a learned
 population distribution.
 
@@ -283,8 +293,8 @@ artificial model without starting a sampler.
 
 Keep model choices, prior assumptions, computational controls and prediction
 targets explicit. The current interfaces accept ordinary keyword arguments;
-the common prediction and recovery APIs remain an isolated candidate, not a new universal
-configuration object. The following separates choices that change the target
+the common prediction and recovery APIs are included, with model-specific support;
+they do not provide a universal configuration object. The following separates choices that change the target
 from choices that control computation or presentation.
 
 | Choice | Current entry and meaning | What to check |
@@ -706,12 +716,14 @@ sensitivity_fit = BayesianMGMFRM.Experimental.fit(spec;
 )
 ```
 
-The same resolved scale values enter experimental fit-cache keys. Direct-scale
-generalized priors remain unsupported because they would require a separately
-specified transform and change-of-variables policy. The prior-predictive result
+The same resolved scale values enter experimental fit-cache keys. This
+`GeneralizedPrior` route does not accept arbitrary direct-scale priors; those
+would require an explicit transform and change-of-variables policy. The separate
+normalized/profile priors retain their own documented measure. The prior-predictive result
 contains raw and constrained direct parameter draws, replicated scores, and
-implication diagnostics. Use it before fitting, then use actual refits—not only
-importance reweighting—to assess posterior sensitivity.
+implication diagnostics. Use it before fitting. For posterior sensitivity,
+[check which reweighting or saved-fit comparison route applies](prior-sensitivity.md).
+A reweighting result with unreliable weights does not replace a qualified alternative fit.
 
 For independent MGMFRM, the ability-scale row in `diagnostics` and `fit_report` records
 the actual `person_sd` in `row.prior.sd`; `fit_artifact` also exposes it as
@@ -1261,3 +1273,13 @@ priors and callable functions. The model explanations and examples remain above.
 ## Correlations among three traits
 
 Use the separate [Correlated3D workflow](correlated-3d.md) for its declared three-dimensional pure-Q domain. Its normalized priors and unit marginal scales differ from the existing 2D wrappers; changing a dimension label does not select it.
+
+For repeated performances with changing predictors, see
+[between-person and within-person explanation](repeated-performances.md). For
+scalar unit-slope person-by-testlet cluster dependence, matched zero-variance
+comparators, and new-cluster prediction, see
+[Person-by-Testlet Dependence](person-testlet.md).
+
+For explicit scalar criterion-specific coefficients and binary/ordinal supports,
+see [Compare Criterion Effects](criterion-effects.md). This retains unit loadings
+and conditional independence given the declared shared effects.

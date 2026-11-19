@@ -15,7 +15,11 @@ function ordinal_association_saved(sample_path, output_path)
     return report
 end
 
-if abspath(PROGRAM_FILE)==@__FILE__
+if abspath(PROGRAM_FILE)==abspath(@__FILE__)
+    if isempty(ARGS) || ARGS==["--help"]
+        println("Usage: julia --project=. examples/ordinal_association_saved.jl trusted-sample.jls new-report.json")
+        exit(0)
+    end
     length(ARGS)==2 || error("Usage: julia ordinal_association_saved.jl trusted-sample.jls new-report.json")
     report=ordinal_association_saved(ARGS...)
     println("Saved ",length(report.result.posterior)," named summaries; inspect all diagnostics, MCSE and warnings.")

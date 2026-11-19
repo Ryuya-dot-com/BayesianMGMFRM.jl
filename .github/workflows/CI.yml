@@ -25,6 +25,9 @@ jobs:
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.julia }}
+      - name: Clear legacy libopenlibm executable-stack flag on glibc 2.41+
+        if: runner.os == 'Linux' && matrix.julia == '1.10.8'
+        run: python3 scripts/clear_elf_execstack.py --julia-bindir "$(dirname "$(which julia)")"
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - name: Check summaries, figure data, contrasts and cache reload
@@ -81,6 +84,8 @@ jobs:
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1.10.8'
+      - name: Clear legacy libopenlibm executable-stack flag on glibc 2.41+
+        run: python3 scripts/clear_elf_execstack.py --julia-bindir "$(dirname "$(which julia)")"
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
@@ -208,6 +213,8 @@ jobs:
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1.10.8'
+      - name: Clear legacy libopenlibm executable-stack flag on glibc 2.41+
+        run: python3 scripts/clear_elf_execstack.py --julia-bindir "$(dirname "$(which julia)")"
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - name: Test the experimental 2D free-correlation contract and bounded diagnostic smoke
@@ -227,8 +234,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check local POSIX measurement guard
-        run: python3 scripts/measure_command.py --self-test
+      - name: Check local POSIX measurement and ELF execstack guards
+        run: |
+          python3 scripts/measure_command.py --self-test
+          python3 scripts/clear_elf_execstack.py --self-test
       - name: Check compressed source archive budget
         shell: bash
         run: |
@@ -245,4 +254,4 @@ jobs:
         run: julia --startup-file=no scripts/distribution_archive_smoke.jl
       - name: Run release hygiene gate
         run: |
-          julia --startup-file=no scripts/pre_registration_gate.jl --skip-tests --skip-docs --expected-version=0.1.2
+          julia --startup-file=no scripts/check_release.jl --skip-tests --skip-docs --expected-version=0.1.2

@@ -120,6 +120,7 @@ const _ROOT_API_STABLE_BINDINGS = Tuple(sort!(Symbol[
     :pointwise_loglikelihood,
     :pointwise_loglikelihood_matrix,
     :posterior_mcse,
+    :predict,
     :posterior_predict,
     :posterior_predictive_check,
     :posterior_summary,

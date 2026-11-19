@@ -1,12 +1,20 @@
 # Long-Format Data and Pre-Fit Validation
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+!!! note "Development manual"
+    Use the [matching source and installation instructions](installation.md).
+    This manual describes a development snapshot, not an accepted stable release.
+    Model support and scientific acceptance remain as stated on each page.
 
-`BayesianMGMFRM.jl` starts from long-format rating data: one row per rating
-event. The data and validation layer is intentionally sampler-free. Its purpose
+**Start with the scalar case:** one row records one observed score on one
+criterion/item, from one rater, for one person. Several criterion scores for the
+same rating event occupy several rows and need explicit shared-event IDs in a
+joint model. First check IDs, score order and missing rows; add group/bias or Q
+settings only if your question needs them. Connectivity means links through
+shared observations; rank checks whether declared effects can be distinguished
+in the specified design. Neither alone guarantees precise estimates.
+
+`BayesianMGMFRM.jl` starts from long-format rating data: one row per observed
+criterion score. The data and validation layer is intentionally sampler-free. Its purpose
 is to make common weak or non-estimable many-facet design patterns visible
 before a sampler is called.
 
@@ -17,7 +25,6 @@ ratings = (
     examinee = ["E1", "E1", "E1", "E1", "E2", "E2", "E2", "E2"],
     rater = ["R1", "R2", "R1", "R2", "R1", "R2", "R1", "R2"],
     item = ["I1", "I1", "I2", "I2", "I1", "I1", "I2", "I2"],
-    group = ["A", "A", "B", "B", "B", "B", "A", "A"],
     score = [0, 1, 2, 0, 1, 2, 0, 2],
 )
 
@@ -27,10 +34,9 @@ data = FacetData(ratings;
     item = :item,
     score = :score,
     category_levels = 0:2,
-    group = :group,
 )
 
-validation = validate_design(data; bias = [(:rater, :group)])
+validation = validate_design(data)
 validation.passed || error(validation)
 spec = mfrm_spec(data; thresholds = :partial_credit, validation_report = validation)
 ```
@@ -107,7 +113,7 @@ text so numeric inference cannot merge them. If a spreadsheet has already
 removed the zeros before export, the import cannot recover them. Check the
 source IDs and their meanings before combining files.
 
-Install CSV.jl in the [separate analysis project](index.md#Install-this-development-preview).
+Install CSV.jl in the [separate analysis project](installation.md).
 The recipe was checked with CSV.jl 0.10.16; to use the same parser version, run
 `import Pkg; Pkg.add(name="CSV", version="0.10.16")` once in that project.
 CSV.jl is an optional import tool, not a dependency added to the model package.
@@ -157,6 +163,19 @@ error was found, not that your sample size, dimensional structure or precision
 is adequate. Adding a year, group or task column to a CSV does not automatically
 estimate that effect. Use an explicitly supported model and role mapping;
 shared performances need [response and criterion identities](joint-ratings.md).
+
+### Continue with a scalar specification
+
+For one ability dimension and item-specific category steps, continue with your
+validated data. This constructs the specification without fitting:
+
+```julia
+spec = mfrm_spec(data; thresholds=:partial_credit, validation_report=validation)
+design_summary(spec)
+```
+
+Then choose/check a prior and follow [the scalar fitting example](fitting.md#Supported-MFRM/RSM/PCM-Fit).
+The next section is an alternative for a substantively two-dimensional question.
 
 ### Continue with your own two-dimensional specification
 

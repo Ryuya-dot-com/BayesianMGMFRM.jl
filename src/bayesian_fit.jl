@@ -16,6 +16,18 @@ import QuadGK
 
 const LOG2PI_BAYES = log(2 * pi)
 
+function _ensure_docs_doc_loaded()
+    if isempty(methods(Base.Docs.doc))
+        Base.require(Base.PkgId(Base.UUID("3fa0cd96-eef1-5676-8a61-b3b8758bbffb"), "REPL"))
+    end
+    return nothing
+end
+
+function _binding_doc(mod::Module, name::Symbol)
+    _ensure_docs_doc_loaded()
+    return Base.invokelatest(Base.Docs.doc, Base.Docs.Binding(mod, name))
+end
+
 """
     MFRMPrior(; person_sd = 1.5, rater_sd = 1.0, item_sd = 1.0, step_sd = 1.0)
 
@@ -1234,6 +1246,111 @@ function _check_nuts_controls(target_accept::Real, max_depth::Int,
     return accept, energy_error, jitter
 end
 
+function _stan_nuts_alias_help_note(alias_name::Symbol, canonical_name::Symbol, value, caller::AbstractString; backend::Union{Nothing,Symbol} = nothing)
+    backend_hint = backend === :julia ?
+        " Note: `backend = :julia` runs random-walk Metropolis; select `backend = :advancedhmc` or `:cmdstan` for NUTS." : ""
+    return "`$(alias_name) = $(value)` accepted as a Stan/brms alias for `$(canonical_name)` in `$(caller)`. " *
+        "Use `$(canonical_name)` directly; see `?BayesianMGMFRM.fit` (or `?BayesianMGMFRM.StanAdapter.fit_stan`) " *
+        "and the Stan/brms migration guide for `target_accept` / `max_depth` help and model-specific defaults." * backend_hint
+end
+
+function _resolve_stan_nuts_aliases(;
+        target_accept::Union{Nothing,Real} = nothing,
+        adapt_delta::Union{Nothing,Real} = nothing,
+        default_target_accept::Real,
+        max_depth::Union{Nothing,Int} = nothing,
+        max_treedepth::Union{Nothing,Int} = nothing,
+        default_max_depth::Int,
+        caller::AbstractString = "fit",
+        backend::Union{Nothing,Symbol} = nothing,
+        emit_info::Bool = true)
+    (target_accept isa Bool || adapt_delta isa Bool) &&
+        throw(ArgumentError("`target_accept` (alias `adapt_delta`) must be a real number strictly in (0, 1); see `?BayesianMGMFRM.fit`"))
+    (max_depth isa Bool || max_treedepth isa Bool) &&
+        throw(ArgumentError("`max_depth` (alias `max_treedepth`) must be a positive integer; see `?BayesianMGMFRM.fit`"))
+    if target_accept !== nothing && adapt_delta !== nothing
+        throw(ArgumentError(
+            "cannot specify both `adapt_delta` and `target_accept` in $(caller); " *
+            "`adapt_delta` is a Stan/brms alias for canonical `target_accept` (see `?BayesianMGMFRM.fit`)"))
+    end
+    if max_depth !== nothing && max_treedepth !== nothing
+        throw(ArgumentError(
+            "cannot specify both `max_treedepth` and `max_depth` in $(caller); " *
+            "`max_treedepth` is a Stan/brms alias for canonical `max_depth` (see `?BayesianMGMFRM.fit`)"))
+    end
+    ta_val = something(target_accept, adapt_delta, default_target_accept)
+    md_val = Int(something(max_depth, max_treedepth, default_max_depth))
+    if adapt_delta !== nothing
+        ta_f = Float64(ta_val)
+        0.0 < ta_f < 1.0 || throw(ArgumentError(
+            "`adapt_delta` (alias for `target_accept`) must lie strictly in (0, 1) after Float64 conversion; see `?BayesianMGMFRM.fit`"))
+        emit_info && @info _stan_nuts_alias_help_note(:adapt_delta, :target_accept, ta_f, caller; backend)
+    end
+    if max_treedepth !== nothing
+        md_val >= 1 || throw(ArgumentError(
+            "`max_treedepth` (alias for `max_depth`) must be >= 1; see `?BayesianMGMFRM.fit`"))
+        emit_info && @info _stan_nuts_alias_help_note(:max_treedepth, :max_depth, md_val, caller; backend)
+    end
+    return ta_val, md_val
+end
+
+function _normalize_stan_nuts_kwargs(kwargs; caller::AbstractString = "fit", emit_info::Bool = true)
+    nt = (; kwargs...)
+    has_ad = haskey(nt, :adapt_delta)
+    has_mt = haskey(nt, :max_treedepth)
+    (has_ad || has_mt) || return nt
+    ad_v = has_ad ? nt[:adapt_delta] : nothing
+    mt_v = has_mt ? nt[:max_treedepth] : nothing
+    ta_v = haskey(nt, :target_accept) ? nt[:target_accept] : nothing
+    md_v = haskey(nt, :max_depth) ? nt[:max_depth] : nothing
+    mt_v !== nothing && !(mt_v isa Int) && !(mt_v isa Bool) &&
+        throw(TypeError(Symbol(caller), "keyword argument max_treedepth", Int, mt_v))
+    md_v !== nothing && !(md_v isa Int) && !(md_v isa Bool) &&
+        throw(TypeError(Symbol(caller), "keyword argument max_depth", Int, md_v))
+    backend = haskey(nt, :backend) && nt[:backend] isa Symbol ? nt[:backend] : nothing
+    ta_res, md_res = _resolve_stan_nuts_aliases(;
+        target_accept = ta_v,
+        adapt_delta = ad_v,
+        default_target_accept = 0.80,
+        max_depth = md_v isa Bool ? md_v : (md_v === nothing ? nothing : Int(md_v)),
+        max_treedepth = mt_v isa Bool ? mt_v : (mt_v === nothing ? nothing : Int(mt_v)),
+        default_max_depth = 10,
+        caller,
+        backend,
+        emit_info)
+    stripped = Base.structdiff(nt, (; adapt_delta = nothing, max_treedepth = nothing))
+    if has_ad && nt[:adapt_delta] !== nothing
+        stripped = merge(stripped, (; target_accept = ta_res))
+    end
+    if has_mt && nt[:max_treedepth] !== nothing
+        stripped = merge(stripped, (; max_depth = md_res))
+    end
+    return stripped
+end
+
+function _resolve_bfmi_alias(;
+        min_bfmi::Union{Nothing,Real} = nothing,
+        ebfmi_min::Union{Nothing,Real} = nothing,
+        bfmi_min::Union{Nothing,Real} = nothing,
+        default_min_bfmi::Float64 = 0.30,
+        caller::AbstractString = "qualify",
+        emit_info::Bool = true)
+    n_set = count(!isnothing, (min_bfmi, ebfmi_min, bfmi_min))
+    n_set <= 1 || throw(ArgumentError(
+        "specify at most one of `min_bfmi` (canonical), `ebfmi_min`, or `bfmi_min` in $(caller)"))
+    raw = something(min_bfmi, ebfmi_min, bfmi_min, default_min_bfmi)
+    raw isa Bool && throw(ArgumentError("min_bfmi must be a finite positive real number"))
+    val = Float64(raw)
+    isfinite(raw) && isfinite(val) && val > 0.0 ||
+        throw(ArgumentError("min_bfmi must be finite and positive"))
+    if emit_info && ebfmi_min !== nothing
+        @info "`ebfmi_min = $(val)` accepted as an alias for canonical `min_bfmi` in `$(caller)` (see `?BayesianMGMFRM.qualify`)."
+    elseif emit_info && bfmi_min !== nothing
+        @info "`bfmi_min = $(val)` accepted as an alias for canonical `min_bfmi` in `$(caller)` (see `?BayesianMGMFRM.qualify`)."
+    end
+    return val
+end
+
 """
     fit(spec_or_design; prior = MFRMPrior(), backend = :julia,
         ndraws = 1000, warmup = 1000, chains = 1, kwargs...)
@@ -1244,9 +1361,16 @@ the model/data description and sampling information.
 
 Choose `backend = :advancedhmc` for Julia NUTS or `:cmdstan` for CmdStan NUTS.
 The compatibility default `:julia` is random-walk Metropolis, not NUTS.
-`ndraws` and `warmup` are counts **per chain**. The default single chain is
-insufficient for between-chain convergence checks; request multiple chains
-and inspect diagnostics and numerical precision before interpreting results.
+`ndraws` and `warmup` are counts **per chain** (`ndraws` is post-warmup retained
+draws, matching `cmdstanr`'s `iter_sampling` rather than `rstan`/`brms` total `iter`).
+For NUTS backends, canonical tuning keywords are `target_accept` (default `0.80` on
+1D MFRM; `0.85` on `StarAssociation`; `0.90` on hierarchical/explanatory/ZOIB/StanAdapter
+routes) and `max_depth` (default `10`). Stan/brms names `adapt_delta` and
+`max_treedepth` are accepted as aliases (supplying both names for one control is
+an error) and emit an informational hint pointing to `target_accept` / `max_depth`.
+The default single chain is insufficient for between-chain convergence checks;
+request multiple chains and inspect `diagnostics` and `qualify` (including E-BFMI
+`min_bfmi = 0.30`) before interpreting results.
 
 # Examples
 
@@ -1284,7 +1408,7 @@ route and its model-specific priors and restrictions; see
 
 Fit a Bayesian MFRM with rating-scale or partial-credit thresholds using the selected
 backend. `backend = :julia` uses a random-walk Metropolis kernel,
-`backend = :advancedhmc` uses AdvancedHMC/NUTS directly, and
+`backend = :advancedhmc` uses AdvancedHMC/NUTS directly.
 The Turing backend is optional: install it in the analysis environment with
 `Pkg.add("Turing")`, then run `import Turing` before fitting. Core operations and
 saved result types do not require loading Turing.
@@ -1350,6 +1474,7 @@ Its RNG partition differs from the default `:serial` mode, whose stream is uncha
 Progress aggregates all chains. See the fitting guide for memory and backend limits.
 """
 function fit(design::FacetDesign;
+        method::Union{Nothing,Symbol} = nothing,
         prior::MFRMPrior = MFRMPrior(),
         backend::Symbol = :julia,
         ndraws::Int = 1000,
@@ -1359,8 +1484,10 @@ function fit(design::FacetDesign;
         init = nothing,
         rng::AbstractRNG = Random.default_rng(),
         seed = nothing,
-        target_accept::Real = 0.8,
-        max_depth::Int = 10,
+        target_accept::Union{Nothing,Real} = nothing,
+        adapt_delta::Union{Nothing,Real} = nothing,
+        max_depth::Union{Nothing,Int} = nothing,
+        max_treedepth::Union{Nothing,Int} = nothing,
         max_energy_error::Real = 1000.0,
         metric::Symbol = :diagonal,
         ad_backend::Symbol = :ForwardDiff,
@@ -1370,7 +1497,20 @@ function fit(design::FacetDesign;
         max_parallel_chains::Int = chains,
         cmdstan_path::Union{Nothing,AbstractString} = nothing,
         cmdstan_cache_dir::Union{Nothing,AbstractString} = nothing,
-        _on_enter = nothing)
+        _on_enter = nothing,
+        freq_kwargs...)
+    if method !== nothing
+        (target_accept === nothing && adapt_delta === nothing && max_depth === nothing && max_treedepth === nothing) ||
+            throw(ArgumentError("NUTS controls (`target_accept`/`adapt_delta`, `max_depth`/`max_treedepth`) do not apply to frequentist `method = $(repr(method))`"))
+        return FrequentistMFRM.fit(design; method, freq_kwargs...)
+    end
+    isempty(freq_kwargs) || throw(MethodError(fit, (design,)))
+    ta_resolved, md_resolved = _resolve_stan_nuts_aliases(;
+        target_accept, adapt_delta, default_target_accept = 0.8,
+        max_depth, max_treedepth, default_max_depth = 10,
+        caller = "fit", backend)
+    target_accept = ta_resolved
+    max_depth = md_resolved
     _check_sampling_progress(progress, backend)
     _check_chain_execution(chain_execution, max_parallel_chains, backend)
     # Private synchronous observation boundary; entry is not sampler startup.
@@ -4068,7 +4208,13 @@ function _fit_guarded_generalized(spec::FacetSpec;
     ))
 end
 
-function fit(spec::FacetSpec; experimental::Bool = false, kwargs...)
+function fit(spec::FacetSpec; experimental::Bool = false, method::Union{Nothing,Symbol} = nothing, kwargs...)
+    if method !== nothing
+        experimental && throw(ArgumentError("experimental = true applies to Bayesian generalized models, not frequentist method = $(repr(method))"))
+        any(k -> k in (:target_accept, :adapt_delta, :max_depth, :max_treedepth), keys(kwargs)) &&
+            throw(ArgumentError("NUTS controls (`target_accept`/`adapt_delta`, `max_depth`/`max_treedepth`) do not apply to frequentist `method = $(repr(method))`"))
+        return FrequentistMFRM.fit(spec; method, kwargs...)
+    end
     _reject_mfrm_fixed_q_fit(spec, "fit")
     experimental && return _fit_guarded_generalized(spec; kwargs...)
     return fit(getdesign(spec); kwargs...)
@@ -11537,7 +11683,8 @@ the optional `:orthogonal_person_mean_item_offset` computation. Omitting it or
 passing `:raw` retains the existing default key and model/prior identity.
 """
 function fit_cache_key(design::FacetDesign; kwargs...)
-    return _cache_hash(_fit_cache_request(design; kwargs...))
+    norm_kw = _normalize_stan_nuts_kwargs(kwargs; caller = "fit_cache_key", emit_info = false)
+    return _cache_hash(_fit_cache_request(design; norm_kw...))
 end
 
 function fit_cache_key(spec::FacetSpec; experimental::Bool = false, kwargs...)
@@ -11886,8 +12033,10 @@ function cached_fit(design::FacetDesign;
         init = nothing,
         rng::AbstractRNG = Random.default_rng(),
         seed = nothing,
-        target_accept::Real = 0.8,
-        max_depth::Int = 10,
+        target_accept::Union{Nothing,Real} = nothing,
+        adapt_delta::Union{Nothing,Real} = nothing,
+        max_depth::Union{Nothing,Int} = nothing,
+        max_treedepth::Union{Nothing,Int} = nothing,
         max_energy_error::Real = 1000.0,
         metric::Symbol = :diagonal,
         ad_backend::Symbol = :ForwardDiff,
@@ -11904,6 +12053,12 @@ function cached_fit(design::FacetDesign;
         artifact_split_chains::Bool = true,
         artifact_rhat_threshold::Real = 1.01,
         artifact_ess_threshold::Real = 400)
+    ta_resolved, md_resolved = _resolve_stan_nuts_aliases(;
+        target_accept, adapt_delta, default_target_accept = 0.8,
+        max_depth, max_treedepth, default_max_depth = 10,
+        caller = "cached_fit", backend)
+    target_accept = ta_resolved
+    max_depth = md_resolved
     path = _check_cache_path(cache_path)
     checked_prior = _fit_cache_prior(design, prior, experimental)
     key = fit_cache_key(design;
@@ -14728,8 +14883,10 @@ end
 
 Return observation-level LOO diagnostics. Rows include
 pointwise `lppd`, `p_loo`, `elpd_loo`, LOOIC contribution,
-importance-sampling effective sample size, a Hill-estimated `pareto_k`, and a
-flag for observations whose `pareto_k` exceeds `threshold`. When a
+importance-sampling effective sample size, `pareto_k`, and a
+flag for observations whose `pareto_k` exceeds `threshold`. The raw-IS route
+uses a Hill tail estimate; `psis_smoothing=true` uses standard PSIS and its
+fitted-tail estimate, with chain efficiency when supplied. When a
 `FacetDesign` or fit object is supplied, rows also include person, rater, item,
 score, category, and optional facet labels. Use `parameter_space = :raw` for
 raw GMFRM/MGMFRM preview-design draws. Set `psis_smoothing = true` to report
@@ -15316,6 +15473,15 @@ Event IDs align automatically, observed outcomes/supports must match, and the
 returned differences are primary minus baseline. The Star report retains its
 own event-level estimator and SE contract; see its `compare_models` help.
 
+For two explanatory held-performance reports from `criteria(fit; unit=:performance,
+integrate=...)`, pass named pairs and `criterion=:psis_loo`. Input order defines
+primary minus baseline, without ranking or model weights. Declare
+`independent_model_rng=true` only for independent original/refit sampling streams
+to report combined computational MCSE. Otherwise difference MCSE is unavailable.
+Observation/support/conditioning bindings and shared predictor values must match.
+Crossed-design population SE remains unavailable. Save the comparison and use
+`plot(report; kind=:comparison)` without refitting.
+
 Without `comparison_axis`, the legacy common-fit route compares WAIC
 (`criterion=:waic`), raw importance-sampling LOO (`:loo`) or the native
 standard PSIS (`:psis_loo`) using retained chain efficiency.
@@ -15352,10 +15518,27 @@ end
 
 function compare_models(models::Pair...;
         comparison_axis::Union{Nothing,Symbol} = nothing,
-        criterion::Symbol = :waic,
+        criterion::Union{Nothing,Symbol} = nothing,
         ndraws::Union{Nothing,Int} = nothing,
         draw_indices = nothing,
         rng::Union{Nothing,AbstractRNG} = nothing, kwargs...)
+    if !isempty(models) && any(p -> last(p) isa FrequentistMFRM.Fit, models)
+        ndraws === nothing && draw_indices === nothing && rng === nothing && comparison_axis === nothing ||
+            throw(ArgumentError("frequentist MMLE model comparison accepts no MCMC draw selection, RNG, or comparison_axis"))
+        crit_f = criterion === nothing ? :aic : criterion
+        return FrequentistMFRM.compare_mmle_models(collect(models); criterion = crit_f, kwargs...)
+    end
+    criterion = criterion === nothing ? :waic : criterion
+    if !isempty(models) && any(p->_explanatory_score_report(last(p)),models)
+        ndraws===nothing && draw_indices===nothing && rng===nothing ||
+            throw(ArgumentError("saved explanatory comparison accepts no draw selection or RNG"))
+        return _compare_explanatory_profiles(models;criterion,comparison_axis,kwargs...)
+    end
+    if !isempty(models) && any(p->last(p) isa NamedTuple && string(get(last(p),:kind,""))=="criterion_collapse_heldout_criteria",models)
+        ndraws===nothing && draw_indices===nothing && rng===nothing && comparison_axis===nothing ||
+            throw(ArgumentError("CriterionCollapse profile comparison accepts no draw selection, RNG, or comparison_axis"))
+        return _CC_MOD.compare_heldout_criteria(collect(models);criterion,kwargs...)
+    end
     if comparison_axis !== nothing
         ndraws===nothing && draw_indices===nothing || throw(ArgumentError(
             "observation-bound comparison requires all retained draws"))

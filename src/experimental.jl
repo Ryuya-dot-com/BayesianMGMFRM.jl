@@ -1090,36 +1090,37 @@ correlated specifications then return `ExchangeableMFRMFit`, with the same
 summary, report, plotting and manual cache operations.
 """
 function fit(spec; kwargs...)
-    mode = get(kwargs, :chain_execution, :serial)
-    getfield(_PACKAGE, :_check_chain_execution)(mode, get(kwargs, :max_parallel_chains, 1), get(kwargs, :backend, :advancedhmc))
+    norm_kw = getfield(_PACKAGE, :_normalize_stan_nuts_kwargs)(kwargs; caller = "Experimental.fit")
+    mode = get(norm_kw, :chain_execution, :serial)
+    getfield(_PACKAGE, :_check_chain_execution)(mode, get(norm_kw, :max_parallel_chains, 1), get(norm_kw, :backend, :advancedhmc))
     if mode === :threads && (spec isa CorrelatedMGMFRMSpec || spec isa CorrelatedMFRMSpec ||
             (spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)))
         throw(ArgumentError("threaded chains currently support scalar MFRM and shared independent generalized AdvancedHMC routes"))
     end
-    getfield(_PACKAGE, :_check_sampling_progress)(get(kwargs, :progress, false), get(kwargs, :backend, :advancedhmc))
-    _reject_legacy_keyword(kwargs, "Experimental.fit")
-    spec isa getfield(_PACKAGE, :_SlopeRestrictedSpec) && !(get(kwargs, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior}) &&
+    getfield(_PACKAGE, :_check_sampling_progress)(get(norm_kw, :progress, false), get(norm_kw, :backend, :advancedhmc))
+    _reject_legacy_keyword(norm_kw, "Experimental.fit")
+    spec isa getfield(_PACKAGE, :_SlopeRestrictedSpec) && !(get(norm_kw, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior}) &&
         throw(ArgumentError("slope_restriction requires an explicit NormalizedMGMFRMPrior"))
-    if get(kwargs, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior}
-        options = Base.structdiff((; kwargs...), (; prior=nothing))
-        return getfield(_PACKAGE, :_normalized_mgmfrm_fit)(spec, kwargs[:prior]; options...)
+    if get(norm_kw, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior}
+        options = Base.structdiff(norm_kw, (; prior=nothing))
+        return getfield(_PACKAGE, :_normalized_mgmfrm_fit)(spec, norm_kw[:prior]; options...)
     end
-    if haskey(kwargs, :sampling_coordinates) &&
+    if haskey(norm_kw, :sampling_coordinates) &&
             (spec isa CorrelatedMGMFRMSpec || spec isa CorrelatedMFRMSpec ||
                 (spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)))
         throw(ArgumentError("sampling_coordinates is available for independent fixed-Q MGMFRM only"))
     end
     if spec isa CorrelatedMGMFRMSpec
-        return getfield(_PACKAGE, :_mgmfrm_correlated_2d_fit)(spec; kwargs...)
+        return getfield(_PACKAGE, :_mgmfrm_correlated_2d_fit)(spec; norm_kw...)
     end
     if spec isa CorrelatedMFRMSpec
-        return getfield(_PACKAGE, :_mfrm_correlated_2d_fit)(spec; kwargs...)
+        return getfield(_PACKAGE, :_mfrm_correlated_2d_fit)(spec; norm_kw...)
     end
     if spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)
-        return getfield(_PACKAGE, :_mfrm_fixed_q_fit)(spec; kwargs...)
+        return getfield(_PACKAGE, :_mfrm_fixed_q_fit)(spec; norm_kw...)
     end
     checked = _require_generalized_spec(spec, "Experimental.fit")
-    return getfield(_PACKAGE, :_fit_guarded_generalized)(checked; kwargs...)
+    return getfield(_PACKAGE, :_fit_guarded_generalized)(checked; norm_kw...)
 end
 
 """
@@ -1130,15 +1131,16 @@ The namespace records the experimental identity and selects the generalized
 backend unless the backend is overridden explicitly.
 """
 function fit_cache_key(spec; backend::Symbol = :advancedhmc, kwargs...)
-    get(kwargs, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior} && throw(ArgumentError(
+    norm_kw = getfield(_PACKAGE, :_normalize_stan_nuts_kwargs)(kwargs; caller = "Experimental.fit_cache_key", emit_info = false)
+    get(norm_kw, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior} && throw(ArgumentError(
         "normalized MGMFRM requires fit followed by save_fit_cache/load_fit_cache; automatic request caching is unavailable"))
     checked = _require_generalized_spec(spec, "Experimental.fit_cache_key")
-    _reject_legacy_keyword(kwargs, "Experimental.fit_cache_key")
+    _reject_legacy_keyword(norm_kw, "Experimental.fit_cache_key")
     return getfield(_PACKAGE, :fit_cache_key)(
         checked;
         experimental = true,
         backend,
-        kwargs...,
+        norm_kw...,
     )
 end
 
@@ -1150,15 +1152,16 @@ keeping its experimental identity explicit in the cache contract. The
 generalized backend is selected by default.
 """
 function cached_fit(spec; backend::Symbol = :advancedhmc, kwargs...)
-    get(kwargs, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior} && throw(ArgumentError(
+    norm_kw = getfield(_PACKAGE, :_normalize_stan_nuts_kwargs)(kwargs; caller = "Experimental.cached_fit")
+    get(norm_kw, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior} && throw(ArgumentError(
         "normalized MGMFRM requires fit followed by save_fit_cache/load_fit_cache; automatic request caching is unavailable"))
     checked = _require_generalized_spec(spec, "Experimental.cached_fit")
-    _reject_legacy_keyword(kwargs, "Experimental.cached_fit")
+    _reject_legacy_keyword(norm_kw, "Experimental.cached_fit")
     return getfield(_PACKAGE, :cached_fit)(
         checked;
         experimental = true,
         backend,
-        kwargs...,
+        norm_kw...,
     )
 end
 

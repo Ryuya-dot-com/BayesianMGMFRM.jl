@@ -142,7 +142,12 @@ Controls: `target_accept=.9`, `max_depth=10`, `step_size=.03`, `init_jitter=.1`,
 identity and warnings. No automatic retry, extension, cache lookup or acceptance.
 """
 function fit(target::Target;ndraws::Int,warmup::Int,chains::Int,seed,
-        target_accept=.9,max_depth=10,step_size=.03,init_jitter=.1,metric=:diagonal,progress=false)
+        target_accept::Union{Nothing,Real}=nothing,adapt_delta::Union{Nothing,Real}=nothing,
+        max_depth::Union{Nothing,Int}=nothing,max_treedepth::Union{Nothing,Int}=nothing,
+        step_size=.03,init_jitter=.1,metric=:diagonal,progress=false)
+    ta_res,md_res=B._resolve_stan_nuts_aliases(;target_accept,adapt_delta,default_target_accept=.9,
+        max_depth,max_treedepth,default_max_depth=10,caller="fit",backend=:advancedhmc)
+    target_accept=ta_res;max_depth=md_res
     t=canonical(target);seed=checked_seed(seed)
     run=B._run_generalized_candidate_advancedhmc(SamplingTarget(t),initial(t);ndraws,warmup,chains,seed,
         target_accept,max_depth,step_size,init_jitter,metric,progress,ad_backend=:ForwardDiff,record_warmup=true)

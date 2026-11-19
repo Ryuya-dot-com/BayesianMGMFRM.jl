@@ -1,6 +1,265 @@
 # BayesianMGMFRM.jl release notes
 
+
+
 ## 0.1.2 (unreleased)
+
+- Separated lightweight installable package archive contents (`git archive`
+  `<= 5,242,880` bytes via `.gitattributes` `export-ignore`) from rendered
+  documentation gallery figures, narrative report archives, and opt-in
+  `BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS` study JSONs while keeping all package
+  and extension code, runnable examples, manual Markdown sources, and ordinary
+  test fixtures intact; resolved Julia `1.13+` `Base.Docs.doc` lookup when `REPL`
+  is not auto-loaded (`Docs.Binding` + on-demand `REPL` stdlib loading) and added
+  deterministic ELF `PT_GNU_STACK` `PF_X` clearing (`scripts/clear_elf_execstack.py`)
+  for Julia `1.10.8` `libopenlibm.so` on Ubuntu 26.04 / glibc `2.41+`.
+
+- Added the specialist reference guide `docs/src/migration-stan-brms.md`
+  (*Migrating from Stan and brms: Controls, Defaults, and Diagnostics*), cross-linked
+  from `index.md`, `fitting.md`, `stan-adapter.md`, and `migration-facets-conquest.md`,
+  and accepted Stan/`brms` sampler-control aliases `adapt_delta` (for `target_accept`)
+  and `max_treedepth` (for `max_depth`) across Bayesian `fit`, `cached_fit`,
+  `fit_cache_key`, `prepare_fit`, and `StanAdapter.fit_stan` (plus `ebfmi_min` /
+  `bfmi_min` for `min_bfmi` on `qualify`) with conflict checks and interactive `@info`
+  guidance pointing to `target_accept` / `max_depth` help.
+
+- The Layer-1 practitioner and Layer-2 Glass-Box `model × operation` surface
+  (`ModelOperationMatrix.audit()`), portable joint-draw handoff schema
+  (`BayesianMGMFRM.PortableHandoff`, `"bayesianmgmfrm.portable_joint_draws_handoff.v1"`),
+  and explicit-role custom Stan post-estimation adapter (`BayesianMGMFRM.StanAdapter`)
+  are now aligned and frozen: `StanAdapter.fit_stan` and `StanAdapter.import_csv`
+  connect user-authored `.stan` programs and CmdStan `.csv` chains to `diagnostics`,
+  `qualify`, `posterior_summary`, `posterior_mcse`, `facet_summary`, `contrast`,
+  `ranking`, `reliability`, `classification`, `waic`, `psis_loo`, `criteria`,
+  `compare_models`, `prior_sensitivity`, `BayesianMGMFRM.plot`, `save_fit` / `load_fit`,
+  and `save_report` / `load_report` without arbitrary `.stan` syntax parsing or
+  implicit variable guessing; `PortableHandoff.export_handoff` preserves bit-exact
+  IEEE-754 `Float64` `chain × iteration × parameter` draws, NUTS telemetry, optional
+  `log_lik` and `log_prior` arrays, and SHA-256 receipts (`expected_sha256` required
+  on `load_report`); and unsupported `model × operation` combinations raise
+  deterministic `ArgumentError` guidance while keeping all root exports unchanged.
+
+- Non-Bayesian 1D RSM and PCM estimation via Joint Maximum Likelihood
+  (`fit(spec; method = :jmle, ...)`) and Marginal Maximum Likelihood
+  (`fit(spec; method = :mmle, ...)`) is now available across both standard 3-facet
+  `FacetSpec` (`person`, `rater`, `item`) and general user-named $F$-facet
+  `mfrm_spec` (including prior-free `mfrm_spec` without `prior_sd`), providing
+  exact constrained observed-information SEs (via block Schur complement in JMLE
+  and exact marginal-log-likelihood Hessian in MMLE) alongside FACETS-compatible
+  diagonal `conditional_se` (`ModelSE`) and `real_se`, `EAP`/`WLE`/`MLE` person
+  scoring, Wright & Masters (1982) FACETS degrees of freedom and Wilson–Hilferty
+  `Infit`/`Outfit` `MNSQ`/`ZSTD`, MMLE `AIC`/`BIC` `compare_models`, and
+  `BayesianMGMFRM.plot` (`:posterior`, `:wright`, `:pathway`, `:comparison`),
+  verified against `mfrmr 0.3.0`, `mfrmpy 0.2.0`, and `ConQuest 5.47.5`.
+
+- `Experimental.CriterionCollapse` now completes its Layer-1 practitioner and
+  Layer-2 Glass-Box lifecycle surface: `loo_refit_plan` builds finite-panel-prior-preserving
+  training-posterior `MaskedTarget` refits (`model = :mixture` or `:all_ordinary`)
+  accepted by `criteria(...; refits = [...], independent_refit_rng = true)` and
+  covariance-preserving mixed-provenance `compare_models(...; criterion = :loo)`,
+  two-report `compare_models("A" => c1, "B" => c2; criterion = :loo)` compares
+  held-profile criteria across prior or model variants, `posterior_predictive_check`,
+  `fit_report`, `validate_design`, `getdesign`, `contract`, `initial_params`, and
+  `parameter_names` dispatch uniformly, row-wise `waic`/`psis_loo` raise explicit
+  persistent-class guidance, and `BayesianMGMFRM.plot` renders `:posterior`,
+  `:predictive`, and `:comparison` figures directly from saved reports.
+
+- Scalar unit-slope person-by-testlet cluster residuals ($u_{p, d} \sim \mathcal{N}(0, \sigma_u^2)$)
+  reuse the `mfrm_spec` explanatory population and performance workflow
+  (`performance = :person_testlet`, `population = (person_testlet = ...,)`), with
+  exact zero-variance (`0.0`) matched no-testlet comparators under held-cluster
+  Gauss–Hermite scoring (`criteria(...; unit = :performance, integrate = :person_testlet)`)
+  and `mode = :new_owners` population-integrated predictions for new clusters or
+  new people on `ExplanatoryTarget`.
+
+- `mfrm_spec(...; outcomes = ...)` now connects mixed-family multi-outcome
+  speaking and performance designs (`:ordinal`, `:zero_one_inflated_beta`,
+  `:binomial`, and `:beta_binomial`) with partial-outcome `missing` masks,
+  matrix-driven 1D or correlated (`LKJ(D, eta)`) owner factors and fixed or
+  estimated loadings, streamed analytic gradients, CmdStan `2.39.0` target/gradient
+  parity, joint within-event paired predictive checks (`paired_cells`),
+  held-performance Gauss–Hermite latent integration, scientific prior powers,
+  and distinct `mode = :known_owners` versus `mode = :new_owners` population-integrated
+  prediction (also extended to scalar bounded and count population targets),
+  while keeping explicit architectural boundaries with `Concurrent` and
+  `StarAssociation`.
+
+- Scalar ZOIB and correct/total (`binomial`/`beta-binomial`) population blocks
+  now accept one or more declared mean random slopes per named owner with
+  explicit `LKJ(K + 1, eta)` Cholesky correlation or `0` independence, grouped
+  `O(N)` Frobenius covariance-Gram screening, per-owner ZOIB endpoint-sparsity
+  warnings, and `max(m, n) * eps()` tall-matrix rank tolerances, while preserving
+  exact single-slope saved-result schemas and records.
+
+- Scalar ZOIB `logdensity_and_gradient` now evaluates precompiled concrete
+  location, random-slope and distributional predictor/residual blocks in place,
+  eliminating per-observation dictionary and array allocations while preserving
+  exact target densities, scientific priors, Jacobians and saved-result schemas.
+
+- Maintainer commands use `check_release.jl` and
+  `print_registration_handoff.jl`; the old paths delegate to those entries.
+  Help and invalid arguments need no project dependencies, including the smoke,
+  language and metadata commands. Handoff drafts use
+  installed dependencies, current metadata/notes and this source tree's own
+  Git context, without project activation, dependency installation or publication.
+
+- Research review scripts share JSON3-backed readers, including escaped Unicode
+  and control characters. Current prediction-adapter checks use the package
+  implementation; the retired prototype script remains in historical snapshots.
+  Shared lifecycle checks run in their assigned test shards instead of all six.
+
+- Scalar ZOIB observation-prior blocks now accept named-owner/response predictors
+  and independent population intercepts for log precision, endpoint logits and
+  conditional-upper logits. Mean random slopes can coexist. `predict` adds
+  selected distribution parameters and score SDs; shared plots, scientific prior
+  powers, comparison and save/reopen retain their interpretations. Conditional
+  information warnings distinguish interior and endpoint observation subsets.
+  Cross-parameter covariance and mixed outcomes remain separate.
+
+- Scalar ZOIB population blocks can declare one correlated intercept/predictor
+  slope per named owner, with explicit SD and LKJ priors. The common diagnostics,
+  prediction, scientific prior powers and saved-result workflow retain these
+  blocks. Random rate slopes are distinct from rater discrimination; other
+  families and new-owner integration remain separate.
+- The common `contrast` entry accepts scalar additive/explanatory fits, including
+  a ZOIB common coefficient minus its matching facet slope in joint draws.
+- Softplus now preserves its derivative at exactly zero under automatic
+  differentiation, with unchanged mathematical values and analytic gradients.
+- Bounded prior/posterior predictive checks retain numerically unrepresentable
+  beta replications as failures, without clipping or replacement. Incomplete
+  reports explicitly condition displayed intervals on represented replications;
+  they cannot establish adequacy for the full predictive distribution.
+
+
+- Experimental correct/total observations now use the shared scalar workflow:
+  binomial and beta-binomial, explicit integer trials, denominator-aware prior/PPC
+  and count/proportion predictions, prior-factor sensitivity and known-owner
+  rating-wise comparison. Generic population designs are shared with ZOIB; no
+  random slopes, new-owner prediction or joint-family coverage is implied.
+
+- Experimental scalar ZOIB observations now compose explicit owner regressions,
+  population random intercepts and within/between predictors through `mfrm_spec`.
+  `predict` reports original-unit total/interior means and endpoint probabilities.
+  Shared prior/PPC, diagnostic traces, prior-factor sensitivity, known-owner
+  rating-wise comparison and saved-report plotting preserve their declared limits.
+  This is not arbitrary mixed-response support or the full author ZOIB model.
+
+
+- `criteria` now scores joint held-performance predictions for scalar explanatory
+  models with one explicitly named iid performance facet. `loo_refit_plan`
+  preserves the observed predictor roster/common priors for selective refits;
+  supplied saved refits are checked before replacing unreliable PSIS terms.
+- `compare_models`, `plot(...; kind=:comparison)`, `save_report` and `load_report`
+  preserve paired differences, computational MCSE, diagnostics and refit provenance.
+  Crossed-design population SE, automatic ranking and new-owner prediction are
+  not supplied. The guide includes an inconclusive saved artificial comparison.
+
+
+- Explanatory fits now expose scientific prior factors and saved-draw power
+  sensitivity, with selective hyperprior perturbation, PSIS reliability, mean
+  precision, known-row/linear estimands, common plots and portable reports.
+  This prior-only operation does not establish global robustness or model comparison.
+
+- Integrate additive/explanatory prior-check reports, selected retained-chain
+  traces and known-owner category-probability plots with the shared plot/save/load
+  workflow. Preserve prior/PPC labels, chain order, structural zeros, uncertainty
+  targets and numerical/model warnings. Existing fitted targets are unchanged.
+
+- Add a repeated-performance worked example with separate experience moderation
+  of between-person and within-person rate associations. Joint posterior slope
+  and difference figures can be redrawn from supplied reports; the existing
+  model, fitting API and defaults are unchanged.
+
+- Additive/explanatory figure captions summarize recognized rating-pattern
+  warnings by type and count while preserving individual records in reports.
+  Numerical/model warnings and legacy/unknown messages remain visible.
+
+### Local successor: outcome warnings and CrI reference colors
+
+- Additive/explanatory design validation and new fit/PPC reports now retain
+  named unused-category and constant-score warnings without deleting data or
+  changing numerical qualification. Fit emits a review warning.
+- Additive/explanatory posterior plots accept optional `reference` and
+  `interval_colors` for inclusive CrI containment, with a legend and marker
+  shapes; fixed values and predictive intervals remain distinct.
+
+### Local successor: criterion-owned explanation
+
+- Extend `predictors.response` with same-source coefficients by a user-named
+  facet, preserving units for joint posterior contrasts and known-owner prediction.
+- Accept declared category supports by the steps facet, including binary/ordinal
+  mixtures. Preserve local normalization, binary fixed steps and structural zeros;
+  separate posterior predictive counts and raw-score means by support.
+- Retain shared lifecycle verbs and old design records. Add a small artificial
+  example, independent mixed-support Stan reference and a focused guide. This
+  remains an experimental scalar composition, not general calibration or halo.
+
+### Local successor: repeated-performance explanation
+
+- Add explicit `decompose` declarations to `mfrm_spec`: equal unique-performance
+  person means and within-person deviations, preserving source units and training
+  transformations in records and known-performance prediction.
+- Allow performance metadata to share a declared facet column. Compare same-source
+  between/within coefficients with a joint posterior contrast. Keep unrelated
+  coefficient-unit comparisons, changed stored attributes and new performances refused.
+- Add a small fitted repeated-performance example and posterior/PPC figures.
+  Experimental: this is not detrending, causal inference or general recovery.
+
+### Local successor: scalar explanatory ratings
+
+- Extend table-based `mfrm_spec` with owner-declared Normal mean predictors,
+  response covariates and fixed/LogNormal iid population residual SDs. Preserve
+  the finite sum-zero route and distinguish population severity from Patz HRM.
+- Share analytic NUTS, summaries/MCSE, known-owner prediction and native/portable
+  saving. Add named-additive posterior predictive checks and posterior/PPC plots,
+  including redraw from computed reports without estimation or simulation.
+- Supply a small artificial speaking example and a focused guide. This remains
+  experimental: finite Stan density/gradient checks and a bounded fitting pilot
+  do not establish general recovery, calibration or practical model acceptance.
+
+### Development distribution `20261109-first-analysis`
+
+- Make one first-analysis tutorial the common README/manual entry, following
+  the supplied ratings through estimation, uncertainty, diagnostics, PPC and saving.
+- Shorten entry pages and move installation and model-selection detail out of
+  the first lesson. Preserve detailed recipes and existing section destinations.
+- Reuse the same teaching data, priors, fitted results and figures; no numerical
+  implementation or public API changes.
+
+### Development distribution `20261109-beginner-guide`
+
+- Read and revise the manual page by page for a first-time reader: installation,
+  supplied fitted-result figures, own-data validation and explicit fitting stages.
+- Reconcile model/operation scope, sampler defaults, saved-report prediction
+  behavior and source help; move agreement interpretation back to its own section.
+- Use the integrated common prediction adapter in its example. Model equations,
+  priors, numerical kernels, sample schemas and saved scientific assets are unchanged.
+
+
+### Development distribution `20261109-visualization`
+
+- Align the source archive, installation instructions, manual and saved-result
+  examples under one snapshot identifier. No model, prior, sampler or schema
+  change is introduced by assembling this distribution.
+- Add a supplied first-analysis result/figure walkthrough: one recorded scalar
+  fit, matching uncertainty and diagnostics, explicit posterior PPC, and verified
+  portable reopening without fitting. Reference numbers identify that run.
+
+### Concurrent figures from saved reports
+
+- Extend `BayesianMGMFRM.plot` to saved Concurrent posterior-PPC counts/joint
+  residuals and focal contrast/ENG profile reports. The adapter preserves source
+  identities, reference definitions, unavailable precision and full-report warnings.
+  `return_data=true` supplies compact numerical data for the existing
+  `save_report`/`load_report` route. Redraw needs no native chains, fitting or new
+  predictive outcomes. This route is included in snapshot `20261109-visualization`.
+
+### Visualization entry and source identity
+
+- Repair gallery destinations, add the existing ridge illustration's reading
+  guide, and document the implemented Pathway call and model/report boundaries.
+  Remove stale October preview banners and identify the source matching each
+  guide. The entry repair itself changes no existing figure, model or schema.
 
 ### Documentation and entry-point organization
 
@@ -8,7 +267,7 @@
   sections with a self-contained Quick Start output preview, a verified
   bring-your-own-table snippet, a software comparison table (`FACETS`,
   `ACER ConQuest`, `R (TAM / mirt)`, `brms / CmdStan`), a 5-minute Julia
-  beginner's guide, an embedded 2×2 visualization gallery covering all 12
+  beginner's guide, an embedded 2×2 visualization preview and an overview of the 12
   `BayesianMGMFRM.plot(x; kind = ...)` modes, a Glass-Box API summary, and a
   manuscript reporting checklist with an illustrative Methods and Results
   template. No model, prior, sampler or saved-result schema changes.

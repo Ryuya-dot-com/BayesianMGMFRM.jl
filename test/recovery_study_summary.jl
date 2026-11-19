@@ -61,7 +61,7 @@ function checks(directory)
         dataset_independence=UNKNOWN,max_interval_widths=Dict("rater[R2]"=>1.2),
         width_confidence_level=.95,kwargs...)
     @testset "Saved fixed-truth study: full roster and bindings" begin
-        @test Base.Docs.doc(P.summarize_recovery)!==nothing
+        @test BayesianMGMFRM._binding_doc(P,:summarize_recovery)!==nothing
         @test P.contract().fixed_truth_study_summary
         initial=P.ledger(plan)
         empty=summarize(initial)

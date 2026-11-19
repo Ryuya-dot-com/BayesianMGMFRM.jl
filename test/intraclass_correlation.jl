@@ -95,7 +95,7 @@ function finite_checks()
         @test ismissing(truth.icc) ? ismissing(result.icc) : isapprox(result.icc,Float64(truth.icc);atol=1e-12)
         @test ismissing(truth.raw_ratio) ? ismissing(result.raw_ratio) : isapprox(result.raw_ratio,Float64(truth.raw_ratio);atol=1e-12)
     end
-    @test Base.Docs.doc(B.intraclass_correlation)!==nothing
+    @test B._binding_doc(B,:intraclass_correlation)!==nothing
     @test :intraclass_correlation ∉ names(B)
 end
 end

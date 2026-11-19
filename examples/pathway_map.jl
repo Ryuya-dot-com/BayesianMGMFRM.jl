@@ -1,3 +1,8 @@
+if abspath(PROGRAM_FILE) == abspath(@__FILE__) && (isempty(ARGS) || ARGS == ["--help"] || Base.find_package("CairoMakie") === nothing)
+    println("Usage: julia --project=. examples/pathway_map.jl FIT_CACHE OUTPUT.svg")
+    println("Use an analysis environment with CairoMakie installed to render figures.")
+    exit(0)
+end
 using BayesianMGMFRM, CairoMakie
 
 # The qualified package API is also available directly, without including this file.

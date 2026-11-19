@@ -78,9 +78,7 @@ end
 end
 
 @testset "CmdStan observer preserves failed output before temporary cleanup" begin
-    if Sys.iswindows()
-        @test_skip false # This subprocess fixture uses the POSIX shell.
-    else
+    if !Sys.iswindows() # This subprocess fixture uses the POSIX shell.
     mktempdir() do dir
         executable=joinpath(dir,"fake-cmdstan")
         # A deliberately failing subprocess writes partial files. This tests

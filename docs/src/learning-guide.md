@@ -1,29 +1,13 @@
-# Getting Started with Many-Facet Measurement
+# Understanding Facets and Model Choices
 
-!!! note "Unreleased documentation preview — 13 October 2026"
-    This manual includes unreleased interfaces and examples. It is not the
-    documentation of an installed release. Model support and scientific
-    acceptance remain as stated on each page.
+Use this chapter when choosing a model for your own study. For a complete
+first example, start with [Your First Rating Analysis](first-analysis.md).
+The explanations below cover design, references, dimensions and supported
+model choices; they are not prerequisites for reading that tutorial.
 
-See the [Visualization Gallery](visualization-gallery.md) for Wright Maps,
-Pathway Maps and MGMFRM response surfaces with worked reading guidance.
-
-When several raters score people's work, a low score can have several explanations:
-the performance was weaker, the task was harder, or the rater was more severe.
-Many-facet models describe these influences together. They estimate differences
-and their uncertainty under explicit assumptions about the ratings and their design.
-
-This guide is for readers who can interpret a table of scores but are new to
-many-facet models or Bayesian analysis. Start here to choose a question and
-understand the data. Continue to [How Rating Models Work](rating-model-theory.md)
-for a worked probability calculation, then [Reading Results and Comparing
-Models](interpreting-results.md) for interpretation. Julia is needed for running
-the examples, but not for reading the explanations.
-
-Before running an analysis, check the [available model and prior routes](scope.md#Current-Support)
-and [what their current evidence permits](scope.md#current-scientific-evidence).
-An implemented function and a scientifically supported conclusion are separate
-milestones; the guide identifies both.
+When several judges score a performance, a low score can reflect ability, task
+difficulty or rater severity. A many-facet model describes these influences
+together and estimates their differences under stated assumptions.
 
 ## Start with a concrete question
 
@@ -70,8 +54,10 @@ The public rating workflow uses `person`, `item` and `rater` as model roles.
 Metadata such as `task` or `occasion` preserve information but do **not** add
 task difficulty, change over time or shared-response dependence to the likelihood.
 Likewise, joining task and criterion labels into an item ID does not separately
-estimate their two effects. A general fitted five-facet composition is not yet
-available through the public API; see [the support boundary](scope.md#Current-Support).
+estimate their two effects. The experimental [additive-facets workflow](additive-facets.md)
+can estimate user-named scalar main effects, including more than five facets.
+It does not combine arbitrary interactions, multidimensionality and time processes;
+check [the support boundary](scope.md#Current-Support) for the chosen model.
 
 Why does assignment matter? If task A occurs only at the first occasion and
 task B only at the second, a score difference can be attributed to task or
@@ -309,7 +295,7 @@ between-item models and the restricted three-dimensional pure-Q model
 structures or four or more correlated dimensions are not supported.
 
 The prediction and model-comparison functions described in this manual are
-development interfaces not yet included in a registered release. Their presence
+development interfaces described for this snapshot. Their presence
 does not establish that any model is scientifically preferable. Read
 [Scope and Releases](scope.md) for the exact restrictions and use documentation
 matching your installed revision.
@@ -321,50 +307,23 @@ seed does not establish that those ingredients match.
 
 ## Follow one complete analysis path
 
-1. **State the quantity of interest.** For example, the ability difference
-   between P1 and P2 in communication, with a scientifically meaningful scale.
-2. **Validate the ratings and their design.** Inspect category use, facet
-   coverage, links, missingness and shared responses.
-3. **Specify the model and priors.** Check what each parameter means, how the
-   origin and units are defined, and what simulated ratings from the prior look like.
-4. **Fit and inspect computation.** Use multiple chains and review diagnostics
-   and Monte Carlo error for the quantities you intend to report.
-5. **Examine the substantive answer.** Read uncertainty intervals, predictive
-   checks and sensitivity results. Use held-out predictions when the question
-   concerns predictive performance.
-6. **Save and reproduce the result.** Save the fitted object, model specification,
-   data provenance and analysis environment; regenerate summaries and figures
-   from the saved fit.
+[Your First Rating Analysis](first-analysis.md) follows one supplied dataset
+from the question through fitting, figures and saving. For the individual
+function calls or your own analysis, use the [Bayesian Workflow](bayesian-workflow.md).
 
-To try data checking and model specification first, without sampling or writing
-files, use the [Inspect Data Without Fitting](examples.md#Inspect-Data-Without-Fitting)
-example. Then follow the [first MFRM analysis](examples.md#First-MFRM-analysis),
-which answers one question using 72 supplied artificial ratings. With this
-checkout's dependencies installed, run from its root:
-
-```sh
-julia --project=. examples/first_analysis.jl
-```
-
-The worked result has an estimated R2−R1 severity difference of about 0.180
-logit and a 90% interval from −0.511 to 0.889. Positive values mean greater
-severity for R2. The interval spans both directions, so these ratings do not
-clearly establish which rater is more severe. That is an answer with uncertainty,
-not a software failure or proof that the raters are equivalent.
-
-The example checks computation before giving that interpretation, saves a
-plain-English answer and the fitted model, and reloads them. Its four chains
-and explicit priors reproduce the documented teaching setup; the walkthrough
-explains their meaning and how to inspect the saved result without refitting.
-The [Bayesian Workflow](bayesian-workflow.md) covers the additional checks needed
-for your own study, including prior implications and sensitivity.
-
-## [New to Julia? A 5-Minute Guide for R, Python, and FACETS Users](@id julia-for-beginners)
+## [New to Julia? A Practical Guide for R, Python, and FACETS Users](@id julia-for-beginners)
 
 You do not need prior Julia programming experience to run a many-facet analysis
-in `BayesianMGMFRM.jl`. The four short notes below cover everything required to
-read the examples, adapt them to your own rating data, and avoid first-time
-pitfalls.
+in `BayesianMGMFRM.jl`. These notes explain the syntax and project setup used in
+the examples. Statistical model choices still require the accompanying guides.
+Install Julia first, then follow the matching source-installation block on the
+[home page](installation.md).
+
+Run `julia` in your system terminal to obtain the `julia>` prompt (the REPL).
+Paste `julia` code blocks there, without the prompt, or save them in a `.jl` script.
+Run `sh` blocks in the system terminal, not at `julia>`. `pwd()` prints Julia's
+working directory. `Pkg.activate` selects package dependencies; it does **not**
+change that working directory. Replace placeholder paths with your actual paths.
 
 ### 1. Project environments and starting Julia (`--project`)
 
@@ -387,7 +346,7 @@ whether you work interactively or run a script:
 julia --project=my-rating-study my_analysis.jl
 ```
 
-### 2. Essential Julia syntax in 60 seconds
+### 2. Essential Julia syntax
 
 | Concept | In R / Python / FACETS | In Julia (`BayesianMGMFRM.jl`) | Why it looks this way |
 | --- | --- | --- | --- |
@@ -397,7 +356,7 @@ julia --project=my-rating-study my_analysis.jl
 | **Input rating tables** | `data.frame` / `pandas.DataFrame` / FACETS `Data=` | Any column-addressable table (`DataFrame`, `Dict`, or a `NamedTuple` of column vectors `(; examinee=[...], rater=[...], item=[...], score=[...])`) | `FacetData` reads columns by `:symbol` name (`table.col`, `table[!, :col]`, or `table[:col]`). Small examples use built-in `(; examinee=["P1", ...], ...)` column tuples so they run with zero extra dependencies. |
 | **Running a script file** | `source("script.R")` | `include("script.jl")` | Evaluates the file in your active Julia session. |
 
-### [Use Julia help and examples](@id Use-Julia-help-and-examples)
+### [3. Use Julia help and examples](@id Use-Julia-help-and-examples)
 
 Julia has built-in help for functions, types and modules. From the repository
 root, start an interactive session with `julia --project=.` and load the package:
@@ -458,7 +417,8 @@ with BayesianMGMFRM loaded.
 1. **First-call compilation time ("time-to-first-fit"):**
    Julia compiles functions to machine code the first time they are called in a
    new session. The first call to `fit` or `BayesianMGMFRM.plot` therefore
-   includes several seconds of compilation overhead; subsequent calls in the
+   can include seconds to minutes of compilation overhead, depending on the
+   operation and environment; subsequent calls in the
    same session run at compiled speed.
 2. **Always specify `backend = :advancedhmc` and `chains = 4` for substantive fits:**
    Calling bare `fit(spec)` without keywords selects `backend = :julia`

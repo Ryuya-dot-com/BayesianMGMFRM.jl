@@ -334,7 +334,7 @@ function check_samples(target, backend, directory; record_warmup = true)
     @test_throws ArgumentError B._mfrm_fixed_q_predictive_check(bad_chains)
     @test_throws MethodError B._mfrm_fixed_q_predictive_check(result; dimension = 1)
     @test_throws ArgumentError("expected a prior_predictive_check result") B.plot_predictive(result)
-    @test_throws MethodError posterior_predictive_check(result)
+    @test_throws ArgumentError posterior_predictive_check(result)
     options = (; posterior_interval = 0.8, predictive_interval = 0.8,
         seed = 42, draw_indices = [24, 1, 24, 2], require_complete = true)
     report = B._mfrm_fixed_q_report(result; options...)

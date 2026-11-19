@@ -47,7 +47,7 @@ Check scalar rater-step PCM input on a full regular RW1 grid. Each row supplies
 `score` in `0:categories-1`. Declare all possible categories, including unused
 ones. Omit missing ratings; zero is an observed category. Each scoring event
 has its own ID. A repeated performance ID means the same performance/recording,
-not merely the same contestant, task or judge. Repeated recordings can link years.
+not merely the same contestant, task or judge. Re-rating the same stored recordings can link years.
 
 `time` matches a declared `time_labels` entry. Integer ticks advance by one
 declared unit, retaining unrated bins. Unequal observation gaps are represented

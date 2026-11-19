@@ -322,6 +322,7 @@ function qualify(
     rhat_max::Union{Nothing,Real} = nothing,
     ess_min::Union{Nothing,Real} = nothing,
     ebfmi_min::Union{Nothing,Real} = nothing,
+    bfmi_min::Union{Nothing,Real} = nothing,
     mean_mcse_max::Real = 0.01,
     endpoint_mcse_max::Real = 0.02,
     check_transformed::Bool = true,
@@ -329,7 +330,10 @@ function qualify(
 )
     rh_m = _qualification_control(max_rhat, rhat_max, 1.01, :max_rhat, :rhat_max; lower=1.0)
     es_m = _qualification_control(min_ess, ess_min, 400.0, :min_ess, :ess_min)
-    eb_m = _qualification_control(min_bfmi, ebfmi_min, 0.3, :min_bfmi, :ebfmi_min)
+    count(!isnothing, (min_bfmi, ebfmi_min, bfmi_min)) <= 1 ||
+        throw(ArgumentError("specify at most one of `min_bfmi`, `ebfmi_min`, or `bfmi_min`"))
+    eb_alias = something(ebfmi_min, bfmi_min, Some(nothing))
+    eb_m = _qualification_control(min_bfmi, eb_alias, 0.3, :min_bfmi, bfmi_min !== nothing ? :bfmi_min : :ebfmi_min)
     mm_m = _qualification_control(mean_mcse_max, nothing, 0.01, :mean_mcse_max, nothing)
     em_m = _qualification_control(endpoint_mcse_max, nothing, 0.02, :endpoint_mcse_max, nothing)
     chunk_size >= 16 || throw(ArgumentError("chunk_size >= 16 required"))

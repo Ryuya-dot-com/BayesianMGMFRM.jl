@@ -1,0 +1,20 @@
+Is R2 more severe than R1?
+Artificial ratings: 72; people: 12; items: 4; raters: 3.
+Positive values mean that R2 is more severe than R1, after accounting for persons and items.
+Numerical checks: passed
+Posterior mean: 0.166 logit; 90% interval: [-0.495, 0.84].
+The 90% interval includes zero: these ratings do not give a clear direction for the R2-R1 severity difference under this model and prior. This does not show that the raters are equivalent.
+MCSE (logit): mean=0.006667736406181759; interval endpoints=0.01315431399051431, 0.012023117769974223.
+Illustrative MCSE limits (logit): mean <= 0.01; each endpoint <= 0.02. These are not scientific effect-size thresholds.
+Retained-draw diagnostics: ok; maximum R-hat=1.0026058184095603; minimum bulk/tail ESS=3306.0467819030678/2649.0954171159615.
+Sampler diagnostics for retained draws (per chain):
+  Chain 1: divergences=0; maximum-depth hits=0; nonfinite log densities=0; E-BFMI=1.024283139026736; flag=ok.
+  Chain 2: divergences=0; maximum-depth hits=0; nonfinite log densities=0; E-BFMI=0.9287163482404558; flag=ok.
+  Chain 3: divergences=0; maximum-depth hits=0; nonfinite log densities=0; E-BFMI=1.0697438039190632; flag=ok.
+  Chain 4: divergences=0; maximum-depth hits=0; nonfinite log densities=0; E-BFMI=1.0126819695019982; flag=ok.
+Warmup diagnostics (separate from retained draws; no warmup pass/fail rule):
+  Chain 1: coverage=recorded; recorded/expected iterations=1000/1000; divergences=4; maximum-depth hits=0; nonfinite log densities=0.
+  Chain 2: coverage=recorded; recorded/expected iterations=1000/1000; divergences=4; maximum-depth hits=0; nonfinite log densities=0.
+  Chain 3: coverage=recorded; recorded/expected iterations=1000/1000; divergences=5; maximum-depth hits=0; nonfinite log densities=0.
+  Chain 4: coverage=recorded; recorded/expected iterations=1000/1000; divergences=3; maximum-depth hits=0; nonfinite log densities=0.
+Unavailable telemetry is not zero. Passing these numerical checks does not establish model adequacy or interval calibration.

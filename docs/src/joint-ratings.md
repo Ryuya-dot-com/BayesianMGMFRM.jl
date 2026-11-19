@@ -1,5 +1,11 @@
 # Shared-response Joint Ratings
 
+**Required input:** your actual long-format `rows`, explicit criterion metadata
+and prior settings. A response identifies one production; a rating event identifies
+one rater's assessment of it. The example constructs a model first; its `fit` call
+starts MCMC. Shared verbs such as `load_fit` and `posterior_summary` dispatch to
+this model's reader and report functions.
+
 Use `BayesianMGMFRM.Experimental.JointRatings` when two criteria assess the same
 produced response and their dependence matters. For example, a learner answers
 a task, two raters assess that recording, and each assesses accuracy and fluency.
@@ -7,9 +13,9 @@ The learner, physical task, recording, rating event and criterion have different
 roles. A second recording of the same learner answering the same task is a new
 response, not a new person or task.
 
-!!! warning "Local experimental candidate"
-    This interface is available in this candidate, not the published preview or
-    a stable release. Packaging does not establish scientific acceptance.
+!!! warning "Experimental model"
+    This interface is included in this development snapshot, not an accepted
+    stable release. Packaging does not establish scientific acceptance.
     Existing short saved fits remain unqualified. A four-category new-response
     score also retains unresolved quadrature order agreement. Inspect the
     source diagnostics and numerical qualification flags before interpretation.
@@ -48,13 +54,14 @@ parameters.result.model_diagnostics
 parameters.result.mcse
 parameters.result.sampler
 
-save_report("joint-parameters.json", parameters)
-reopened = JSON3.read(read("joint-parameters.json", String)).data
+receipt = save_report("joint-parameters.json", parameters; return_receipt=true)
+reopened = load_report(receipt.path; expected_sha256=receipt.sha256)
 reopened.result.sampler
 ```
 
-These are JointRatings-specific records and reports. Use `J.load_result` and
-`J.report`; the common `load_fit_cache` and `fit_report` recipes for the other
+These are JointRatings-specific records and reports. Shared `load_fit` and
+`posterior_summary` call the corresponding `J.load_result` and `J.report` routes.
+The common `load_fit_cache` and `fit_report` recipes for the other
 eight result types do not accept these records.
 
 Use trusted native files and their original Julia/dependency environment.
