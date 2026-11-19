@@ -57,11 +57,11 @@ Generalized, multidimensional, mixed-outcome, and custom Stan post-estimation ex
 </div>
 
 <h2>Install the matching source revision</h2>
-<p>With Julia 1.10.8 or newer, install this exact source commit (<a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/tree/7e8e3ca9db56357b3b9ad0dd09ab960e266a93d4"><code>7e8e3ca9db56</code></a>):</p>
+<p>With Julia 1.10.8 or newer, install this exact source commit (<a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/tree/9b68939b6b3e27122c7120714ae3261f408d207d"><code>9b68939b6b3e</code></a>):</p>
 <pre><code>using Pkg
 Pkg.activate("rating-local")
 Pkg.add(url="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl",
-    rev="7e8e3ca9db56357b3b9ad0dd09ab960e266a93d4")
+    rev="9b68939b6b3e27122c7120714ae3261f408d207d")
 Pkg.pin("BayesianMGMFRM")
 using BayesianMGMFRM
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_analysis.jl"))
