@@ -1881,7 +1881,11 @@ function load_handoff(parsed)
     return Handoff(rec_nt, fit)
 end
 
+include("plausible_values.jl")
+
 end # module PortableHandoff
+
+const plausible_values = PortableHandoff.plausible_values
 
 # ---------------------------------------------------------------------------
 # Layer-1 & Layer-2 Root Dispatches for `StanAdapter.Fit` and `PortableHandoff.Handoff`

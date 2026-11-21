@@ -187,6 +187,7 @@ function predict(f::Fit;data=nothing,rows=nothing,interval=.95,metrics=nothing,o
     t isa BoundedTarget && return bounded_predict(t,f;data,rows,interval,metrics=metrics===nothing ? BOUNDED_DEFAULT_METRICS : metrics)
     metrics===nothing || throw(ArgumentError("metrics selection is currently available for bounded-score predictions"))
     t isa CountTarget && return count_predict(t,f;data,rows,interval)
+    t isa MRCMLTarget && return mrcml_predict(t,f;data,rows,interval)
     p=prediction_target(t,data);m=model_draws(t,f.record.run.draws)
     ix=rows===nothing ? collect(eachindex(p.person)) : collect(rows)
     !isempty(ix) && all(i->i isa Integer && !(i isa Bool) && 1<=i<=length(p.person),ix) ||
@@ -249,9 +250,27 @@ end
 function load_result(f::Fit)
     checked(f;full=true);f
 end
+function _report_population(d)
+    merge(d,(;X=collect.(eachrow(d.X)),person_labels=label_encoding.(d.people),
+            group_labels=label_encoding.(d.groups),reference_label=label_encoding(d.reference)))
+end
+
 function save_computed(path,rep)
     check_plot_report(rep)
     (ispath(path) || islink(path)) && throw(ArgumentError("report already exists: $path"))
+    if hasproperty(rep,:api) && hasproperty(rep.api,:record) && hasproperty(rep.api.record,:spec_record)
+        spec = rep.api.record.spec_record
+        if hasproperty(spec,:population)
+            spec = merge(spec,(;population=_report_population(spec.population)))
+        end
+        if hasproperty(spec,:calibration)
+            spec = merge(spec,(;calibration=_report_calibration(spec.calibration)))
+        elseif hasproperty(get(spec,:fixed_calibration,(;)),:groups)
+            spec = merge(spec,(;fixed_calibration=_report_calibration_groups(spec.fixed_calibration)))
+        end
+        api = merge(rep.api,(;record=merge(rep.api.record,(;spec_record=spec))))
+        rep = merge(rep,(;api))
+    end
     mkpath(dirname(path))
     mktemp(dirname(path)) do temporary,io
         B.JSON3.write(io,B.Experimental.JointRatings.W.jsonsafe(rep));close(io)

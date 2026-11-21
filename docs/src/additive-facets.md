@@ -224,7 +224,7 @@ is a static contrast, not learner growth or rater drift.
 `predictive_probabilities(spec, q)` conditions on fixed `q` and original rows.
 The fitted-result overload described above instead averages the joint posterior;
 neither overload generates replicated scores. New-level prediction, interactions, mixed supports,
-hard-anchor equating, multidimensional loadings and free slopes are not supported
+multidimensional loadings and free slopes are not supported
 by this compiler. Scientific recovery/calibration and practical model adoption
 remain open. Model comparison and new-level prediction are not supplied by this
 bounded fitted workflow. `predictive_check(result; seed, ndraws=500, groupby=nothing)`
@@ -233,6 +233,8 @@ select a declared facet or `:person` to group. These are pointwise replicated-da
 intervals with no endpoint-MCSE qualification, not parameter credible intervals.
 `plot(fit_report(result); kind=:posterior)` and `plot(ppc; kind=:predictive)` use
 CairoMakie; saved computed reports can be redrawn without sampling.
+
+For scalar fixed recording and step transfers, use the [named calibration example](frequentist-mfrm.md#Transfer-recording-locations-and-category-steps-to-a-second-panel).
 
 ### Outcome warnings and interval colors
 

@@ -4,6 +4,37 @@
 
 ## 0.1.2 (unreleased)
 
+- Grouped MMLE now transfers independent calibration covariance to each adjusted
+  group-versus-reference contrast. The linking report returns its fixed-anchor
+  and propagated Wald intervals at the requested confidence level.
+
+- Added grouped scalar plausible values, covariate-adjusted population contrasts and verified portable PV bundles for MMLE and Bayesian fits.
+
+- Added scalar multi-group MMLE and Bayesian NUTS fitting through `mfrm_spec` with an ID-linked roster, a reference group, common numeric slopes and group-specific SDs.
+
+- Added `MRCML.population_design` to check which group mean contrasts and common covariate slopes can be separated from free measurement parameters in a scalar linked design.
+
+- Added `location=:linked` to `classification` for scalar Bayesian MRCML
+  equating with a population intercept. Individual intervals and cutoff
+  probabilities include the shared panel shift within each posterior draw.
+
+- Added named fixed facet-by-facet interaction cells on the original logit
+  scale. Row and column constraints are retained in Bayesian, MMLE and JMLE fits.
+
+- Added two-wave scalar linking reports for observed shared facet IDs, remaining
+  degrees of freedom and estimable changes under fixed, group and uncertain anchors.
+
+- Added named subset means and sums for scalar facet equating. Group members
+  can change individually while their declared average or total stays fixed.
+
+- Added joint transfer of preliminary facet and step estimates. MMLE propagates
+  their covariance to a second panel mean, and Bayesian fitting accepts the
+  corresponding multivariate normal calibration.
+
+- Added named fixed facet locations and owner-specific category steps for scalar
+  ordinal equating. The receiving panel mean can be estimated by marginal
+  maximum likelihood or assigned an explicit Bayesian intercept prior.
+
 - Separated lightweight installable package archive contents (`git archive`
   `<= 5,242,880` bytes via `.gitattributes` `export-ignore`) from rendered
   documentation gallery figures, narrative report archives, and opt-in
