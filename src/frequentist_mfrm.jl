@@ -408,19 +408,34 @@ function _compile_additive_common(source_kind::Symbol, person_levels::Vector{Any
     )
 end
 
+function _map_additive_categories_to_problem(categories::Vector{Int}, supports::Vector{UnitRange{Int}}, category_idx::Vector{Int})
+    val_supports = Vector{UnitRange{Int}}(undef, length(supports))
+    for (g, sup) in enumerate(supports)
+        vals_g = categories[sup]
+        rng_g = first(vals_g):last(vals_g)
+        collect(rng_g) == vals_g ||
+            throw(ArgumentError("unit-slope RSM/PCM requires consecutive integer category_levels within each step support (got $(vals_g)); use MRCML.custom_spec with explicit scoring matrix `B` for non-consecutive category scores"))
+        val_supports[g] = rng_g
+    end
+    raw_scores = Int[categories[c] for c in category_idx]
+    return (val_supports, raw_scores)
+end
+
 function compile_problem(s::Spec; kwargs...)
     s.allocation.identified ||
         throw(ArgumentError("F-facet design is rank-deficient / disconnected; inspect validate_design(spec)"))
+    val_supports, raw_scores = _map_additive_categories_to_problem(s.categories, s.supports, s.category)
     return _compile_additive_common(:frequentist_spec, s.people, s.person, s.facets,
-        s.owner, s.group, s.group_levels, s.supports, s.category; kwargs...)
+        s.owner, s.group, s.group_levels, val_supports, raw_scores; kwargs...)
 end
 
 function compile_problem(t::B.AdditiveFacets.Target; kwargs...)
     t.allocation.identified ||
         throw(ArgumentError("AdditiveFacets.Target is rank-deficient / disconnected; inspect validate_design(target)"))
     ftuples = [(; name = b.name, levels = b.levels, index = b.index) for b in t.facets]
+    val_supports, raw_scores = _map_additive_categories_to_problem(t.categories, t.supports, t.category)
     return _compile_additive_common(:additive_facets, t.people, t.person, ftuples,
-        t.owner, t.group, t.group_levels, t.supports, t.category; kwargs...)
+        t.owner, t.group, t.group_levels, val_supports, raw_scores; kwargs...)
 end
 
 function compile_problem(t::B.AdditiveFacets.ExplanatoryTarget; method::Symbol, kwargs...)
@@ -433,8 +448,9 @@ function compile_problem(t::B.AdditiveFacets.ExplanatoryTarget; method::Symbol, 
     t.allocation.identified ||
         throw(ArgumentError("ExplanatoryTarget design is not identified; inspect validate_design(target)"))
     ftuples = [(; name = b.name, levels = b.levels, index = b.index) for b in t.facets]
+    val_supports, raw_scores = _map_additive_categories_to_problem(t.categories, t.supports, t.category)
     return _compile_additive_common(:explanatory_facets, t.people, t.person, ftuples,
-        t.owner, t.group, t.group_levels, t.supports, t.category; method = m, kwargs...)
+        t.owner, t.group, t.group_levels, val_supports, raw_scores; method = m, kwargs...)
 end
 
 function compile_problem(t::B.AdditiveFacets.AbstractTarget; kwargs...)
@@ -2401,17 +2417,25 @@ function fit(spec_or_target;
     return Fit(merge(core_body, (; content_hash = digest)))
 end
 
+function _frequentist_fit_digest(r)
+    body = (; schema=FIT_SCHEMA, observation_binding=r.problem.observation_binding,
+        method=r.problem.method, model=r.problem.model, u_free=r.u_free, loglikelihood=r.summary.loglikelihood)
+    if hasproperty(r.summary,:population)
+        body = merge(body,(;population=r.summary.population))
+    end
+    if hasproperty(r.summary,:calibration)
+        body = merge(body,(;calibration=r.summary.calibration,population_mean_se=r.summary.population_mean_se))
+    elseif hasproperty(get(r.summary,:fixed_calibration,(;)),:groups) ||
+           hasproperty(get(r.summary,:fixed_calibration,(;)),:interaction_dimensions)
+        body = merge(body,(;fixed_calibration=r.summary.fixed_calibration))
+    end
+    return B._cache_hash(body)
+end
+
 function checked(f::Fit)
     r = f.record
     r.schema == FIT_SCHEMA || throw(ArgumentError("unknown FrequentistMFRM fit schema"))
-    expected = B._cache_hash((;
-        schema = FIT_SCHEMA,
-        observation_binding = r.problem.observation_binding,
-        method = r.problem.method,
-        model = r.problem.model,
-        u_free = r.u_free,
-        loglikelihood = r.summary.loglikelihood,
-    ))
+    expected = _frequentist_fit_digest(r)
     expected == r.content_hash || throw(ArgumentError("FrequentistMFRM fit checksum mismatch"))
     return r
 end
@@ -2500,6 +2524,185 @@ function criteria_report(f::Fit)
     )
 end
 
+function _mmle_row_pattern_system(f::Fit)
+    r = f.record
+    prob = r.problem
+    s = r.summary
+    est_mu = Bool(s.estimate_mean)
+    est_sd = Bool(s.estimate_sd)
+    mu_fix = est_mu ? 0.0 : Float64(s.population_mean)
+    sd_fix = est_sd ? 1.0 : Float64(s.population_sd)
+
+    if hasproperty(r, :mrcml_operator)
+        op = r.mrcml_operator
+        U = op.n_patterns
+        d_xi = size(op.A_free, 2)
+        At = sparse(op.A_free')
+        rv = rowvals(At)
+        nz = nonzeros(At)
+        b_list = Vector{Vector{Float64}}(undef, U)
+        c_list = Vector{Vector{Float64}}(undef, U)
+        A_list = Vector{Matrix{Float64}}(undef, U)
+        for u in 1:U
+            rng = op.pattern_ranges[u]
+            m0 = first(rng)
+            L_u = length(rng) - 1
+            bu = Vector{Float64}(undef, L_u)
+            cu = Vector{Float64}(undef, L_u)
+            Au = zeros(Float64, L_u, d_xi)
+            b0 = op.B_pat[m0]
+            c0 = op.c_pat[m0]
+            for (k, m) in enumerate(rng[2:end])
+                bu[k] = op.B_pat[m] - b0
+                cu[k] = op.c_pat[m] - c0
+                for ptr in nzrange(At, m)
+                    Au[k, rv[ptr]] += nz[ptr]
+                end
+                for ptr in nzrange(At, m0)
+                    Au[k, rv[ptr]] -= nz[ptr]
+                end
+            end
+            b_list[u] = bu
+            c_list[u] = cu
+            A_list[u] = Au
+        end
+        return (; pat_of_row = op.pattern_of_row, b = b_list, c = c_list, A = A_list, est_mu, est_sd, mu_fix, sd_fix)
+    else
+        lay = r.layout
+        d_xi = lay.n_free - (lay.mu_free_idx > 0 ? 1 : 0) - (lay.log_sigma_free_idx > 0 ? 1 : 0)
+        J_struct = d_xi > 0 ? Matrix(lay.J_mat[:, 1:d_xi]) : zeros(Float64, lay.n_full_structural, 0)
+        pat_map = Dict{Any,Int}()
+        pat_of_row = Vector{Int}(undef, prob.n_obs)
+        b_list = Vector{Float64}[]
+        c_list = Vector{Float64}[]
+        A_list = Matrix{Float64}[]
+        for i in 1:prob.n_obs
+            g = prob.step_group[i]
+            f_idxs = Tuple(fd.index[i] for fd in prob.facets)
+            key = (g, f_idxs)
+            u = get(pat_map, key, 0)
+            if u == 0
+                u = length(b_list) + 1
+                pat_map[key] = u
+                L_u = length(prob.supports[g]) - 1
+                srng = lay.step_full_ranges[g]
+                c_eta = 0.0
+                a_eta = zeros(Float64, d_xi)
+                for (fi, fd) in enumerate(prob.facets)
+                    row_f = lay.facet_full_ranges[fi][f_idxs[fi]]
+                    c_eta += fd.sign * lay.c_vec[row_f]
+                    if d_xi > 0
+                        @views a_eta .+= fd.sign .* J_struct[row_f, :]
+                    end
+                end
+                bu = Float64[k for k in 1:L_u]
+                cu = Vector{Float64}(undef, L_u)
+                Au = zeros(Float64, L_u, d_xi)
+                cum_c = 0.0
+                cum_a = zeros(Float64, d_xi)
+                for k in 1:L_u
+                    s_row = srng[k]
+                    cum_c += lay.c_vec[s_row]
+                    if d_xi > 0
+                        @views cum_a .+= J_struct[s_row, :]
+                    end
+                    cu[k] = k * c_eta - cum_c
+                    if d_xi > 0
+                        @views Au[k, :] .= k .* a_eta .- cum_a
+                    end
+                end
+                push!(b_list, bu)
+                push!(c_list, cu)
+                push!(A_list, Au)
+            end
+            pat_of_row[i] = u
+        end
+        return (; pat_of_row, b = b_list, c = c_list, A = A_list, est_mu, est_sd, mu_fix, sd_fix)
+    end
+end
+
+function _verify_mmle_nested(f_simple::Fit, f_complex::Fit)
+    if any(f->hasproperty(f.record.summary,:population),(f_simple,f_complex))
+        return (;nested=false,reason=:grouped_population_nesting_unverified,df=0)
+    end
+    d0 = Int(f_simple.record.summary.n_free_parameters)
+    d1 = Int(f_complex.record.summary.n_free_parameters)
+    d1 > d0 || return (; nested = false, reason = :equal_or_larger_parameter_dimension, df = 0)
+
+    sys0 = _mmle_row_pattern_system(f_simple)
+    sys1 = _mmle_row_pattern_system(f_complex)
+    seen = Set{Tuple{Int,Int}}()
+    pairs_u = Tuple{Int,Int}[]
+    for i in eachindex(sys0.pat_of_row)
+        pr = (sys0.pat_of_row[i], sys1.pat_of_row[i])
+        if !(pr in seen)
+            push!(seen, pr)
+            push!(pairs_u, pr)
+        end
+    end
+    for (u0, u1) in pairs_u
+        length(sys0.b[u0]) == length(sys1.b[u1]) ||
+            return (; nested = false, reason = :mismatched_category_arity, df = 0)
+    end
+
+    b0 = reduce(vcat, (sys0.b[u0] for (u0, _) in pairs_u))
+    b1 = reduce(vcat, (sys1.b[u1] for (_, u1) in pairs_u))
+    c0 = reduce(vcat, (sys0.c[u0] for (u0, _) in pairs_u))
+    c1 = reduce(vcat, (sys1.c[u1] for (_, u1) in pairs_u))
+    A0 = reduce(vcat, (sys0.A[u0] for (u0, _) in pairs_u))
+    A1 = reduce(vcat, (sys1.A[u1] for (_, u1) in pairs_u))
+
+    nb0 = norm(b0, Inf)
+    nb1 = norm(b1, Inf)
+    if nb0 <= 1e-13 && nb1 <= 1e-13
+        (sys0.est_sd || sys1.est_sd) && return (; nested = false, reason = :unidentified_population_sd, df = 0)
+    elseif nb0 <= 1e-13 || nb1 <= 1e-13
+        return (; nested = false, reason = :boundary_or_mismatched_ability_slope, df = 0)
+    else
+        idx_max = argmax(abs.(b0))
+        alpha = b1[idx_max] / b0[idx_max]
+        abs(alpha) > 1e-12 || return (; nested = false, reason = :boundary_or_mismatched_ability_slope, df = 0)
+        norm(b1 .- alpha .* b0, Inf) <= 1e-9 * max(1.0, nb1) ||
+            return (; nested = false, reason = :non_collinear_ability_slopes, df = 0)
+        if sys0.est_sd && !sys1.est_sd
+            return (; nested = false, reason = :free_sd_not_nested_in_fixed_sd, df = 0)
+        elseif !sys0.est_sd && !sys1.est_sd
+            abs(abs(alpha) * sys1.sd_fix - sys0.sd_fix) <= 1e-9 * max(1.0, sys0.sd_fix) ||
+                return (; nested = false, reason = :incompatible_fixed_population_sd, df = 0)
+        end
+    end
+
+    G0 = sys0.est_mu ? hcat(A0, reshape(b0, :, 1)) : A0
+    G1 = sys1.est_mu ? hcat(A1, reshape(b1, :, 1)) : A1
+    d_vec0 = sys0.est_mu ? c0 : (c0 .+ sys0.mu_fix .* b0)
+    d_vec1 = sys1.est_mu ? c1 : (c1 .+ sys1.mu_fix .* b1)
+
+    sv1 = size(G1, 2) > 0 ? svd(G1) : nothing
+    tol1 = (sv1 === nothing || isempty(sv1.S)) ? 0.0 : 1e-10 * max(size(G1)...) * max(1.0, sv1.S[1])
+    r_G1 = sv1 === nothing ? 0 : count(>(tol1), sv1.S)
+    U1 = r_G1 > 0 ? view(sv1.U, :, 1:r_G1) : zeros(Float64, length(d_vec1), 0)
+
+    sv0 = size(G0, 2) > 0 ? svd(G0) : nothing
+    tol0 = (sv0 === nothing || isempty(sv0.S)) ? 0.0 : 1e-10 * max(size(G0)...) * max(1.0, sv0.S[1])
+    r_G0 = sv0 === nothing ? 0 : count(>(tol0), sv0.S)
+
+    eff0 = r_G0 + (sys0.est_sd ? 1 : 0)
+    eff1 = r_G1 + (sys1.est_sd ? 1 : 0)
+    (eff0 == d0 && eff1 == d1 && d1 > d0) ||
+        return (; nested = false, reason = :effective_rank_mismatch, df = 0)
+
+    dd = d_vec0 .- d_vec1
+    res_d = norm(dd .- U1 * (U1' * dd), Inf)
+    res_d <= 1e-9 * max(1.0, norm(dd, Inf)) ||
+        return (; nested = false, reason = :incompatible_affine_offsets, df = 0)
+
+    if size(G0, 2) > 0
+        res_G = maximum(abs, G0 .- U1 * (U1' * G0))
+        res_G <= 1e-9 * max(1.0, maximum(abs, G0)) ||
+            return (; nested = false, reason = :non_nested_intercept_subspace, df = 0)
+    end
+    return (; nested = true, reason = :verified_interior_linear_subspace, df = d1 - d0)
+end
 function compare_mmle_models(pairs_vec::AbstractVector{<:Pair}; criterion::Symbol = :aic)
     criterion in (:aic, :bic, :bic_persons, :bic_observations) ||
         throw(ArgumentError("frequentist MMLE model comparison requires criterion in (:aic, :bic, :bic_persons, :bic_observations); got $(repr(criterion))"))
@@ -2549,18 +2752,34 @@ function compare_mmle_models(pairs_vec::AbstractVector{<:Pair}; criterion::Symbo
             )
         end for (rnk, idx) in enumerate(order)
     ]
-    # Nested LRT convenience summary when exactly 2 models have distinct parameter counts
-    lrt = if length(fits) == 2 && fits[1].record.summary.n_free_parameters != fits[2].record.summary.n_free_parameters
-        i_complex = fits[1].record.summary.n_free_parameters > fits[2].record.summary.n_free_parameters ? 1 : 2
-        i_simple = 3 - i_complex
-        df_diff = fits[i_complex].record.summary.n_free_parameters - fits[i_simple].record.summary.n_free_parameters
-        stat = 2.0 * (fits[i_complex].record.summary.loglikelihood - fits[i_simple].record.summary.loglikelihood)
-        pval = stat >= 0.0 ? ccdf(Chisq(df_diff), stat) : missing
-        (; complex_model = labels[i_complex], reduced_model = labels[i_simple],
-           lr_statistic = stat, df = df_diff, asymptotic_chisq_pvalue = pval,
-           note = "Nested chi-square p-value assumes the reduced model is an interior subspace of the complex model with adequate cell counts.")
+    # Exact algebraic linear-subspace check before emitting any nested chi-square LRT
+    nest_info, lrt = if length(fits) == 2
+        if fits[1].record.summary.n_free_parameters == fits[2].record.summary.n_free_parameters
+            ((; nested = false, reason = :equal_parameter_dimension), nothing)
+        else
+            i_complex = fits[1].record.summary.n_free_parameters > fits[2].record.summary.n_free_parameters ? 1 : 2
+            i_simple = 3 - i_complex
+            ni = _verify_mmle_nested(fits[i_simple], fits[i_complex])
+            if ni.nested
+                df_diff = ni.df
+                raw_stat = 2.0 * (fits[i_complex].record.summary.loglikelihood - fits[i_simple].record.summary.loglikelihood)
+                stat = (-1e-9 <= raw_stat < 0.0) ? 0.0 : raw_stat
+                pval = stat >= 0.0 ? ccdf(Chisq(df_diff), stat) : missing
+                (ni, (;
+                    nested = true,
+                    complex_model = labels[i_complex],
+                    reduced_model = labels[i_simple],
+                    lr_statistic = stat,
+                    df = df_diff,
+                    asymptotic_chisq_pvalue = pval,
+                    note = "Verified interior linear-subspace nesting; asymptotic chi-square p-value assumes adequate sample size.",
+                ))
+            else
+                (ni, nothing)
+            end
+        end
     else
-        nothing
+        ((; nested = missing, reason = :multiple_models), nothing)
     end
     body = (;
         schema = COMPARISON_SCHEMA,
@@ -2570,18 +2789,62 @@ function compare_mmle_models(pairs_vec::AbstractVector{<:Pair}; criterion::Symbo
         quadrature = q_rule0[1],
         quad_points = q_rule0[2],
         rows,
+        nested = nest_info.nested,
+        nesting_status = nest_info.reason,
         likelihood_ratio = lrt,
         warning = "Asymptotic marginal information criteria on the observed design; not cross-validated out-of-sample or Bayesian PSIS-LOO.",
     )
     return merge(body, (; report_hash = B._cache_hash(body)))
 end
 
-function contrast(f::Fit; facet::Symbol, left, right, interval::Real = 0.95)
+function contrast(f::Fit; facet::Union{Nothing,Symbol} = nothing, left, right, interval::Real = 0.95)
     r = checked(f)
     0.0 < Float64(interval) < 1.0 || throw(ArgumentError("interval must lie in (0, 1)"))
     z_crit = quantile(Normal(), 0.5 * (1.0 + Float64(interval)))
     prob = r.problem
     lay = r.layout
+    if hasproperty(r, :mrcml_operator)
+        l_target = facet === nothing ? String(left) : "$(facet)[$(repr(left))]"
+        r_target = facet === nothing ? String(right) : "$(facet)[$(repr(right))]"
+        l_target != r_target || throw(ArgumentError("left and right targets must be distinct"))
+        il = findfirst(==(l_target), lay.full_names)
+        ir = findfirst(==(r_target), lay.full_names)
+        # Fallback for unquoted FrequentistMFRM style `facet[level]`
+        il === nothing && facet !== nothing && (il = findfirst(==("$(facet)[$(left)]"), lay.full_names))
+        ir === nothing && facet !== nothing && (ir = findfirst(==("$(facet)[$(right)]"), lay.full_names))
+        il !== nothing && ir !== nothing ||
+            throw(ArgumentError("unknown MRCML model parameter(s) $(repr(l_target)), $(repr(r_target)); inspect parameter_names(fit; scale = :model)"))
+        diff_est = r.full_parameters[il] - r.full_parameters[ir]
+        se_diff = missing
+        cov_rec = r.covariance
+        if cov_rec !== nothing
+            off = cov_rec.offset
+            mat = cov_rec.matrix
+            ml = il - off
+            mr = ir - off
+            if 1 <= ml <= size(mat, 1) && 1 <= mr <= size(mat, 1)
+                v = mat[ml, ml] + mat[mr, mr] - 2.0 * mat[ml, mr]
+                isfinite(v) && v >= -1e-12 && (se_diff = sqrt(max(v, 0.0)))
+            end
+        end
+        z_stat = !(se_diff === missing) && se_diff > 0 ? diff_est / se_diff : missing
+        lo = !(se_diff === missing) ? diff_est - z_crit * se_diff : missing
+        hi = !(se_diff === missing) ? diff_est + z_crit * se_diff : missing
+        return (;
+            inference_paradigm = :frequentist,
+            facet = facet === nothing ? :mrcml : facet,
+            left = lay.full_names[il],
+            right = lay.full_names[ir],
+            estimate = diff_est,
+            se = se_diff,
+            z_statistic = z_stat,
+            lower = lo,
+            upper = hi,
+            interval = Float64(interval),
+            uncertainty_basis = :constrained_observed_information_delta,
+        )
+    end
+    facet !== nothing || throw(ArgumentError("contrast requires `facet = :...`"))
     fi = findfirst(x -> x.name === facet, prob.facets)
     fi === nothing && throw(ArgumentError("contrast requires a declared non-person facet in $([x.name for x in prob.facets]); got $(repr(facet))"))
     fdef = prob.facets[fi]
@@ -2635,6 +2898,66 @@ function predict_rows(f::Fit; rows = nothing, mode::Symbol = :plugin)
         throw(ArgumentError("mode = :marginal_new_person requires an MMLE fit"))
     sel = rows === nothing ? collect(1:prob.n_obs) : collect(Int, rows)
     all(i -> 1 <= i <= prob.n_obs, sel) || throw(ArgumentError("row indices out of range 1:$(prob.n_obs)"))
+
+    if hasproperty(r, :mrcml_operator)
+        op = r.mrcml_operator
+        v_pat = copy(op.c_pat)
+        mul!(v_pat, op.A_free, r.eta_free, 1.0, 1.0)
+        quad_m = mode === :marginal_new_person ?
+            build_quadrature(r.summary.quadrature, r.summary.quad_points; sd=1.0, theta_lim=Float64(r.summary.theta_lim)) : nothing
+        out_m = NamedTuple[]
+        for idx in sel
+            g_idx = prob.step_group[idx]
+            cats = hasproperty(r, :mrcml_category_labels) ?
+                r.mrcml_category_labels[g_idx] :
+                collect(prob.supports[g_idx])
+            prng = op.pattern_ranges[op.pattern_of_row[idx]]
+            M_g = length(cats)
+            probs = zeros(Float64, M_g)
+            if mode === :plugin
+                pr = r.person_scores[prob.person_idx[idx]]
+                th = prob.method === :mmle ? Float64(pr.eap) : Float64(pr.limit_estimate)
+                if !isfinite(th)
+                    if isnan(th)
+                        fill!(probs, NaN)
+                    else
+                        bvec = [op.B_pat[prng[lk]] for lk in 1:M_g]
+                        b_ext = th < 0 ? minimum(bvec) : maximum(bvec)
+                        ext_lks = [lk for lk in 1:M_g if abs(bvec[lk] - b_ext) <= 1e-14]
+                        v_ext = [v_pat[prng[lk]] for lk in ext_lks]
+                        vmax = maximum(v_ext)
+                        w_ext = exp.(v_ext .- vmax)
+                        w_ext ./= sum(w_ext)
+                        for (j_e, lk) in enumerate(ext_lks)
+                            probs[lk] = w_ext[j_e]
+                        end
+                    end
+                else
+                    lvec = [op.B_pat[prng[lk]] * th + v_pat[prng[lk]] for lk in 1:M_g]
+                    mmax = maximum(lvec)
+                    probs .= exp.(lvec .- mmax)
+                    probs ./= sum(probs)
+                end
+            else
+                mu_m,sd_m = _mrcml_person_law(r.summary,prob.person_idx[idx])
+                for (nq, wq) in zip(quad_m.std_nodes, quad_m.weights)
+                    wq == 0.0 && continue
+                    th = mu_m + sd_m*nq
+                    lvec = [op.B_pat[prng[lk]] * th + v_pat[prng[lk]] for lk in 1:M_g]
+                    mmax = maximum(lvec)
+                    pv = exp.(lvec .- mmax)
+                    pv ./= sum(pv)
+                    probs .+= wq .* pv
+                end
+            end
+            exp_s = sum(cats[lk] * probs[lk] for lk in 1:M_g)
+            push!(out_m, (; row = idx, person = prob.person_levels[prob.person_idx[idx]],
+                observed_score = prob.raw_score[idx], categories = copy(cats),
+                probabilities = probs, expected_score = exp_s, mode))
+        end
+        return (; inference_paradigm = :frequentist, method = prob.method, mode, rows = out_m,
+            warning = "Plug-in / quadrature point probabilities do not propagate parameter estimation uncertainty.")
+    end
 
     K_max = maximum(length, prob.supports)
     pbuf = zeros(Float64, K_max)
@@ -2709,6 +3032,18 @@ end
 
 function save_computed(path::AbstractString, rep::NamedTuple)
     ispath(path) && throw(ArgumentError("refusing to overwrite existing report: $path"))
+    if hasproperty(rep,:summary) && hasproperty(rep.summary,:population)
+        pop = rep.summary.population
+        pop = merge(pop,(;design=B.AdditiveFacets._report_population(pop.design)))
+        rep = merge(rep,(;summary=merge(rep.summary,(;population=pop))))
+    end
+    if hasproperty(rep,:summary) && hasproperty(rep.summary,:calibration)
+        cal = B.AdditiveFacets._report_calibration(rep.summary.calibration)
+        rep = merge(rep,(;summary=merge(rep.summary,(;calibration=cal))))
+    elseif hasproperty(rep,:summary) && hasproperty(get(rep.summary,:fixed_calibration,(;)),:groups)
+        cal = B.AdditiveFacets._report_calibration_groups(rep.summary.fixed_calibration)
+        rep = merge(rep,(;summary=merge(rep.summary,(;fixed_calibration=cal))))
+    end
     B._SA_MOD._save_atomic_json(path, rep)
 end
 
@@ -2717,5 +3052,7 @@ function check_loaded_report(parsed)
         throw(ArgumentError("unknown FrequentistMFRM report schema"))
     return parsed
 end
+
+include("mrcml_frequentist.jl")
 
 end # module FrequentistMFRM

@@ -55,6 +55,8 @@ using Test
                 "src/BayesianMGMFRM.jl",
                 "src/stan_adapter.jl",
                 "src/frequentist_mfrm.jl",
+                "src/mrcml_design.jl",
+                "src/mrcml_frequentist.jl",
                 "docs/src/migration-stan-brms.md",
                 "docs/src/assets/first-analysis/posterior.png",
                 "examples/minimal.jl",

@@ -12317,7 +12317,9 @@ function _posterior_summary_rows(draws::AbstractMatrix{<:Real},
     for j in axes(draws, 2)
         vals = Float64.(draws[:, j])
         sorted = sort(vals)
-        m = _column_mean(vals)
+        # Preserve a point mass exactly when summation would round its mean.
+        constant = !isempty(sorted) && first(sorted) == last(sorted)
+        m = constant ? first(sorted) : _column_mean(vals)
         push!(rows, (;
             parameter = parameter_names[j],
             mean = m,
@@ -15527,6 +15529,12 @@ function compare_models(models::Pair...;
             throw(ArgumentError("frequentist MMLE model comparison accepts no MCMC draw selection, RNG, or comparison_axis"))
         crit_f = criterion === nothing ? :aic : criterion
         return FrequentistMFRM.compare_mmle_models(collect(models); criterion = crit_f, kwargs...)
+    end
+    if !isempty(models) && any(p -> last(p) isa AdditiveFacets.Fit, models)
+        ndraws === nothing && draw_indices === nothing && rng === nothing && comparison_axis === nothing ||
+            throw(ArgumentError("AdditiveFacets model comparison uses all retained draws and accepts no MCMC draw selection, RNG, or comparison_axis"))
+        crit_a = criterion === nothing ? :psis_loo : criterion
+        return _compare_additive_rating_models(collect(models); criterion = crit_a, kwargs...)
     end
     criterion = criterion === nothing ? :waic : criterion
     if !isempty(models) && any(p->_explanatory_score_report(last(p)),models)

@@ -168,19 +168,91 @@ profile/observation bindings and chain order; this allocates draws × profiles.
 Factors integrate the performance residual once, retaining regression means.
 Use `criteria` for checked PSIS scoring; do not treat these as rating-wise factors.
 """
+function _additive_rating_binding(t)
+    row_cats = [copy(t.categories[t.supports[t.group[i]]]) for i in eachindex(t.person)]
+    payload = (;
+        people = [string(t.people[p]) for p in t.person],
+        observed = [t.categories[c] for c in t.category],
+        row_supports = row_cats,
+    )
+    return _cache_hash(payload)
+end
+
+function _compare_additive_rating_models(pairs_vec::AbstractVector{<:Pair};
+        criterion::Symbol = :psis_loo, pareto_k_threshold::Real = 0.7)
+    criterion in (:psis_loo, :loo, :waic) ||
+        throw(ArgumentError("AdditiveFacets rating-wise compare_models requires criterion in (:psis_loo, :loo, :waic); got $(repr(criterion))"))
+    length(pairs_vec) >= 2 || throw(ArgumentError("supply at least two labeled AdditiveFacets.Fit models to compare_models"))
+    labels = [strip(string(first(p))) for p in pairs_vec]
+    all(!isempty, labels) && allunique(labels) || throw(ArgumentError("distinct nonempty model labels are required"))
+    fits = AdditiveFacets.Fit[]
+    targets = Any[]
+    for p in pairs_vec
+        v = last(p)
+        v isa AdditiveFacets.Fit || throw(ArgumentError("all compared models must be AdditiveFacets.Fit objects"))
+        t = AdditiveFacets.checked(v; full = true)
+        t isa Union{AdditiveFacets.Target, AdditiveFacets.MRCMLTarget} ||
+            throw(ArgumentError("direct AdditiveFacets compare_models supports conditionally independent rating-wise models (`Target` / `MRCMLTarget`); for hierarchical performance models, pass `criteria(fit; unit = :performance, integrate = ...)` reports to `compare_models`"))
+        push!(fits, v)
+        push!(targets, t)
+    end
+    obs0 = _additive_rating_binding(targets[1])
+    for (lbl, tk) in zip(labels, targets)
+        _additive_rating_binding(tk) == obs0 ||
+            throw(ArgumentError("model $(repr(lbl)) does not bind the exact same rating observations and category supports"))
+    end
+    crit_key = criterion === :loo ? :psis_loo : criterion
+    evals = [crit_key === :waic ? waic(fk) : psis_loo(fk; pareto_k_threshold) for fk in fits]
+    elpds = [crit_key === :waic ? e.elpd_waic : e.elpd_loo for e in evals]
+    pws = [crit_key === :waic ? e.pointwise.elpd_waic : e.pointwise.elpd_loo for e in evals]
+    order = sortperm(elpds; rev = true)
+    best_idx = order[1]
+    N_u = length(pws[best_idx])
+    rows = [
+        begin
+            diff_vec = pws[idx] .- pws[best_idx]
+            d_elpd = sum(diff_vec)
+            se_d = (idx == best_idx || N_u <= 1) ? 0.0 : sqrt(N_u * var(diff_vec; corrected = true))
+            (;
+                rank = rnk,
+                model_label = labels[idx],
+                elpd = elpds[idx],
+                p_effective = crit_key === :waic ? evals[idx].p_waic : evals[idx].p_loo,
+                elpd_difference = d_elpd,
+                se_difference = se_d,
+                bad_pareto_k_count = crit_key === :waic ? missing : evals[idx].bad_pareto_k_count,
+                max_pareto_k = crit_key === :waic ? missing : evals[idx].max_pareto_k,
+                qualified = qualify(fits[idx]).qualified,
+                source_content_hash = fits[idx].record.content_hash,
+            )
+        end for (rnk, idx) in enumerate(order)
+    ]
+    body = (;
+        schema = "bayesianmgmfrm.additive_rating_comparison.v1",
+        criterion = crit_key,
+        unit = :rating,
+        observation_binding = obs0,
+        n_units = N_u,
+        rows,
+        warning = "Rating-wise elpd comparison conditions on known finite-panel levels; inspect pareto_k and whole-fit qualification before substantive model selection.",
+    )
+    return merge(body, (; report_hash = _cache_hash(body)))
+end
+
 function pointwise_loglikelihood(f::AdditiveFacets.Fit;unit=nothing,integrate=nothing,
         quadrature_orders=nothing,quadrature_tolerance=1e-7)
     t=AdditiveFacets.checked(f;full=true)
-    if t isa Union{AdditiveFacets.Target,AdditiveFacets.BoundedTarget,AdditiveFacets.CountTarget}
+    if t isa Union{AdditiveFacets.Target,AdditiveFacets.MRCMLTarget,AdditiveFacets.BoundedTarget,AdditiveFacets.CountTarget}
         (unit in (nothing,:rating) && integrate===nothing && quadrature_orders===nothing) ||
-            throw(ArgumentError("finite-panel or scalar bounded/count AdditiveFacets fits evaluate conditional rating-wise log-densities (`unit = :rating`, `integrate = nothing`)"))
+            throw(ArgumentError("finite-panel, MRCML, or scalar bounded/count AdditiveFacets fits evaluate conditional rating-wise log-densities (`unit = :rating`, `integrate = nothing`)"))
         S=size(f.record.run.draws,1)
         pw1=AdditiveFacets.pointwise(t,view(f.record.run.draws,1,:))
         ll=Matrix{Float64}(undef,S,length(pw1))
         ll[1,:].=pw1
         for s in 2:S;ll[s,:].=AdditiveFacets.pointwise(t,view(f.record.run.draws,s,:));end
-        return (;log_density=ll,observation_binding=f.record.target_identity,unit=:rating,integrate=nothing,
-            conditioning=t isa AdditiveFacets.Target ? :known_finite_panel_levels : :known_owners_observed_covariates,
+        obs_b=t isa Union{AdditiveFacets.Target,AdditiveFacets.MRCMLTarget} ? _additive_rating_binding(t) : f.record.target_identity
+        return (;log_density=ll,observation_binding=obs_b,unit=:rating,integrate=nothing,
+            conditioning=t isa Union{AdditiveFacets.Target,AdditiveFacets.MRCMLTarget} ? :known_finite_panel_levels : :known_owners_observed_covariates,
             source_sample_hash=f.record.content_hash,target_identity=f.record.target_identity,
             chain_ids=copy(f.record.run.chain_ids),iterations=copy(f.record.run.iterations),multiplier=1)
     end
@@ -269,11 +341,11 @@ function criteria(f::AdditiveFacets.Fit;unit=nothing,integrate=nothing,refits=Pa
         independent_refit_rng::Bool=false,mcse_blocks=(),quadrature_orders=nothing,
         quadrature_tolerance=1e-7,score_tolerance=1e-5,criteria::Tuple=(:waic,:psis_loo),pareto_k_threshold::Real=0.7)
     A=AdditiveFacets;CC=_CC_MOD;t=A.checked(f;full=true)
-    if t isa A.Target
+    if t isa Union{A.Target,A.MRCMLTarget}
         (unit in (nothing,:rating) && integrate===nothing && isempty(refits) && !independent_refit_rng && isempty(mcse_blocks) && quadrature_orders===nothing) ||
-            throw(ArgumentError("finite-panel AdditiveFacets.Target has conditionally independent rating rows (`unit = :rating`, `integrate = nothing`, no performance refits)"))
+            throw(ArgumentError("finite-panel / MRCML AdditiveFacets targets have conditionally independent rating rows (`unit = :rating`, `integrate = nothing`, no performance refits)"))
         !isempty(criteria) && allunique(criteria) && all(in((:waic,:psis_loo)),criteria) ||
-            throw(ArgumentError("choose distinct criteria from (:waic, :psis_loo) for finite-panel AdditiveFacets.Fit"))
+            throw(ArgumentError("choose distinct criteria from (:waic, :psis_loo) for finite-panel / MRCML AdditiveFacets.Fit"))
         scores=map(c->c===:waic ? waic(f) : psis_loo(f;pareto_k_threshold),criteria)
         return NamedTuple{criteria}(scores)
     end

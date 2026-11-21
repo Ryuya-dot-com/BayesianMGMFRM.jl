@@ -1167,7 +1167,9 @@ With `return_receipt=true`, return `(path, sha256)` for every supported writer;
 keep this receipt separately and pass its digest to `load_report`. Otherwise
 the return value remains the existing writer's path or receipt. Reports contain
 computed values, not draws for new analyses. Use `save_fit` for native draws.
-Unsupported writer or summary controls raise an error.
+Grouped plausible-value bundles retain their imputation rows and support new
+population contrasts after reopening with a receipt. Unsupported writer or
+summary controls raise an error.
 
 Concurrent `plot(...; return_data=true).data` is a compact computed report.
 Saving it preserves selected numerical rows, source identities, reference
@@ -1179,6 +1181,17 @@ function save_report(path::AbstractString, rep; return_receipt::Bool=false, kwar
 end
 
 function _save_report(path::AbstractString, rep; kwargs...)
+    if hasproperty(rep,:schema) && rep.schema == _WAVE_LINK_SCHEMA
+        isempty(kwargs) || throw(ArgumentError("unsupported linking report controls"))
+        ispath(path) && throw(ArgumentError("report already exists: $path"))
+        mkpath(dirname(path))
+        mktemp(dirname(path)) do tmp, io
+            JSON3.write(io,rep)
+            close(io)
+            hardlink(tmp,path)
+        end
+        return path
+    end
     if hasproperty(rep,:schema) && rep.schema in _EXPLANATORY_COMPARISON_SCHEMAS
         isempty(kwargs) || throw(ArgumentError("unsupported explanatory comparison writer controls"))
         _check_explanatory_comparison_report(rep)
@@ -1195,6 +1208,10 @@ function _save_report(path::AbstractString, rep; kwargs...)
     if hasproperty(rep, :schema) && rep.schema in (FrequentistMFRM.REPORT_SCHEMA, FrequentistMFRM.COMPARISON_SCHEMA)
         isempty(kwargs) || throw(ArgumentError("unsupported frequentist report controls: $(keys(kwargs))"))
         return FrequentistMFRM.save_computed(path, rep)
+    end
+    if rep isa PortableHandoff.PlausibleValues
+        isempty(kwargs) || throw(ArgumentError("PV bundles accept no writer controls"))
+        return PortableHandoff.save_pvs(path,rep)
     end
     if rep isa PortableHandoff.Handoff
         isempty(kwargs) || throw(ArgumentError("unsupported portable handoff writer controls: $(keys(kwargs))"))
@@ -1306,6 +1323,12 @@ function load_report(path::AbstractString; expected_sha256=nothing, kwargs...)
     end
     s = get(parsed, :schema, nothing)
     s isa AbstractString || throw(ArgumentError("computed report has no supported schema"))
+    if s == _WAVE_LINK_SCHEMA
+        isempty(kwargs) || throw(ArgumentError("unsupported linking report controls"))
+        all(k->hasproperty(parsed,k),(:receiving_fit_hash,:connectivity,:dimensions,:panel,:common_parameters)) ||
+            throw(ArgumentError("incomplete scalar linking report"))
+        return parsed
+    end
     if s == _CONCURRENT_PLOT_SCHEMA
         expected_sha256 !== nothing || throw(ArgumentError("a separately retained expected_sha256 is required"))
         isempty(kwargs) || throw(ArgumentError("saved plot data accept no extra reader controls"))
@@ -1350,6 +1373,10 @@ function load_report(path::AbstractString; expected_sha256=nothing, kwargs...)
     elseif s in (FrequentistMFRM.REPORT_SCHEMA, FrequentistMFRM.COMPARISON_SCHEMA)
         isempty(kwargs) || throw(ArgumentError("unsupported frequentist report reader controls: $(keys(kwargs))"))
         return FrequentistMFRM.check_loaded_report(parsed)
+    elseif s == PortableHandoff.PV_SCHEMA
+        expected_sha256 !== nothing || throw(ArgumentError("a separate expected_sha256 receipt is required for PV bundles"))
+        isempty(kwargs) || throw(ArgumentError("PV bundles accept no reader controls"))
+        return PortableHandoff.checked_pvs(parsed)
     elseif s == PortableHandoff.HANDOFF_SCHEMA
         expected_sha256 !== nothing ||
             throw(ArgumentError("a separately retained expected_sha256 receipt is required for portable joint-draw handoffs"))

@@ -269,7 +269,7 @@ end
 
 function waic(f::AdditiveFacets.Fit)
     t = AdditiveFacets.checked(f; full = true)
-    if t isa AdditiveFacets.Target
+    if t isa Union{AdditiveFacets.Target, AdditiveFacets.MRCMLTarget}
         ll = pointwise_loglikelihood(f).log_density
         return waic(ll)
     elseif t isa AdditiveFacets.ExplanatoryTarget
@@ -286,7 +286,7 @@ end
 
 function psis_loo(f::AdditiveFacets.Fit; pareto_k_threshold::Real = 0.7)
     t = AdditiveFacets.checked(f; full = true)
-    if t isa AdditiveFacets.Target
+    if t isa Union{AdditiveFacets.Target, AdditiveFacets.MRCMLTarget}
         run = f.record.run
         _check_psis_iterations(run.chain_ids, run.iterations)
         ll = pointwise_loglikelihood(f).log_density
@@ -345,7 +345,9 @@ function category_summary(f::AdditiveFacets.Fit; interval::Real = 0.95)
     )
 end
 
-function _additive_cohort_draws(f::AdditiveFacets.Fit; facet::Symbol = :person, parameters = nothing)
+function _additive_cohort_draws(f::AdditiveFacets.Fit; facet::Symbol = :person, parameters = nothing,
+        location::Symbol = :parameter)
+    location in (:parameter, :linked) || throw(ArgumentError("location must be :parameter or :linked"))
     t = AdditiveFacets.checked(f; full = true)
     m = AdditiveFacets.model_draws(t, f.record.run.draws)
     chosen = if parameters !== nothing
@@ -366,7 +368,16 @@ function _additive_cohort_draws(f::AdditiveFacets.Fit; facet::Symbol = :person, 
         nm in m.fixed && throw(ArgumentError("fixed parameter $(repr(nm)) cannot be included in cohort ranking/reliability/classification"))
         push!(idx, k)
     end
-    return (; names = chosen, values = m.values[:, idx], chains = f.record.run.controls.chains)
+    values = m.values[:, idx]
+    if location === :linked
+        t isa AdditiveFacets.MRCMLTarget && get(t.spec_record, :population_intercept, false) ||
+            throw(ArgumentError("linked person locations require a scalar MRCML fit with a population intercept"))
+        facet in (:entity, :person) && all(i -> i <= length(t.people), idx) ||
+            throw(ArgumentError("linked locations apply to person coordinates only"))
+        shift = only(findall(==("population_mean"), m.names))
+        values .+= view(m.values, :, shift)
+    end
+    return (; names = chosen, values, chains = f.record.run.controls.chains)
 end
 
 function ranking(f::AdditiveFacets.Fit; facet::Symbol = :person, parameters = nothing,
@@ -439,13 +450,22 @@ function reliability(f::AdditiveFacets.Fit; facet::Symbol = :person, parameters 
 end
 posterior_reliability(f::AdditiveFacets.Fit; kwargs...) = reliability(f; kwargs...)
 
+"""
+    classification(fit::AdditiveFacets.Fit; cutoff, pass_probability=0.5, location=:parameter, ...)
+
+Compare named model coordinates to a cutoff. For scalar anchored MRCML fits
+with a population intercept, `location=:linked` compares each person's deviation
+plus the receiving population mean to the cutoff within each joint draw.
+The default `:parameter` compares each selected coordinate directly.
+"""
 function classification(f::AdditiveFacets.Fit; cutoff::Real, pass_probability::Real = 0.5,
-        facet::Symbol = :person, parameters = nothing, interval::Real = 0.90)
+        facet::Symbol = :person, parameters = nothing, interval::Real = 0.90,
+        location::Symbol = :parameter)
     all(x -> x isa Real && !(x isa Bool) && isfinite(x), (cutoff, pass_probability, interval)) ||
         throw(ArgumentError("cutoff, pass_probability, and interval must be finite real numbers"))
     0.0 < Float64(pass_probability) < 1.0 || throw(ArgumentError("pass_probability must lie strictly in (0, 1)"))
     lo, hi = _interval_probabilities(Float64(interval))
-    sel = _additive_cohort_draws(f; facet, parameters)
+    sel = _additive_cohort_draws(f; facet, parameters, location)
     ev = _classification_events(sel.values, Float64(cutoff), Float64(pass_probability))
     rows = map(eachindex(sel.names)) do i
         vals = view(sel.values, :, i)
@@ -480,6 +500,7 @@ function classification(f::AdditiveFacets.Fit; cutoff::Real, pass_probability::R
     )
     return (;
         schema = "bayesianmgmfrm.additive_classification.v1",
+        (location === :linked ? (; location, shift_parameter="population_mean") : (;))...,
         cutoff = Float64(cutoff),
         pass_probability = Float64(pass_probability),
         interval = Float64(interval),
