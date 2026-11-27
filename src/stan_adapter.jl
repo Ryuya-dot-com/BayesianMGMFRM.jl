@@ -1213,6 +1213,20 @@ end # module StanAdapter
 # and SHA-256 integrity across processes and Julia versions.
 # ---------------------------------------------------------------------------
 
+"""
+    plausible_values(mmle_fit; n_imputations, seed)
+    plausible_values(bayesian_fit)
+
+For a grouped scalar MRCML fit, draw abilities on each person's conditional MMLE
+quadrature grid, or extract every retained Bayesian model-scale draw with its
+original chain, iteration and parameter vector. The MMLE calibration, regression
+and group SDs stay fixed across imputations. Read the source qualification in
+`result.record.qualification`. Use `PortableHandoff.pv_rows(result)` for a long
+table iterator, `contrast(result; group, reference)` for group mean comparisons,
+and `save_report` / `load_report` with a separate SHA-256 receipt.
+"""
+function plausible_values end
+
 module PortableHandoff
 
 import ..BayesianMGMFRM as B
@@ -1274,6 +1288,140 @@ function _producer_metadata()
     )
 end
 
+function _draws_ieee754_sha256(
+        schema::AbstractString,
+        source_family::AbstractString,
+        scale::AbstractString,
+        parameter_names::AbstractVector{<:AbstractString},
+        chain_ids::AbstractVector{<:Integer},
+        iterations::AbstractVector{<:Integer},
+        draws::AbstractMatrix{<:Real},
+        fixed_parameters,
+        qualified::Bool)
+    io = IOBuffer()
+    _wstr(s::AbstractString) = (write(io, codeunits(String(s))); write(io, UInt8(0)))
+    _wstr("bayesianmgmfrm.draws_ieee754_sha256.v1")
+    _wstr(schema)
+    _wstr(source_family)
+    _wstr(scale)
+    S, P = size(draws)
+    write(io, htol(Int32(S)))
+    write(io, htol(Int32(P)))
+    for j in 1:P
+        _wstr(parameter_names[j])
+    end
+    for s in 1:S
+        write(io, htol(Int32(chain_ids[s])))
+    end
+    for s in 1:S
+        write(io, htol(Int32(iterations[s])))
+    end
+    for s in 1:S
+        for j in 1:P
+            v = Float64(draws[s, j])
+            v == 0.0 && (v = 0.0)
+            write(io, htol(v))
+        end
+    end
+    write(io, htol(Int32(length(fixed_parameters))))
+    for fp in fixed_parameters
+        _wstr(String(fp.block))
+        _wstr(String(fp.name))
+        fv = Float64(fp.value)
+        fv == 0.0 && (fv = 0.0)
+        write(io, htol(fv))
+    end
+    write(io, UInt8(qualified ? 1 : 0))
+    return bytes2hex(sha256(take!(io)))
+end
+
+const _BUNDLE_CONSTRAINT_KEYS = (
+    "category_levels", "family", "identification", "location_mode", "scale_identification",
+    "status", "step_owner", "threshold_owner", "thresholds",
+)
+
+function _handoff_bundle_sha256(
+        draws_ieee754_sha256::AbstractString,
+        ids,
+        prior_and_reference,
+        missing_audit)
+    io = IOBuffer()
+    _wstr(s::AbstractString) = (write(io, codeunits(String(s))); write(io, UInt8(0)))
+    _wstr("bayesianmgmfrm.handoff_bundle_sha256.v1")
+    _wstr(lowercase(String(draws_ieee754_sha256)))
+
+    # 1) Canonical ids dictionary (sorted keys, ordered string labels)
+    if ids === nothing || ids === missing
+        write(io, htol(Int32(0)))
+    else
+        id_keys = sort!(String[String(k) for k in keys(ids)])
+        write(io, htol(Int32(length(id_keys))))
+        for ks in id_keys
+            vals = ids isa NamedTuple ? getproperty(ids, Symbol(ks)) : ids[Symbol(ks)]
+            _wstr(ks)
+            vlist = String[string(v) for v in vals]
+            write(io, htol(Int32(length(vlist))))
+            for v in vlist
+                _wstr(v)
+            end
+        end
+    end
+
+    # 2) Canonical effective constraint fields from prior_and_reference
+    c_pairs = Tuple{String,String}[]
+    if prior_and_reference !== nothing && !(prior_and_reference === missing)
+        for ck in _BUNDLE_CONSTRAINT_KEYS
+            sym = Symbol(ck)
+            if hasproperty(prior_and_reference, sym)
+                v = getproperty(prior_and_reference, sym)
+                if ck == "category_levels" && v isa AbstractVector && !isempty(v)
+                    all(x -> x isa Integer && !(x isa Bool), v) ||
+                        throw(ArgumentError("prior_and_reference.category_levels must contain only integers"))
+                    push!(c_pairs, (ck, join((string(Int(x)) for x in v), ",")))
+                elseif v !== nothing && !(v === missing) && (v isa AbstractString || v isa Symbol || v isa Number || v isa Bool)
+                    push!(c_pairs, (ck, string(v)))
+                end
+            end
+        end
+    end
+    write(io, htol(Int32(length(c_pairs))))
+    for (ck, cv) in c_pairs
+        _wstr(ck)
+        _wstr(cv)
+    end
+
+    # 3) Canonical missing_audit record
+    if missing_audit === nothing || missing_audit === missing
+        write(io, UInt8(0))
+    else
+        write(io, UInt8(1))
+        write(io, htol(Int32(get(missing_audit, :n_input_rows, 0))))
+        write(io, htol(Int32(get(missing_audit, :n_retained_rows, 0))))
+        write(io, htol(Int32(get(missing_audit, :n_dropped_rows, 0))))
+        drows = hasproperty(missing_audit, :dropped_rows) && missing_audit.dropped_rows !== nothing ?
+            Int32[Int32(x) for x in missing_audit.dropped_rows] : Int32[]
+        write(io, htol(Int32(length(drows))))
+        for r in drows
+            write(io, htol(r))
+        end
+        dbc = hasproperty(missing_audit, :dropped_by_column) ? missing_audit.dropped_by_column : nothing
+        if dbc === nothing || dbc === missing
+            write(io, htol(Int32(0)))
+        else
+            dbc_keys = sort!(String[String(k) for k in keys(dbc)])
+            write(io, htol(Int32(length(dbc_keys))))
+            for ks in dbc_keys
+                cnt = dbc isa NamedTuple ? getproperty(dbc, Symbol(ks)) :
+                      dbc isa AbstractDict ? (haskey(dbc, Symbol(ks)) ? dbc[Symbol(ks)] : dbc[ks]) :
+                      dbc[Symbol(ks)]
+                _wstr(ks)
+                write(io, htol(Int32(cnt)))
+            end
+        end
+    end
+    return bytes2hex(sha256(take!(io)))
+end
+
 function _assemble_handoff(;
         source_family::String,
         source_schema::String,
@@ -1292,6 +1440,9 @@ function _assemble_handoff(;
         qualification_snapshot::NamedTuple,
         log_lik_payload = nothing,
         log_prior_vec = nothing,
+        ids = nothing,
+        missing_audit = nothing,
+        prior_summary = nothing,
         warnings::Vector{String} = String[])
     S, P = size(draws)
     length(chain_ids) == S && length(iterations) == S && length(logdensities) == S ||
@@ -1326,6 +1477,13 @@ function _assemble_handoff(;
         )
     end
     lp_block = log_prior_vec === nothing ? nothing : Float64.(log_prior_vec)
+    fixed_norm = [(; block = String(x.block), name = String(x.name), value = Float64(x.value)) for x in fixed_parameters]
+    qual_json = JSON3.read(JSON3.write(B._json_export_value(qualification_snapshot)))
+
+    ids_json = ids === nothing ? nothing : JSON3.read(JSON3.write(B._json_export_value(ids)))
+    ma_json = missing_audit === nothing ? nothing : JSON3.read(JSON3.write(B._json_export_value(missing_audit)))
+    ps_json = prior_summary === nothing ? nothing : JSON3.read(JSON3.write(B._json_export_value(prior_summary)))
+    pr_json = JSON3.read(JSON3.write(B._json_export_value(prior_and_reference)))
 
     body = (;
         schema = HANDOFF_SCHEMA,
@@ -1342,19 +1500,28 @@ function _assemble_handoff(;
         iterations,
         parameter_names,
         parameter_blocks = String.(parameter_blocks),
-        fixed_parameters = [(; block = String(x.block), name = String(x.name), value = Float64(x.value)) for x in fixed_parameters],
+        fixed_parameters = fixed_norm,
         draws = draw_rows,
         logdensities,
         sampler_stats = packed_stats,
         sampler_controls = JSON3.read(JSON3.write(B._json_export_value(sampler_controls))),
-        prior_and_reference = JSON3.read(JSON3.write(B._json_export_value(prior_and_reference))),
-        qualification = JSON3.read(JSON3.write(B._json_export_value(qualification_snapshot))),
+        prior_and_reference = pr_json,
+        qualification = qual_json,
         log_lik = ll_block,
         log_prior = lp_block,
         warnings,
+        (ids_json === nothing ? (;) : (; ids = ids_json))...,
+        (ma_json === nothing ? (;) : (; missing_audit = ma_json))...,
+        (ps_json === nothing ? (;) : (; prior_summary = ps_json))...,
     )
     handoff_hash = _canonical_handoff_digest(body)
-    full_rec = merge(body, (; handoff_hash))
+    draws_ieee754_sha256 = _draws_ieee754_sha256(
+        HANDOFF_SCHEMA, source_family, String(scale), parameter_names,
+        chain_ids, iterations, draws, fixed_norm,
+        Bool(get(qualification_snapshot, :qualified, false)))
+    handoff_bundle_sha256 = _handoff_bundle_sha256(
+        draws_ieee754_sha256, ids_json, pr_json, ma_json)
+    full_rec = merge(body, (; handoff_hash, draws_ieee754_sha256, handoff_bundle_sha256))
     return Handoff(full_rec, _handoff_to_stan_fit(full_rec))
 end
 
@@ -1390,6 +1557,27 @@ function _canonical_handoff_digest(rec)
         (; block = String(x.block), name = String(x.name), value = Float64(x.value))
         for x in rec.fixed_parameters
     ]
+    ids_canon = if hasproperty(rec, :ids) && rec.ids !== nothing && !(rec.ids === missing)
+        ks = sort!(String[String(k) for k in keys(rec.ids)])
+        [(ks_i, String[string(v) for v in (rec.ids isa NamedTuple ? getproperty(rec.ids, Symbol(ks_i)) : rec.ids[Symbol(ks_i)])]) for ks_i in ks]
+    else
+        nothing
+    end
+    ma_canon = if hasproperty(rec, :missing_audit) && rec.missing_audit !== nothing && !(rec.missing_audit === missing)
+        ma = rec.missing_audit
+        dbc = hasproperty(ma, :dropped_by_column) && ma.dropped_by_column !== nothing ? ma.dropped_by_column : nothing
+        dbc_c = dbc === nothing ? Tuple{String,Int}[] :
+            [(ks_i, Int(dbc isa NamedTuple ? getproperty(dbc, Symbol(ks_i)) : dbc[Symbol(ks_i)])) for ks_i in sort!(String[String(k) for k in keys(dbc)])]
+        (;
+            n_input_rows = Int(get(ma, :n_input_rows, 0)),
+            n_retained_rows = Int(get(ma, :n_retained_rows, 0)),
+            n_dropped_rows = Int(get(ma, :n_dropped_rows, 0)),
+            dropped_rows = hasproperty(ma, :dropped_rows) && ma.dropped_rows !== nothing ? Int[Int(x) for x in ma.dropped_rows] : Int[],
+            dropped_by_column = dbc_c,
+        )
+    else
+        nothing
+    end
     return B._cache_hash((;
         schema = String(rec.schema),
         source_family = String(rec.source_family),
@@ -1411,6 +1599,8 @@ function _canonical_handoff_digest(rec)
         log_lik = ll_canon,
         log_prior = lp_canon,
         warnings = String[String(w) for w in rec.warnings],
+        (ids_canon === nothing ? (;) : (; ids = ids_canon))...,
+        (ma_canon === nothing ? (;) : (; missing_audit = ma_canon))...,
     ))
 end
 
@@ -1583,7 +1773,7 @@ to_fit(h::Handoff) = h.fit
     PortableHandoff.export_handoff(fit; scale = :model, include_log_lik = false, include_log_prior = false)
 
 Export any fitted Bayesian model (`MFRMFit`/SupportedCommonFit, `AdditiveFacets.Fit`,
-`StarResult`, Experimental sample record, `ConcurrentWorkflow.Fit`, or `StanAdapter.Fit`)
+`StarResult`, sample record, `ConcurrentWorkflow.Fit`, or `StanAdapter.Fit`)
 into a versioned, SHA-256-sealed portable joint-draw handoff (`"bayesianmgmfrm.portable_joint_draws_handoff.v1"`).
 Save with `save_report(path, handoff; return_receipt = true)` and restore in any
 process via `load_report(path; expected_sha256 = receipt.sha256)`.
@@ -1612,13 +1802,72 @@ function export_handoff(f::SA_ADAPT.Fit; scale::Symbol = :model, include_log_lik
         sampler_stats_raw = r.run.sampler_stats,
         sampler_controls = r.run.controls,
         prior_and_reference = r.provenance,
-        qualification_snapshot = (; q.qualified, q.parameter_gate_passed, q.sampler_gate_passed, q.telemetry_complete),
+        qualification_snapshot = (; q.qualified, q.max_rhat, q.min_bulk_ess, q.min_tail_ess, q.n_divergences,
+            q.parameter_gate_passed, q.sampler_gate_passed, q.telemetry_complete),
         log_lik_payload = ll_p,
         log_prior_vec = lp_v,
         warnings = copy(r.warnings))
 end
 
-function export_handoff(fit::B._SupportedCommonFit; scale::Symbol = :model, include_log_lik::Bool = false, include_log_prior::Bool = false)
+function _common_fit_prior_summary(fit)
+    hasproperty(fit, :prior) || return nothing
+    p = fit.prior
+    if fit isa B.MFRMFit
+        return (;
+            family = "reference_mfrm",
+            coordinate_space = "identified_direct",
+            person = (; role = "person_ability", family = "Normal",
+                label = "Normal(0, $(round(p.person_sd; digits = 4)))", sd = p.person_sd),
+            rater = (; role = "rater_severity", family = "Normal",
+                label = "Normal(0, $(round(p.rater_sd; digits = 4)))", sd = p.rater_sd),
+            item = (; role = "item_difficulty", family = "Normal",
+                label = "Normal(0, $(round(p.item_sd; digits = 4)))", sd = p.item_sd),
+            step = (; role = "category_step", family = "Normal",
+                label = "Normal(0, $(round(p.step_sd; digits = 4)))", sd = p.step_sd),
+        )
+    elseif fit isa B.GMFRMFit
+        return (;
+            family = "gmfrm",
+            coordinate_space = "raw_unconstrained",
+            identification = "gmfrm_item_sum_to_zero",
+            threshold_owner = "rater",
+            estimator = "nuts_only",
+            person = (; role = "person_ability", family = "Normal",
+                label = "Normal(0, $(round(p.person_sd; digits = 4)))", sd = p.person_sd),
+            rater = (; role = "rater_severity", family = "Normal",
+                label = "Normal(0, $(round(p.rater_sd; digits = 4)))", sd = p.rater_sd),
+            item = (; role = "item_free", family = "Normal",
+                label = "Normal(0, $(round(p.item_sd; digits = 4)))", sd = p.item_sd),
+            log_item_discrimination = (; role = "log_item_discrimination_free", family = "Normal",
+                label = "Normal(0, $(round(p.log_discrimination_sd; digits = 4)))", sd = p.log_discrimination_sd),
+            log_rater_consistency = (; role = "log_rater_consistency", family = "Normal",
+                label = "Normal(0, $(round(p.log_consistency_sd; digits = 4)))", sd = p.log_consistency_sd),
+            step = (; role = "rater_steps", family = "Normal",
+                label = "Normal(0, $(round(p.step_sd; digits = 4)))", sd = p.step_sd),
+        )
+    elseif fit isa B.MGMFRMFit
+        return (;
+            family = "mgmfrm",
+            coordinate_space = "raw_unconstrained",
+            estimator = "nuts_only",
+            person = (; role = "person_ability", family = "Normal",
+                label = "Normal(0, $(round(p.person_sd; digits = 4)))", sd = p.person_sd),
+            rater = (; role = "rater_severity", family = "Normal",
+                label = "Normal(0, $(round(p.rater_sd; digits = 4)))", sd = p.rater_sd),
+            item = (; role = "item_difficulty", family = "Normal",
+                label = "Normal(0, $(round(p.item_sd; digits = 4)))", sd = p.item_sd),
+            log_item_discrimination = (; role = "log_item_discrimination", family = "Normal",
+                label = "Normal(0, $(round(p.log_discrimination_sd; digits = 4)))", sd = p.log_discrimination_sd),
+            log_rater_consistency = (; role = "log_rater_consistency", family = "Normal",
+                label = "Normal(0, $(round(p.log_consistency_sd; digits = 4)))", sd = p.log_consistency_sd),
+            step = (; role = "item_steps", family = "Normal",
+                label = "Normal(0, $(round(p.step_sd; digits = 4)))", sd = p.step_sd),
+        )
+    end
+    return nothing
+end
+
+function export_handoff(fit::B._SupportedCommonFit; scale::Symbol = :model, include_log_lik::Bool = false, include_log_prior::Bool = false, ids = nothing)
     scale in (:model, :raw) || throw(ArgumentError("scale must be :model or :raw"))
     ctx = B._recovery_context(fit)
     run = fit isa B._ModelComparisonFit ? fit : fit.record.run
@@ -1654,6 +1903,29 @@ function export_handoff(fit::B._SupportedCommonFit; scale::Symbol = :model, incl
     src_hash = ctx.source_sample_hash === nothing ?
         B._cache_hash((; draws, lps, chain_ids = Int.(ctx.chain_ids), iterations = Int.(ctx.iterations))) :
         String(ctx.source_sample_hash)
+    fd = ctx.spec.data
+    ids_nt = ids !== nothing ? ids : merge(
+        (; person = String.(string.(fd.person_levels)), item = String.(string.(fd.item_levels))),
+        fd.columns.rater === nothing ? (;) : (; rater = String.(string.(fd.rater_levels))),
+    )
+    ma = hasproperty(fd.columns, :missing_audit) ? deepcopy(fd.columns.missing_audit) : nothing
+    c_raw = B.contract(fit)
+    eff_m = B._cr5_effective_model(ctx.spec)
+    eff_id = (!isempty(ctx.spec.anchors) && ctx.spec.family === :mfrm) ? :hard_anchor : eff_m.identification
+    eff_owner = eff_m.threshold_owner
+    pr_common = merge(
+        (; (k => getproperty(c_raw, k) for k in keys(c_raw) if k !== :identification)...),
+        (;
+            category_levels = Int.(fd.category_levels),
+            n_categories = length(fd.category_levels),
+            identification_declarations = hasproperty(c_raw, :identification) ? c_raw.identification : NamedTuple[],
+            facet_identification = eff_id,
+            identification = eff_id,
+            threshold_owner = eff_owner,
+            step_owner = eff_owner,
+            population_location_mode = eff_m.location_mode,
+        ),
+    )
     return _assemble_handoff(;
         source_family = String(ctx.spec.family),
         source_schema = "bayesianmgmfrm.common_fit.v1",
@@ -1668,13 +1940,16 @@ function export_handoff(fit::B._SupportedCommonFit; scale::Symbol = :model, incl
         logdensities = lps,
         sampler_stats_raw = run.sampler_stats,
         sampler_controls = B.sampler_controls(fit),
-        prior_and_reference = B.contract(fit),
+        prior_and_reference = pr_common,
         qualification_snapshot = (; q.qualified, q.max_rhat, q.min_bulk_ess, q.min_tail_ess, q.n_divergences),
         log_lik_payload = ll_p,
-        log_prior_vec = lp_v)
+        log_prior_vec = lp_v,
+        ids = ids_nt,
+        missing_audit = ma,
+        prior_summary = _common_fit_prior_summary(fit))
 end
 
-function export_handoff(f::B.AdditiveFacets.Fit; scale::Symbol = :model, include_log_lik::Bool = false, include_log_prior::Bool = false)
+function export_handoff(f::B.AdditiveFacets.Fit; scale::Symbol = :model, include_log_lik::Bool = false, include_log_prior::Bool = false, ids = nothing)
     scale in (:model, :raw) || throw(ArgumentError("scale must be :model or :raw"))
     t = B.AdditiveFacets.checked(f; full = true)
     run = f.record.run
@@ -1683,8 +1958,16 @@ function export_handoff(f::B.AdditiveFacets.Fit; scale::Symbol = :model, include
         m = B.AdditiveFacets.model_draws(t, run.draws)
         pnames = m.names
         draws = m.values
-        pblocks = [startswith(nm, "person[") ? :person :
-                   startswith(nm, "step[") || startswith(nm, "steps[") ? :thresholds : :facet for nm in pnames]
+        pblocks = map(pnames) do nm
+            startswith(nm, "person[") && return :person
+            (startswith(nm, "step[") || startswith(nm, "steps[")) && return :thresholds
+            (nm == "population_mean" || startswith(nm, "population[") || startswith(nm, "population_sd[")) && return :population
+            startswith(nm, "residual_sd[") && return :hyperparameter
+            for b in t.facets
+                startswith(nm, "$(b.name)[") && return b.name
+            end
+            return :facet
+        end
         fixed = NamedTuple[(; block = pblocks[i], name = nm, value = draws[1, i]) for (i, nm) in enumerate(pnames) if nm in m.fixed]
     else
         pnames = B.parameter_names(t; scale = :raw)
@@ -1708,6 +1991,43 @@ function export_handoff(f::B.AdditiveFacets.Fit; scale::Symbol = :model, include
         nothing
     end
     lp_v = include_log_prior ? [B.logprior(t, view(run.draws, s, :)) for s in 1:size(run.draws, 1)] : nothing
+    id_pairs = Pair{Symbol,Vector{String}}[]
+    hasproperty(t, :people) && push!(id_pairs, :person => String.(string.(t.people)))
+    if hasproperty(t, :facets)
+        for b in t.facets
+            push!(id_pairs, b.name => String.(string.(b.levels)))
+        end
+    end
+    ids_nt = ids !== nothing ? ids : (isempty(id_pairs) ? nothing : (; id_pairs...))
+    ma = B._cr5_extract_missing_audit(t)
+    c_add = B.contract(t)
+    eff_owner = hasproperty(t, :owner) ? t.owner : (hasproperty(c_add, :step_owner) ? c_add.step_owner : :none)
+    facet_id = if t isa B.AdditiveFacets.MRCMLTarget
+        sr = t.spec_record
+        if get(sr, :source, :custom_mrcml_spec) !== :structured_mfrm_spec || get(sr, :has_lltm, false)
+            :mrcml_design_matrix
+        elseif hasproperty(sr, :fixed_calibration)
+            :isometric_fixed_calibration
+        elseif hasproperty(sr, :calibration)
+            :isometric_calibrated
+        else
+            :isometric
+        end
+    else
+        :isometric
+    end
+    pop_loc_mode = hasproperty(c_add, :location_mode) ? c_add.location_mode :
+        (hasproperty(t, :location_mode) ? t.location_mode : :additive_target)
+    pr_add = merge(
+        c_add,
+        (;
+            facet_identification = facet_id,
+            identification = facet_id,
+            threshold_owner = eff_owner,
+            step_owner = eff_owner,
+            population_location_mode = pop_loc_mode,
+        ),
+    )
     return _assemble_handoff(;
         source_family = "additive_facets",
         source_schema = f.record.schema,
@@ -1722,10 +2042,15 @@ function export_handoff(f::B.AdditiveFacets.Fit; scale::Symbol = :model, include
         logdensities = copy(run.logdensities),
         sampler_stats_raw = run.sampler_stats,
         sampler_controls = run.controls,
-        prior_and_reference = B.contract(t),
-        qualification_snapshot = (; q.qualified, q.parameter_gate_passed, q.sampler_gate_passed, q.telemetry_complete),
+        prior_and_reference = pr_add,
+        qualification_snapshot = (; q.qualified, q.max_rhat, q.min_bulk_ess, q.min_tail_ess, q.n_divergences,
+            q.parameter_gate_passed, q.sampler_gate_passed, q.telemetry_complete),
         log_lik_payload = ll_p,
         log_prior_vec = lp_v,
+        ids = ids_nt,
+        missing_audit = ma,
+        prior_summary = t isa B.AdditiveFacets.MRCMLTarget ? B.AdditiveFacets._mrcml_prior_summary(t) :
+            t isa B.AdditiveFacets.ExplanatoryTarget ? deepcopy(t.specification) : nothing,
         warnings = copy(B.AdditiveFacets.design(t).warnings))
 end
 
@@ -1780,7 +2105,7 @@ end
 function export_handoff(r::NamedTuple; scale::Symbol = :raw, include_log_lik::Bool = false, include_log_prior::Bool = false)
     tag = B._sample_schema_symbol(r)
     tag !== nothing || throw(ArgumentError("unsupported NamedTuple record for PortableHandoff.export_handoff"))
-    scale === :raw || throw(ArgumentError("Experimental sample records export `:raw` sampler coordinates in PortableHandoff"))
+    scale === :raw || throw(ArgumentError("sample records export `:raw` sampler coordinates in PortableHandoff"))
     t = B.getdesign(r)
     run = r.run
     pnames = B.parameter_names(t; scale = :raw)
@@ -1802,7 +2127,8 @@ function export_handoff(r::NamedTuple; scale::Symbol = :raw, include_log_lik::Bo
         sampler_stats_raw = run.sampler_stats,
         sampler_controls = run.controls,
         prior_and_reference = B.contract(t),
-        qualification_snapshot = (; q.qualified, q.parameter_gate_passed, q.sampler_gate_passed, q.telemetry_complete),
+        qualification_snapshot = (; q.qualified, q.max_rhat, q.min_bulk_ess, q.min_tail_ess, q.n_divergences,
+            q.parameter_gate_passed, q.sampler_gate_passed, q.telemetry_complete),
         log_lik_payload = nothing,
         log_prior_vec = lp_v)
 end
@@ -1866,6 +2192,11 @@ function save_handoff(path::AbstractString, h::Handoff)
     B._SA_MOD._save_atomic_json(path, h.record)
 end
 
+function load_handoff(path::AbstractString)
+    isfile(path) || throw(ArgumentError("portable handoff file not found: $path"))
+    return load_handoff(B.JSON3.read(read(path, String)))
+end
+
 function load_handoff(parsed)
     hasproperty(parsed, :schema) && String(parsed.schema) == HANDOFF_SCHEMA ||
         throw(ArgumentError("invalid portable joint-draw handoff schema"))
@@ -1877,11 +2208,47 @@ function load_handoff(parsed)
     expected_hash = _canonical_handoff_digest(parsed)
     expected_hash == String(parsed.handoff_hash) ||
         throw(ArgumentError("portable handoff internal checksum mismatch"))
+    actual_ieee_opt = nothing
+    if hasproperty(parsed, :draws_ieee754_sha256) && parsed.draws_ieee754_sha256 !== nothing && !(parsed.draws_ieee754_sha256 === missing)
+        stored_ieee = String(parsed.draws_ieee754_sha256)
+        occursin(r"^[0-9a-f]{64}$", stored_ieee) ||
+            throw(ArgumentError("invalid draws_ieee754_sha256 format"))
+        fixed_norm = [(; block = String(x.block), name = String(x.name), value = Float64(x.value)) for x in parsed.fixed_parameters]
+        q_flag = hasproperty(parsed, :qualification) && hasproperty(parsed.qualification, :qualified) ?
+            Bool(parsed.qualification.qualified) : false
+        actual_ieee = _draws_ieee754_sha256(
+            String(parsed.schema), String(parsed.source_family), String(parsed.scale),
+            String[String(x) for x in parsed.parameter_names],
+            Int[Int(x) for x in parsed.chain_ids],
+            Int[Int(x) for x in parsed.iterations],
+            fit.record.run.draws, fixed_norm, q_flag)
+        actual_ieee == stored_ieee ||
+            throw(ArgumentError("portable handoff draws_ieee754_sha256 mismatch"))
+        actual_ieee_opt = actual_ieee
+    end
+    if hasproperty(parsed, :handoff_bundle_sha256) && parsed.handoff_bundle_sha256 !== nothing && !(parsed.handoff_bundle_sha256 === missing)
+        stored_bundle = String(parsed.handoff_bundle_sha256)
+        occursin(r"^[0-9a-f]{64}$", stored_bundle) ||
+            throw(ArgumentError("invalid handoff_bundle_sha256 format"))
+        actual_ieee_opt !== nothing ||
+            throw(ArgumentError("handoff_bundle_sha256 requires draws_ieee754_sha256"))
+        ids_p = hasproperty(parsed, :ids) ? parsed.ids : nothing
+        pr_p = hasproperty(parsed, :prior_and_reference) ? parsed.prior_and_reference : nothing
+        ma_p = hasproperty(parsed, :missing_audit) ? parsed.missing_audit : nothing
+        actual_bundle = _handoff_bundle_sha256(actual_ieee_opt, ids_p, pr_p, ma_p)
+        actual_bundle == stored_bundle ||
+            throw(ArgumentError("portable handoff handoff_bundle_sha256 mismatch (IDs, constraints, or missing_audit modified)"))
+    end
     rec_nt = parsed isa NamedTuple ? parsed : (; (Symbol(k) => parsed[k] for k in keys(parsed))...)
     return Handoff(rec_nt, fit)
 end
 
+include("plausible_values.jl")
+
 end # module PortableHandoff
+
+contrast(pv::PortableHandoff.PlausibleValues; group, reference, level = 0.95) =
+    PortableHandoff.group_contrast(pv; group, reference, level)
 
 # ---------------------------------------------------------------------------
 # Layer-1 & Layer-2 Root Dispatches for `StanAdapter.Fit` and `PortableHandoff.Handoff`

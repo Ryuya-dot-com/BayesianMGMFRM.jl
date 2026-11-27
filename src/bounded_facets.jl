@@ -178,7 +178,7 @@ end
 function bounded_model(table;person::Symbol,score::Symbol,facets::NamedTuple,
         observation::NamedTuple,observation_prior::NamedTuple,population::NamedTuple,
         predictors::NamedTuple=(;),intercept,levels=nothing,performance=nothing,assessment=nothing,
-        decompose=nothing)
+        decompose=nothing,missing_audit=nothing)
     _keys(observation,(:family,:bounds),:observation)
     observation.family===:zero_one_inflated_beta || throw(ArgumentError("bounded observation family must be :zero_one_inflated_beta"))
     bounds=observation.bounds
@@ -190,7 +190,7 @@ function bounded_model(table;person::Symbol,score::Symbol,facets::NamedTuple,
     zp=_normal_parameters(observation_intercept(observation_prior.endpoint_logit),:endpoint_logit)
     hp=_normal_parameters(observation_intercept(observation_prior.upper_logit),:upper_logit)
     obsprior=(;precision=pp,endpoint_logit=zp,upper_logit=hp)
-    loc,alloc=location_model(table;person,score,facets,population,predictors,intercept,levels,performance,assessment,decompose,allow_slopes=true)
+    loc,alloc=location_model(table;person,score,facets,population,predictors,intercept,levels,performance,assessment,decompose,allow_slopes=true,missing_audit)
     raw=loc.table;n=length(raw[score])
     all(x->x isa Real && !(x isa Bool) && isfinite(x) && lo<=x<=hi,raw[score]) || throw(ArgumentError("scores must be finite, nonmissing and within bounds"))
     raw[score]=Float64.(raw[score]);y=(raw[score].-lo)./(hi-lo)
@@ -533,7 +533,7 @@ function design(t::BoundedTarget)
     pat=response_patterns(t)
     (;n_observations=length(t.y),n_persons=length(t.people),n_facets=length(t.facets)+1,n_parameters=t.dimension,
       observation=t.observation,allocation=t.allocation,grouping=t.groups,population=t.specification.population,
-      response_patterns=pat,warnings=[pat.warnings;hasproperty(t.allocation,:slope_warnings) ? t.allocation.slope_warnings : String[];"Experimental scalar ZOIB: conditional independence beyond declared owners; not Rasch specific objectivity.";
+      response_patterns=pat,warnings=[pat.warnings;hasproperty(t.allocation,:slope_warnings) ? t.allocation.slope_warnings : String[];"scalar ZOIB: conditional independence beyond declared owners; not Rasch specific objectivity.";
       isempty(distribution_blocks(t)) ? "Interior mean is not total expected score. Endpoint/precision predictors are intercept-only. Integer-grid scores are treated as a continuous interior approximation." : "Distributional terms add on log precision or endpoint logits; baseline precision/logits refer to zero predictors and zero residuals. Parameter blocks are independent a priori; precision is not rating reliability. Integer-grid interiors are a continuous approximation.";
       hasproperty(t.allocation,:distributional_warnings) ? t.allocation.distributional_warnings : String[];
       "Population mean/covariance screening does not establish sufficient information, causal effects or general identification."],scientific_acceptance=false)

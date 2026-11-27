@@ -1,5 +1,7 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.ValidationSuite: mgmfrm_validation_analysis_contract
 
 @testset "MGMFRM validation analysis contract" begin
     contract = mgmfrm_validation_analysis_contract()

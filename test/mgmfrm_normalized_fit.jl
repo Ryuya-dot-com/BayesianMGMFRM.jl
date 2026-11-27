@@ -1,6 +1,7 @@
 isdefined(@__MODULE__, :MGMFRMNormalizedPriorPredictiveChecks) || include("mgmfrm_normalized_prior_predictive.jl")
 module MGMFRMNormalizedFitChecks
 using Test, BayesianMGMFRM, Random, Statistics, Serialization
+using BayesianMGMFRM.Legacy
 using ..MGMFRMNormalizedPriorPredictiveChecks: specification, target, SCALES, saved_record_fixture
 const B = BayesianMGMFRM
 const E = B.Experimental

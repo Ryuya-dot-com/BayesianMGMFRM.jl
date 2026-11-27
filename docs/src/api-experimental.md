@@ -1,13 +1,13 @@
-# Experimental Model API
+# [Model Extensions API](@id Experimental-Model-API)
 
 !!! note "Development manual"
     Use the [matching source and installation instructions](installation.md).
     This manual describes a development snapshot, not an accepted stable release.
     Model support and scientific acceptance remain as stated on each page.
 
-These entries describe the callable experimental model types and functions.
+These entries describe the callable model types and functions.
 Their availability does not establish scientific support beyond the documented
-model and prior configurations. Read the [experimental model guide](experimental.md)
+model and prior configurations. Read the [model guide](experimental.md)
 for equations, identifying constraints, prior scales, fitting examples and limitations.
 For saved prediction comparison and named recovery, use the separate
 [prediction and recovery candidate reference](api-prediction-recovery.md).
@@ -30,6 +30,11 @@ BayesianMGMFRM.Experimental.GeneralizedPrior
 BayesianMGMFRM.Experimental.NormalizedMGMFRMPrior
 BayesianMGMFRM.Experimental.MeanProfilePrior
 BayesianMGMFRM.Experimental.NormalizedMGMFRMFit
+BayesianMGMFRM.Experimental.ScaleIdentifiedMGMFRM
+BayesianMGMFRM.Experimental.ScaleIdentifiedMGMFRMPrior
+BayesianMGMFRM.Experimental.ScaleIdentifiedMGMFRMTarget
+BayesianMGMFRM.Experimental.ScaleIdentifiedMGMFRMFit
+BayesianMGMFRM.Experimental.scale_identified_target
 BayesianMGMFRM.Experimental.surface_contract
 BayesianMGMFRM.Experimental.free_latent_correlation_2d_contract
 BayesianMGMFRM.Experimental.preview
@@ -43,9 +48,33 @@ BayesianMGMFRM.Experimental.fit_cache_key
 BayesianMGMFRM.Experimental.cached_fit
 ```
 
+## Multiplicative scale-identified MGMFRM
+
+Use [`BayesianMGMFRM.Experimental.scale_identified_target`](@ref) or pass
+[`BayesianMGMFRM.Experimental.ScaleIdentifiedMGMFRMPrior`](@ref) to
+`Experimental.fit` to separate dimension ability SDs (`ability_sd[dim=d]`) from
+within-dimension item loadings (`scale_identification = :geometric_mean_one` or
+`:anchor_item`), then inspect `standardized_loading` on `scale = :model`:
+
+```julia
+target = BayesianMGMFRM.Experimental.scale_identified_target(spec;
+    scale_identification = :geometric_mean_one,
+    location_identification = :zero_mean_population,
+    logit_scale = 1.7,
+    log_loading_sd = 0.25)
+fitted = fit(target; chains = 4, warmup = 1000, ndraws = 1000, seed = 20261122)
+qualify(fitted)
+posterior_summary(fitted; scale = :model, interval = 0.90)
+contrast(fitted; facet = :standardized_loading, left = "I2", right = "I1", dimension = 1)
+```
+
+See [Multiplicative scale identification](model-equations.md#multiplicative-scale-identification)
+for the response kernel, Helmert pure-item log-loading basis, and
+standardized-loading identity.
+
 ## Joint ratings
 
-Experimental model included in this snapshot; see the [workflow guide](joint-ratings.md).
+This model is included in this snapshot; see the [workflow guide](joint-ratings.md).
 
 ```@docs
 BayesianMGMFRM.Experimental.JointRatings

@@ -1,6 +1,8 @@
 module MGMFRMLocationParameterizationChecks
 
 using Test, Random, LinearAlgebra, Statistics, ForwardDiff, LogDensityProblems, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 const L = LogDensityProblems
 

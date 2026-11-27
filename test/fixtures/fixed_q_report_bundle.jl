@@ -1,3 +1,5 @@
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 # Reuse the caller's sampled or restored result; this check never fits a model.
 function check_fixed_q_report_bundle(input, directory; view = :full)
     canonical = input isa B.MultidimensionalMFRMFit

@@ -2,6 +2,8 @@ using Test
 using Random
 
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 
 @testset "CmdStan supported MFRM-family sampling" begin
     runtime = cmdstan_backend_check(; require_ready = true)

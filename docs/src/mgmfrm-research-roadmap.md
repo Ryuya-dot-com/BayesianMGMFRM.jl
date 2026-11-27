@@ -2,7 +2,7 @@
 
 A new model option needs a defined measurement question, not just an additional
 parameter. For existing functionality, use [Scope and Releases](scope.md),
-[model equations](model-equations.md) and the [experimental guide](experimental.md).
+[model equations](model-equations.md) and the [model extensions guide](experimental.md).
 This page describes evidence requirements, not results from completed studies.
 
 ## Start from existing explanations
@@ -60,7 +60,7 @@ not independent validation. Preserve conditional response variation and shared
 effects, and distinguish fixed global estimates from joint posterior uncertainty
 before comparing predictive summaries across estimators.
 
-An experimental implementation can be part of gathering evidence. Separate its
+An implementation can be part of gathering evidence. Separate its
 mathematical/operational checks from support for a substantive or performance
 claim; do not require a complete validation study before any prototype can exist.
 

@@ -1,3 +1,4 @@
+using BayesianMGMFRM.Legacy
 # Uses saved or synthetic fits. No posterior sampling and no extra likelihood.
 function check_fixed_q_prior_report(fit; directory = nothing, render = false, view = :public)
     directory === nothing && return mktempdir(d -> check_fixed_q_prior_report(fit; directory = d, render, view))

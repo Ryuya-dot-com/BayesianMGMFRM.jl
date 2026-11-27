@@ -1,5 +1,6 @@
 module ThreeIndicatorConcurrentReportChecks
 using BayesianMGMFRM, Test, JSON3, SHA
+using BayesianMGMFRM.GlassBox
 const B=BayesianMGMFRM
 const T=B.Experimental.ThreeIndicator
 const C=T.Concurrent

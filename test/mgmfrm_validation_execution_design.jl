@@ -1,6 +1,9 @@
 using Random
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
+using BayesianMGMFRM.ValidationSuite: mgmfrm_response_stress_plan, mgmfrm_validation_execution_design_contract, simulate_mgmfrm_response_stress
 
 @testset "MGMFRM validation execution design" begin
     contract = mgmfrm_validation_execution_design_contract()

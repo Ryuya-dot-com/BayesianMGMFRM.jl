@@ -1,4 +1,6 @@
 using Test, BayesianMGMFRM, Random, Statistics, ForwardDiff
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using Distributions: Normal, LogNormal
 
 function repeated_fixture(;P=8,R=6,J=3)

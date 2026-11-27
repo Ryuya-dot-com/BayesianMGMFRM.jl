@@ -1,5 +1,5 @@
 # FF4a: Complete Layer-1 & Layer-2 `model × operation` Contract Alignment
-# Ensures every offered Supported and Experimental model route implements its
+# Ensures every offered model route implements its
 # documented Layer-1 and Layer-2 Glass-Box verbs or raises an explicit,
 # mathematically informative `ArgumentError` (never an accidental `MethodError`
 # on a supported positional signature), while preserving strict keyword rejection.
@@ -203,7 +203,7 @@ loglikelihood(t::_RD_MOD.M.Target, q::AbstractVector{<:Real}) = _RD_MOD.M.loglik
 logposterior(t::_RD_MOD.M.Target, q::AbstractVector{<:Real}) = LogDensityProblems.logdensity(t, q)
 stan_data(t::_RD_MOD.M.Target) = _RD_MOD.M.stan_data(t)
 
-# Informative stan_data refusals for Julia-only specialized experimental targets
+# Informative stan_data refusals for Julia-only specialized targets
 for (_NoStanType, _NoStanLabel) in (
     (:(_OA_MOD.Target), "OrdinalAssociation.Target"),
     (:(_RGE_MOD.Target), "RaterGroupEffects.Target"),
@@ -269,7 +269,7 @@ end
 
 function waic(f::AdditiveFacets.Fit)
     t = AdditiveFacets.checked(f; full = true)
-    if t isa AdditiveFacets.Target
+    if t isa Union{AdditiveFacets.Target, AdditiveFacets.MRCMLTarget}
         ll = pointwise_loglikelihood(f).log_density
         return waic(ll)
     elseif t isa AdditiveFacets.ExplanatoryTarget
@@ -286,7 +286,7 @@ end
 
 function psis_loo(f::AdditiveFacets.Fit; pareto_k_threshold::Real = 0.7)
     t = AdditiveFacets.checked(f; full = true)
-    if t isa AdditiveFacets.Target
+    if t isa Union{AdditiveFacets.Target, AdditiveFacets.MRCMLTarget}
         run = f.record.run
         _check_psis_iterations(run.chain_ids, run.iterations)
         ll = pointwise_loglikelihood(f).log_density
@@ -345,7 +345,9 @@ function category_summary(f::AdditiveFacets.Fit; interval::Real = 0.95)
     )
 end
 
-function _additive_cohort_draws(f::AdditiveFacets.Fit; facet::Symbol = :person, parameters = nothing)
+function _additive_cohort_draws(f::AdditiveFacets.Fit; facet::Symbol = :person, parameters = nothing,
+        location::Symbol = :parameter)
+    location in (:parameter, :linked) || throw(ArgumentError("location must be :parameter or :linked"))
     t = AdditiveFacets.checked(f; full = true)
     m = AdditiveFacets.model_draws(t, f.record.run.draws)
     chosen = if parameters !== nothing
@@ -366,7 +368,16 @@ function _additive_cohort_draws(f::AdditiveFacets.Fit; facet::Symbol = :person, 
         nm in m.fixed && throw(ArgumentError("fixed parameter $(repr(nm)) cannot be included in cohort ranking/reliability/classification"))
         push!(idx, k)
     end
-    return (; names = chosen, values = m.values[:, idx], chains = f.record.run.controls.chains)
+    values = m.values[:, idx]
+    if location === :linked
+        t isa AdditiveFacets.MRCMLTarget && get(t.spec_record, :population_intercept, false) ||
+            throw(ArgumentError("linked person locations require a scalar MRCML fit with a population intercept"))
+        facet in (:entity, :person) && all(i -> i <= length(t.people), idx) ||
+            throw(ArgumentError("linked locations apply to person coordinates only"))
+        shift = only(findall(==("population_mean"), m.names))
+        values .+= view(m.values, :, shift)
+    end
+    return (; names = chosen, values, chains = f.record.run.controls.chains)
 end
 
 function ranking(f::AdditiveFacets.Fit; facet::Symbol = :person, parameters = nothing,
@@ -416,22 +427,45 @@ end
 posterior_ranking(f::AdditiveFacets.Fit; kwargs...) = ranking(f; kwargs...)
 
 function reliability(f::AdditiveFacets.Fit; facet::Symbol = :person, parameters = nothing,
-        target::Symbol = :centered, weights = nothing)
+        target::Symbol = :centered, weights = nothing,
+        level::Union{Nothing,Real} = nothing, interval::Union{Nothing,Real} = nothing)
+    (level !== nothing && interval !== nothing) &&
+        throw(ArgumentError("supply either `level` or `interval` to reliability, not both"))
+    lv = level !== nothing ? Float64(level) : interval !== nothing ? Float64(interval) : 0.95
+    _interval_probabilities(lv)
+    AdditiveFacets.checked(f; full = true)
     sel = _additive_cohort_draws(f; facet, parameters)
     N = length(sel.names)
+    S = size(sel.values, 1)
     w = weights === nothing ? ones(Float64, N) : weights
     comp = _posterior_reliability_components(sel.values, w, target)
     mcse_r = _posterior_reliability_mcse(comp, sel.chains)
+
+    # B/(B+W) is one posterior functional; neither draw-wise proxy intervals nor
+    # a population reliability follow from its conditional posterior variance W.
     return (;
         schema = "bayesianmgmfrm.additive_reliability.v1",
         target,
+        level = lv,
         parameters = sel.names,
         n_levels = N,
-        n_draws = size(sel.values, 1),
+        n_draws = S,
         between_variance = comp.between,
         within_variance = comp.within,
         total_variance = comp.total,
         reliability = comp.reliability,
+        reliability_lower = missing,
+        reliability_upper = missing,
+        interval_status = :not_defined_for_posterior_functional,
+        population_marginal_reliability = missing,
+        population_marginal_reliability_lower = missing,
+        population_marginal_reliability_upper = missing,
+        population_marginal_reliability_mcse = missing,
+        population_target = :not_evaluated,
+        population_status = :requires_population_and_design_marginalization,
+        separation = missing,
+        strata = missing,
+        scope = :finite_cohort_posterior_functional_not_design_reliability,
         mcse = mcse_r,
         qualification = qualify(f),
         source_content_hash = f.record.content_hash,
@@ -439,13 +473,22 @@ function reliability(f::AdditiveFacets.Fit; facet::Symbol = :person, parameters 
 end
 posterior_reliability(f::AdditiveFacets.Fit; kwargs...) = reliability(f; kwargs...)
 
+"""
+    classification(fit::AdditiveFacets.Fit; cutoff, pass_probability=0.5, location=:parameter, ...)
+
+Compare named model coordinates to a cutoff. For scalar anchored MRCML fits
+with a population intercept, `location=:linked` compares each person's deviation
+plus the receiving population mean to the cutoff within each joint draw.
+The default `:parameter` compares each selected coordinate directly.
+"""
 function classification(f::AdditiveFacets.Fit; cutoff::Real, pass_probability::Real = 0.5,
-        facet::Symbol = :person, parameters = nothing, interval::Real = 0.90)
+        facet::Symbol = :person, parameters = nothing, interval::Real = 0.90,
+        location::Symbol = :parameter)
     all(x -> x isa Real && !(x isa Bool) && isfinite(x), (cutoff, pass_probability, interval)) ||
         throw(ArgumentError("cutoff, pass_probability, and interval must be finite real numbers"))
     0.0 < Float64(pass_probability) < 1.0 || throw(ArgumentError("pass_probability must lie strictly in (0, 1)"))
     lo, hi = _interval_probabilities(Float64(interval))
-    sel = _additive_cohort_draws(f; facet, parameters)
+    sel = _additive_cohort_draws(f; facet, parameters, location)
     ev = _classification_events(sel.values, Float64(cutoff), Float64(pass_probability))
     rows = map(eachindex(sel.names)) do i
         vals = view(sel.values, :, i)
@@ -480,6 +523,7 @@ function classification(f::AdditiveFacets.Fit; cutoff::Real, pass_probability::R
     )
     return (;
         schema = "bayesianmgmfrm.additive_classification.v1",
+        (location === :linked ? (; location, shift_parameter="population_mean") : (;))...,
         cutoff = Float64(cutoff),
         pass_probability = Float64(pass_probability),
         interval = Float64(interval),
@@ -766,13 +810,14 @@ const LAYER1_OPERATIONS = (
     :facet_summary,
     :category_summary,
     :contrast,
+    :plausible_values,
+    :anchor_linking_summary,
+    :predict,
     :event_probabilities,
     :ranking,
     :reliability,
     :classification,
     :predictive_check,
-    :waic,
-    :psis_loo,
     :criteria,
     :compare_models,
     :prior_sensitivity,
@@ -819,6 +864,16 @@ function audit()
             layer1 = :all_supported,
             layer2 = :supported_via_experimental_targets,
             notes = "Scalar GMFRM, fixed-Q MGMFRM, NormalizedMGMFRMPrior, and correlated 2D MGMFRM.",
+        ),
+        (;
+            route = :scale_identified_mgmfrm,
+            tier = :experimental,
+            inference = :bayesian_nuts,
+            criterion_unit = :rating,
+            psis_estimator = :zhang_stephens_gpd,
+            layer1 = :all_supported,
+            layer2 = :all_supported,
+            notes = "Multiplicative scale-identified fixed-Q MGMFRM (`:geometric_mean_one` or `:anchor_item`, estimated `ability_sd`, selectable `logit_scale` in `(1.7, 1.0)`).",
         ),
         (;
             route = :additive_facets_finite,
@@ -869,6 +924,37 @@ function audit()
             layer1 = :frequentist_verbs_supported_bayesian_verbs_refused,
             layer2 = :frequentist_likelihood_and_coordinates_supported,
             notes = "1D RSM/PCM JMLE & Gauss-Hermite MMLE; Bayesian-only verbs throw informative `ArgumentError`.",
+        ),
+        (;
+            route = :scalar_mrcml_design,
+            tier = :supported,
+            status = :supported,
+            inference = :nuts_or_jmle_or_mmle,
+            criterion_unit = :rating_conditional_or_person_marginal,
+            psis_estimator = :conditional_rating_bayesian_only,
+            layer1 = :structured_facets_interactions_lltm,
+            layer2 = :scalar_category_design_tam_and_stan,
+            notes = "Supported 1D isometric MFRM (`prior = :default` with estimated population mean and SD) and scalar linear category logits with fixed ability scoring weights (`MRCML`). JMLE requires joint identification. Within-item multidimensional scoring and estimated multiplicative slopes use other models.",
+        ),
+        (;
+            route = :scalar_mrcml_equating,
+            tier = :experimental,
+            inference = :fixed_constraints_or_calibration_transfer,
+            criterion_unit = :conditional_on_linking_design,
+            psis_estimator = :not_applicable_linking_summary,
+            layer1 = :fixed_locations_steps_group_means_or_external_covariance,
+            layer2 = :anchor_constraints_and_covariance,
+            notes = "Named location, step and group-mean constraints; external Gaussian calibration for Bayesian fits or independent two-stage MMLE. A conditional anchor interval omits source uncertainty.",
+        ),
+        (;
+            route = :scalar_mrcml_population,
+            tier = :experimental,
+            inference = :grouped_nuts_or_mmle,
+            criterion_unit = :rating_conditional_or_person_marginal,
+            psis_estimator = :conditional_rating_bayesian_only,
+            layer1 = :linked_group_contrasts_and_plausible_values,
+            layer2 = :population_rank_joint_draws_and_conditional_mmle_grid,
+            notes = "Common covariate slopes and group SDs. NUTS supports ID-specific coordinates and joint PVs. MMLE uses plug-in PVs. Grouped JMLE, aliased mean terms and NUTS coordinate settings in MMLE are refused.",
         ),
         (;
             route = :star_association,

@@ -1,4 +1,6 @@
 using Test, BayesianMGMFRM, SHA
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("fixtures/reporting_fit.jl")
 include("../examples/common_prediction_observations.jl")

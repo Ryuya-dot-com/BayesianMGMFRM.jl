@@ -1,5 +1,6 @@
 module CommonRecoveryReplicationChecks
 using BayesianMGMFRM, Test, Statistics, Serialization
+using BayesianMGMFRM.GlassBox
 const B = BayesianMGMFRM
 include("../examples/saved_recovery_replications.jl")
 const INDEPENDENT = (status=:declared_independent, evidence="deterministic arithmetic fixture, not actual independent simulations")

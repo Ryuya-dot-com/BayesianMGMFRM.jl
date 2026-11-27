@@ -3,6 +3,9 @@ using Random
 using SHA
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
+using BayesianMGMFRM.ValidationSuite: evidence_artifact_schema_policy, local_dependence_calibration_contract, local_dependence_calibration_row, local_dependence_calibration_summary, local_dependence_simulation_grid, simulate_local_dependence
 
 if !isdefined(@__MODULE__, :ScientificPayloadDigest)
     include(joinpath(@__DIR__, "..", "scripts",

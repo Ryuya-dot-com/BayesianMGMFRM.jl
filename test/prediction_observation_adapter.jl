@@ -1,5 +1,7 @@
 module PredictionObservationAdapterChecks
 using Test, BayesianMGMFRM, Random, Serialization, SHA
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 import BayesianMGMFRM: PredictionObservationAdapter
 using .PredictionObservationAdapter

@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - main
-      - master
   pull_request:
   workflow_dispatch:
+
+# Feature pushes are tested through their PR. A merge or direct push tests main.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || (github.event_name == 'push' && github.ref) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
 
 env:
   # Ordinary jobs are distribution checks, not consumers of optional study results.
@@ -91,6 +95,7 @@ jobs:
         run: python test/mgmfrm_core_sbc_runtime.py
 
   minimum-version-test:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     name: Julia 1.10.8 - ${{ matrix.min_shard }} - Ubuntu
     runs-on: ubuntu-latest
     strategy:
@@ -99,6 +104,8 @@ jobs:
         min_shard: [core, fitting_core, fitting_reports, local_dependence_core, local_dependence_integrity, generalized]
     env:
       BAYESIANMGMFRM_TEST_GROUP: ${{ matrix.min_shard }}
+      # The serial drift and three-indicator restoration contracts record thread counts.
+      JULIA_NUM_THREADS: ${{ matrix.min_shard == 'fitting_reports' && '1' || 'auto' }}
     steps:
       - uses: actions/checkout@v4
       - name: Provision Julia 1.10.8 without legacy libopenlibm executable stack on glibc 2.41+
@@ -123,9 +130,14 @@ jobs:
           version: '1.10.8'
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-runtest@v1
+      - name: Run minimum-version shard
+        run: julia --startup-file=no --check-bounds=auto --project=. -e 'using Pkg; Pkg.test(; coverage=false, julia_args=`--check-bounds=auto`)'
 
   current-version-test:
+    env:
+      JULIA_NUM_THREADS: ${{ matrix.group == 'fitting_reports' && '1' || 'auto' }}
+      # Only lifecycle tests with no statistical precision assertion use the shorter path.
+      BAYESIANMGMFRM_PR_SMOKE: ${{ github.event_name == 'pull_request' }}
     name: Current Julia - ${{ matrix.label }} - Ubuntu
     runs-on: ubuntu-latest
     strategy:
@@ -148,7 +160,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
         with:
-          version: '1'
+          version: '1.13'
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - name: Run ${{ matrix.label }} test shard
@@ -162,7 +174,7 @@ jobs:
             free --mebi
             timer=(/usr/bin/time -v)
           fi
-          "${timer[@]}" julia --startup-file=no --project=. -e 'using Pkg; Pkg.test()'
+          "${timer[@]}" julia --startup-file=no --check-bounds=auto --project=. -e 'using Pkg; Pkg.test(; coverage=false, julia_args=`--check-bounds=auto`)'
 
   platform-smoke:
     name: Platform smoke - Julia 1 - ${{ matrix.os }}
@@ -190,6 +202,18 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - name: Run portable package smoke
         run: julia --startup-file=no --project=. scripts/platform_smoke.jl
+      - uses: r-lib/actions/setup-r@v2
+        if: runner.os == 'macOS'
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        if: runner.os == 'macOS'
+        with:
+          working-directory: interfaces/R/BayesianMGMFRM
+          dependencies: '"hard"'
+      - name: Install the R wrapper and check a native fit
+        if: runner.os == 'macOS'
+        run: |
+          R CMD INSTALL interfaces/R/BayesianMGMFRM
+          BAYESIANMGMFRM_R_CHECK_SOURCE="$GITHUB_WORKSPACE" Rscript --vanilla interfaces/R/BayesianMGMFRM/tests/interface.R
 
   research-evidence:
     name: Research evidence and SHA lineage
@@ -304,4 +328,4 @@ jobs:
         run: julia --startup-file=no scripts/distribution_archive_smoke.jl
       - name: Run release hygiene gate
         run: |
-          julia --startup-file=no scripts/check_release.jl --skip-tests --skip-docs --expected-version=0.1.2
+          julia --startup-file=no scripts/check_release.jl --skip-tests --skip-docs --expected-version=0.2.0-DEV

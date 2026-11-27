@@ -164,6 +164,6 @@ draws, chain/iteration indices, NUTS sampler telemetry, fixed parameters,
 ## Frozen `model × operation` Contract Matrix
 
 Use `BayesianMGMFRM.ModelOperationMatrix.audit()` to inspect the machine-readable
-table (`schema = "bayesianmgmfrm.model_operation_matrix.v1"`) listing all 18
+table (`schema = "bayesianmgmfrm.model_operation_matrix.v1"`) listing all 21
 model and interchange routes, their support tier, prediction unit, PSIS
 estimator, and Layer-1 / Layer-2 operation availability.

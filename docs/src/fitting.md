@@ -17,7 +17,7 @@ new responses even though it does not refit the model.
 
 `BayesianMGMFRM.jl` fits identified MFRM/RSM/PCM designs and exposes the
 [documented multidimensional and generalized configurations](scope.md#Current-Support)
-behind explicit experimental opt-in. Validate data
+with explicit model specifications. Validate data
 before sampling; inspect the compiled design when reviewing identification or
 model structure. The [minimal example](examples.md#Minimal-MFRM-Workflow) runs
 the ordinary fit, diagnostics, figures and save/reload sequence.
@@ -44,13 +44,38 @@ every model/design combination.
 | Retain draws | Chains explore the posterior; NUTS uses gradients to propose moves, while random-walk Metropolis proposes local random moves. Draws within a chain can be dependent. | Divergences/tree-depth warnings where applicable, chain agreement, effective sample size and focal MCSE |
 | Summarize | Functions transform joint draws into parameters, category probabilities, intervals or decisions. | The requested estimand and conditioning; posterior uncertainty is different from MCMC approximation error |
 
-For stable MFRM, bare `fit(spec)` currently means `backend = :julia`
-(random-walk Metropolis) with one chain. To request Julia NUTS, specify
-`backend = :advancedhmc` explicitly. `:cmdstan` uses an external CmdStan
-installation. Experimental models use `BayesianMGMFRM.Experimental.fit` and
-their own [model/prior/backend restrictions](experimental.md); this overview
-does not promise every combination. See [Backends and Sampler Controls](#Backends-and-Sampler-Controls)
-for the actual settings and diagnostic fields.
+For standard table-based isometric 1D MFRM specifications (`mfrm_spec(ratings; ..., prior = :default)`),
+`fit(spec; chains = ..., warmup = ..., ndraws = ..., seed = ...)` runs analytic-gradient
+Julia NUTS with automatic multi-chain threading (`chain_execution = :auto`). On
+`prior = :none` 1D specifications, `fit(spec; method = :mmle)` and
+`fit(spec; method = :jmle)` provide deterministic frequentist estimation. On
+legacy `FacetData` reference-coded `BayesianMGMFRM.Legacy.FacetSpec` objects retained for `0.1.x`
+compatibility, bare `fit(spec)` still defaults to `backend = :julia`
+(random-walk Metropolis) unless `backend = :advancedhmc` or `backend = :cmdstan`
+is requested explicitly, or unless `mfrm_spec(data; prior = :default)` is used
+to compile to the isometric target. Generalized rater/item slope
+(`slope = :rater | :item | :both`) and scale-identified multidimensional (`q_matrix = ...`,
+accepting matrix or label-keyed item-to-dimension mappings, `correlation = :independent | :lkj`,
+`rater_slope_scope = :entire_linear_predictor | :ability_only`, and
+`aggregation = :additive | :softmin`) models also compile through `mfrm_spec`
+with `prior = :default`, using draw-specific orthogonal location decoupling when
+`location_identification = :centered_items_free_mean`. Evidence for parameter recovery
+and interval coverage in these generalized
+models is limited to specific rating designs.
+Additional models remain under `BayesianMGMFRM.Experimental` with
+their own [model/prior/backend restrictions](experimental.md). See
+[Backends and Sampler Controls](#Backends-and-Sampler-Controls) for the actual
+settings and diagnostic fields.
+
+Common criteria alone do not link separate rater panels. When the generalized
+constructor rejects a disconnected design, its error identifies the observed
+subsets and suggests shared-examinee ratings or separate within-subset analyses.
+The R entry point preserves the original rater IDs in this error. For connected
+designs, inspect `validate_design(spec)` for thin bridges and for links lost when
+extreme-scoring persons are excluded from the diagnostic screen; those persons
+remain in the Bayesian fit. External `fixed_calibration` is available on the
+documented 1D MRCML route, and is not supported by the generalized GMFRM/MGMFRM
+route.
 
 The example below demonstrates syntax. Its dataset and draw counts are not a
 precision guarantee or a recommended sample size. First inspect the design and
@@ -59,65 +84,87 @@ you will report. Saving draws lets you improve reporting without fitting again.
 
 ## Supported MFRM/RSM/PCM Fit
 
+The standard `0.2.x` route builds an orthonormal isometric sum-to-zero MFRM
+directly from a rating table (`prior = :default`), estimating overall cohort
+location (`population_mean ~ Normal(0, 2.5)`) and person spread
+(`residual_sd[person] ~ HalfNormal(1.0)`) so label ordering and off-target floor
+or ceiling shifts do not distort facet contrasts:
+
 ```julia
 using BayesianMGMFRM
 
 ratings = (
-    examinee = ["E1", "E1", "E1", "E1", "E2", "E2", "E2", "E2"],
-    rater = ["R1", "R2", "R1", "R2", "R1", "R2", "R1", "R2"],
-    item = ["I1", "I1", "I2", "I2", "I1", "I1", "I2", "I2"],
-    score = [0, 1, 2, 0, 1, 2, 0, 2],
+    examinee = ["E1", "E1", "E1", "E1", "E2", "E2", "E2", "E2", "E3", "E3", "E3", "E3"],
+    rater = ["R1", "R2", "R1", "R2", "R1", "R2", "R1", "R2", "R1", "R2", "R1", "R2"],
+    item = ["I1", "I1", "I2", "I2", "I1", "I1", "I2", "I2", "I1", "I1", "I2", "I2"],
+    score = [0, 1, 2, 0, 1, 2, 0, 2, 1, 1, 2, 1],
 )
 
-data = FacetData(ratings;
+spec = mfrm_spec(ratings;
     person = :examinee,
-    rater = :rater,
-    item = :item,
     score = :score,
+    facets = (item = :item, rater = :rater),
+    steps = :item,
     category_levels = 0:2,
+    prior = :default,
 )
-validation = validate_design(data)
-validation.passed || error(validation)
 
-spec = mfrm_spec(data;
-    thresholds = :partial_credit,
-    validation_report = validation,
-)
+validation = validate_design(spec)
+validation.passed || error(validation)
+design_summary(spec).prior_summary
 
 fit_result = fit(spec;
-    backend = :advancedhmc,
     ndraws = 500,
     warmup = 500,
     chains = 4,
     seed = 20260718,
 )
+qualify(fit_result)
+diagnostics(fit_result; kind = :residual_correlation)
 ```
 
-The rating-scale and partial-credit threshold regimes share the same workflow.
-`fit(spec)` constructs the design internally; use `getdesign(spec)` when you
-want to inspect it separately.
-Declaring `category_levels` preserves the form's intended threshold count when
-an endpoint is absent from the realized sample. Inspect
-`ordinal_response_pattern_audit(data).category_scale` and validation warnings
-before fitting; do not reduce the scale merely to remove an empty category.
-Inspect [`constraint_table`](@ref), [`identification_declarations`](@ref), and
-[`model_manifest`](@ref) when reviewing the parameterization.
+For event-level residual correlations, declare `assessment` when distinct
+performances can be rated by the same judge. The report's `unit_binding` shows
+whether it used assessment IDs, performance IDs and raters, or a grouping
+inferred from the observed facets.
+
+Rating-scale (`steps = :global`), partial-credit (`steps = :item`), and
+rater-scale (`steps = :rater`) regimes share the same workflow. Declaring
+`category_levels` preserves the form's intended threshold count when an endpoint
+is absent from the realized sample; inspect `design_summary(spec)` and
+`validate_design(spec)` before fitting, and do not reduce the scale merely to
+remove an empty category.
+
+!!! note "Legacy `0.1.x` reference-coded `FacetData` compatibility"
+    Calling `data = FacetData(ratings; ...)` followed by `mfrm_spec(data)` without
+    `prior = :default` constructs the legacy reference-coded `BayesianMGMFRM.Legacy.FacetSpec` (`R1 = 0`,
+    `I1 = 0`, fixed zero person origin), which carries an explicit
+    `:over_anchored_reference_prior_risk` declaration in
+    `identification_declarations` (`using BayesianMGMFRM.Legacy`). Pass
+    `mfrm_spec(data; prior = :default)` to compile an existing `FacetData` object
+    onto the standard isometric `0.2.x` parameterization.
 
 ## Posterior interval figures
 
 Install the optional renderer once with `import Pkg; Pkg.add("CairoMakie")`. It is not
-required for fitting, summaries, or saved reports. With the fit above:
+required for fitting, summaries, or saved reports. With the isometric fit above:
 
 ```julia
 using CairoMakie
 
-figure = BayesianMGMFRM.plot_posterior(fit_result; block = :rater, interval = 0.95)
+parameters = [r.parameter for r in posterior_summary(fit_result).rows
+    if startswith(r.parameter, "rater[")]
+figure = BayesianMGMFRM.plot(fit_result;
+    kind = :posterior,
+    parameters,
+    interval = 0.95,
+)
 display(figure)
-content(figure[1, 1]).xlabel = "Rater severity"
 save("rater-posterior.pdf", figure)
 save("rater-posterior.svg", figure)
 ```
 
+For legacy `BayesianMGMFRM.Legacy.MFRMFit`, `GMFRMFit`, and `MGMFRMFit` objects, `BayesianMGMFRM.plot_posterior(legacy_fit; block = :rater, interval = 0.95)` remains available.
 The returned Figure can be edited using CairoMakie. Points are posterior
 medians; bars are central credible intervals, not predictive intervals or
 Monte Carlo error bars. Fixed identification values are labelled and shown as
@@ -125,7 +172,7 @@ diamonds without intervals. External anchor uncertainty is not propagated.
 The diagnostic note concerns the whole fit, including parameters outside the
 selection; an interval figure does not establish convergence.
 
-Use `block = :person`, `:rater`, `:item`, or `:thresholds` for MFRM, or choose
+For legacy `plot_posterior`, use `block = :person`, `:rater`, `:item`, or `:thresholds` for MFRM, or choose
 exact names with `parameters = ["rater[R2]", "rater[R1]"]`. Names must match
 your data. Explicit names set the order within each axis. Blocks have separate
 axes; model-scale figures include fixed reference values and the derived last
@@ -134,17 +181,17 @@ and does not change that function's defaults. A selection above 60 coordinates
 asks you to narrow it or set `max_parameters` explicitly; no rows are silently
 dropped. Use `size = (900, 600)` to set the figure dimensions.
 
-Figures can be regenerated from an existing fit cache without rerunning MCMC.
+Figures can be regenerated from an existing fit cache or portable computed report without rerunning MCMC.
 First restore its [recorded environment](api-saved-reporting.md#saved-result-reproduction);
 native caches and portable computed reports serve different purposes:
 
 ```julia
-save_fit_cache("analysis-fit.jls", fit_result)
-reloaded = load_fit_cache("analysis-fit.jls")
-figure = BayesianMGMFRM.plot_posterior(reloaded; block = :rater)
+save_report("analysis-report.json", fit_result)
+reloaded_report = load_report("analysis-report.json")
+figure = BayesianMGMFRM.plot(reloaded_report; kind = :posterior)
 ```
 
-The same qualified function accepts the existing experimental generalized fit
+The same qualified function accepts the existing generalized fit
 types. Their model coordinates use transformed draws; `scale = :raw` is an
 explicit computational view. MGMFRM accepts a dimension index or declared
 label, for example `dimension = 2`, and keeps dimensions on separate axes.
@@ -166,6 +213,7 @@ the saved route before calling it:
 
 ```julia
 using BayesianMGMFRM, CairoMakie
+using BayesianMGMFRM.Legacy
 
 restored = load_fit_cache("mgmfrm-fit.jls")
 figure = BayesianMGMFRM.plot_response_surface(restored;
@@ -279,13 +327,17 @@ conditioning and data provenance with the image. The
 Use the same optional renderer to inspect retained draws without reshaping them:
 
 ```julia
-chains = BayesianMGMFRM.plot_diagnostics(fit_result; block = :rater)
+parameters = [r.parameter for r in posterior_summary(fit_result).rows
+    if startswith(r.parameter, "rater[")]
+chains = BayesianMGMFRM.plot(fit_result; kind = :diagnostics, parameters)
 display(chains)
 save("rater-chains.pdf", chains)
 save("rater-chains.svg", chains)
 ```
 
-Each selected coordinate has a trace and a rank histogram. Chain colors and
+Legacy fits use `BayesianMGMFRM.plot_diagnostics(legacy_fit; block = :rater)`.
+The legacy renderer described below supplies a trace and a rank histogram for
+each selected coordinate. Chain colors and
 line styles agree across panels. The trace retains the stored chain and
 iteration identities; plotting does not thin, subsample, or refit. The default
 `scale = :raw` helps inspect computational coordinates. Use `scale = :model`
@@ -308,7 +360,7 @@ Derived constraint coordinates without such rows are labelled unavailable.
 The note retains whole-fit warnings and extrema even when only one parameter
 is shown, plus per-chain reported divergence counts, maximum-depth hits and
 E-BFMI. Missing or incomplete sampler statistics remain unavailable; these
-panels do not create missing telemetry. Experimental fits use their recorded
+panels do not create missing telemetry. Fits use their recorded
 diagnostic settings and the same compatibility checks as `diagnostics`.
 
 Warmup parameter draws are not stored and are excluded from these plots. Use
@@ -321,15 +373,22 @@ call; the editable Figure and PDF/SVG workflow are unchanged.
 Check whether the fitted model reproduces overall category use:
 
 ```julia
-predictive = BayesianMGMFRM.plot_predictive(fit_result; ndraws = 200, seed = 42)
+predictive = BayesianMGMFRM.plot(fit_result; kind = :predictive,
+    ndraws = 200, seed = 42, interval = 0.90)
 display(predictive)
 save("category-predictive.pdf", predictive)
 save("category-predictive.svg", predictive)
 ```
 
-Black diamonds show observed category proportions. Blue circles show the mean
-proportion across replicated datasets; bars show 90% pointwise central predictive
-intervals by default. Set `interval = 0.95` to change their width. Categories
+For standard MRCML, the panels show category counts and group mean scores,
+with observed values beside the replicated distributions. The block above
+requests 90% pointwise central predictive intervals; change `interval` to
+select another width.
+
+The legacy `BayesianMGMFRM.plot_predictive(legacy_fit; ndraws = 200, seed = 42)`
+renderer instead shows category proportions: black diamonds are observed,
+blue circles are replicated means, and bars are 90% pointwise intervals by
+default. Categories
 with no observed ratings remain visible. The replication preserves the original
 rating rows and uses posterior draws of their fitted persons, items and raters;
 it does not generate new facet levels or refit the model.
@@ -367,7 +426,7 @@ The figure displays the category-proportion rows from this summary. The same
 plotting call accepts `load_fit_cache("analysis-fit.jls")`; retain the seed and
 selection arguments with your analysis code. The returned native Figure can be
 edited and saved without simulating again. Whole-fit MCMC warnings remain in its
-caption. Stable MFRM and the existing experimental GMFRM/MGMFRM fits retain their
+caption. Stable MFRM and the existing GMFRM/MGMFRM fits retain their
 respective support limits; this conditional check does not establish performance
 for new persons, items or raters.
 
@@ -472,6 +531,7 @@ response patterns for closer inspection at a given ability, severity or difficul
 
 ```julia
 using BayesianMGMFRM, CairoMakie
+using BayesianMGMFRM.Legacy
 open("pathway-map-note.txt", "w") do note
     figure = BayesianMGMFRM.plot_pathway(fit_result;
         facets = (:rater, :item), metric = :outfit, interval = 0.99,
@@ -555,7 +615,7 @@ Every row states that the coordinate is unsampled, prior-free, and not a
 posterior estimate. A hard-anchor fit contributes two baseline warnings to the
 structured report and to the prominent `Warnings` block in
 `fit_report_markdown(report)`: one marks fixed coordinates as constants, and
-the other states that `MFRMPrior` remains zero-centered on free identified
+the other states that `BayesianMGMFRM.Legacy.MFRMPrior` remains zero-centered on free identified
 coordinates. Thus changing an anchor value can change prior and posterior
 predictions even when a likelihood-equivalent reparameterization exists. The
 fixed-value warning also states that uncertainty from an externally estimated
@@ -623,8 +683,12 @@ fitted = fit(spec; prior, backend=:advancedhmc, chains=4,
     chain_execution=:threads, max_parallel_chains=4, progress=monitor)
 ```
 
-The default `chain_execution=:serial` preserves the previous random-number
-stream and sampler settings. Threaded mode derives a distinct MersenneTwister
+Standard isometric additive-facet specifications and scale-identified
+multidimensional targets default to `chain_execution=:auto`, which selects
+`:threads` automatically when Julia has multiple default-pool threads and
+`chains > 1`, or `:serial` on a single thread. Legacy reference-anchored routes
+default to `chain_execution=:serial` to preserve previous random-number
+streams, and also accept `:threads` or `:auto` explicitly. Threaded mode derives a distinct MersenneTwister
 seed for each chain in chain order, records the seeds and actual worker count,
 and gives each active chain its own target, derivative workspace and adaptation.
 On the same source/environment, changing `max_parallel_chains` preserves those
@@ -641,9 +705,9 @@ saving still take time. More cores do not guarantee proportional speedup.
 If BLAS is independently multithreaded, choose its thread count in your analysis
 environment to avoid competing thread pools; the package does not change it.
 
-The experimental shared routes include independent GMFRM/MGMFRM and normalized
+The shared routes include independent GMFRM/MGMFRM and normalized
 MGMFRM, including the D1 slope-restriction/mean-profile wrappers. Correlated
-wrappers, fixed-coefficient multidimensional MFRM, separate experimental modules,
+wrappers, fixed-coefficient multidimensional MFRM, separate modules,
 Turing and CmdStan do not expose this concurrency option. Ordinary `fit(spec)`
 still defaults to random-walk sampling; request `backend=:advancedhmc` explicitly.
 
@@ -690,7 +754,7 @@ The same option reaches the shared AdvancedHMC runner used by
 `BayesianMGMFRM.Experimental.fit`, including normalized mean-profile fits.
 Structured monitoring is currently unavailable for random-walk, Turing and
 CmdStan fits; these reject the monitor. Boolean `progress=true/false` keeps
-the original backend behavior. Separate experimental modules have their own
+the original backend behavior. Separate modules have their own
 interfaces and are not covered by this shared-runner guarantee.
 
 Use `SamplingProgress(io=nothing)` for an in-memory monitor without printing,
@@ -752,6 +816,7 @@ requesting that backend:
 using Pkg
 Pkg.add("Turing")  # Once in this analysis environment.
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 import Turing
 # fit(spec; backend=:turing, ...)  # Choose the usual model and sampler controls.
 ```
@@ -803,8 +868,10 @@ of chains, warmup, retained draws, target acceptance, tree depth, metric, and
 initialization strategy before examining the results. Record a seed when exact
 replay is part of the analysis plan.
 
-The [runnable examples](examples.md) show stable and guarded fits with
-`--cmdstan`, including saved-fit reload and optional figures.
+The [standard runnable examples](examples.md) use Julia NUTS, with saved-fit
+reload and optional figures. The [Stan adapter](stan-adapter.md) handles matching
+external models. The older reference-coded example and its `--cmdstan` option
+remain under `examples/legacy/`.
 
 Sampler success is necessary but not sufficient. Review:
 
@@ -1017,7 +1084,7 @@ bypasses cleanup.
 [`fit_metadata`](@ref) and [`diagnostics`](@ref) retain their complete existing
 payload with the default `view = :full`. For a reader-facing structured result,
 request `view = :public`. The public form identifies its schema, model family,
-and stability level in a compact portable payload. Experimental fit metadata
+and stability level in a compact portable payload. Fit metadata
 reports the fitted configuration as `estimation_status = :experimental`.
 Public generalized diagnostics retain raw-space, constrained-space, and
 combined convergence metrics, parameter names, and scientific warning counts,
@@ -1025,10 +1092,10 @@ while omitting initialization identity hashes and repository artifact paths.
 The public form is intended for tables and reports, while the full form remains
 available when the complete fitting record is required.
 
-## Experimental Generalized Fitting
+## [Generalized Fitting](@id Experimental-Generalized-Fitting)
 
-Generalized fitting is deliberately outside this stable fitting surface. Use
-the [Experimental Generalized Models](experimental.md) page for the scalar
+For specialized raw-coordinate and normalized-prior interfaces, use
+the [Generalized Models](experimental.md) page for the scalar
 item-discrimination × rater-consistency GMFRM and fixed-Q confirmatory MGMFRM
 contracts, examples,
 and migration guidance.
@@ -1044,7 +1111,9 @@ have their own [explicit contracts](experimental.md#MGMFRM-prior-choice-and-comp
 fitting to inspect score, category-use, and facet-range implications.
 The legacy
 `fit(spec; experimental = true)` form remains source-compatible, but
-`BayesianMGMFRM.Experimental.fit` is the canonical entry point for new work.
+`BayesianMGMFRM.Experimental.fit` is the entry point for these specialized
+specifications. For standard generalized specifications, use the unified
+`mfrm_spec` and `fit` route described [above](#calculation-route).
 
 ## Predictive Checks and Model Comparison
 
@@ -1127,6 +1196,7 @@ Load a saved fit and select the figures to include in the existing bundle:
 
 ```julia
 using BayesianMGMFRM, CairoMakie
+using BayesianMGMFRM.Legacy
 restored = load_fit_cache("analysis-fit.jls")
 save_fit_report_bundle("analysis-report", restored;
     view = :public,
@@ -1250,6 +1320,7 @@ not a promise of adequate precision or computation time.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 T = BayesianMGMFRM.Experimental.ThreeIndicator
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "three_indicator_fit.jl"))
 controls = (ndraws=1000, warmup=1000, step_size=0.03, target_accept=0.99,

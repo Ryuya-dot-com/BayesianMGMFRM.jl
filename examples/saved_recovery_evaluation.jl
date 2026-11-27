@@ -1,4 +1,5 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 """
     saved_recovery_evaluation(cache_path, truth; dataset_id, observation_ids, interval=0.95)

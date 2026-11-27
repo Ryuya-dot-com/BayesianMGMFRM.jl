@@ -15,6 +15,7 @@ experiments or establish posterior calibration.
 module RecoveryPlanning
 
 using BayesianMGMFRM, LinearAlgebra, SHA
+using BayesianMGMFRM: getdesign, load_fit_cache, loglikelihood, MFRMPrior, MFRMFit
 using Serialization: deserialize
 const B = BayesianMGMFRM
 const PLAN = "example.mfrm_recovery_plan.v2"
@@ -205,7 +206,7 @@ sum of its other steps, not an additional independent draw. Use `prior_input`
 to obtain the named means/scales and declared parameter seed, then save the
 realized values with `bind_prior_draw` before generating responses.
 
-All other keywords have the meanings in `prepare`. The internal zero-valued
+All other keywords have the meanings in `prepare`. A zero-valued
 template validates the allocation only; its values are not generating truths.
 `ledger` and its stage operations retain the whole SBC roster. Save the bound
 dataset plan separately from the bound observations; register the observations

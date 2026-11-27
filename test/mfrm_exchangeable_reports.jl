@@ -1,6 +1,7 @@
 isdefined(@__MODULE__, :MFRMExchangeableSampleChecks) || include("mfrm_exchangeable_samples.jl")
 module MFRMExchangeableReportChecks
 using Test, BayesianMGMFRM, Random, Statistics
+using BayesianMGMFRM.Legacy
 using ..MFRMExchangeableRaterChecks: specification, target, reference
 using ..MFRMExchangeableSampleChecks: synthetic_record, rehash
 const B = BayesianMGMFRM

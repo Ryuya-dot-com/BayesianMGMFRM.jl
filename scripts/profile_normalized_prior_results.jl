@@ -1,6 +1,7 @@
 module NormalizedPriorResultProfile
 
 using BayesianMGMFRM, JSON3, Profile, Serialization, SHA
+using BayesianMGMFRM.GlassBox
 const B = BayesianMGMFRM
 include("run_normalized_prior_comparison.jl")
 const C = NormalizedPriorComparison

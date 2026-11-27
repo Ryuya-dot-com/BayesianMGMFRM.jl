@@ -1,6 +1,8 @@
 isdefined(@__MODULE__, :MGMFRMNormalizedPriorPredictiveChecks) || include("mgmfrm_normalized_prior_predictive.jl")
 module MGMFRMSlopeRestrictionChecks
 using Test, BayesianMGMFRM, Random, LinearAlgebra, ForwardDiff, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using ..MGMFRMNormalizedPriorPredictiveChecks: SCALES, saved_record_fixture
 const B=BayesianMGMFRM;const E=B.Experimental
 prior(;kwargs...)=E.NormalizedMGMFRMPrior(;prior_model=:exchangeable,merge(SCALES,(;kwargs...))...)

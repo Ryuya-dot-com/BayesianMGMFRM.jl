@@ -1,6 +1,8 @@
 module MFRMPriorIdentificationChecks
 
 using Test, BayesianMGMFRM, LinearAlgebra, ForwardDiff
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("test_groups.jl")
 const PRIOR = MFRMPrior(person_sd=0.7, rater_sd=0.4, item_sd=0.6, step_sd=0.5)

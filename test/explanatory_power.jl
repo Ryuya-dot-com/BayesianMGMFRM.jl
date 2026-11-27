@@ -1,5 +1,6 @@
 module ExplanatoryPowerTests
 using Test, BayesianMGMFRM, Distributions, Statistics
+using BayesianMGMFRM.GlassBox
 const B=BayesianMGMFRM;const A=B.AdditiveFacets
 
 function fixture(mixed)

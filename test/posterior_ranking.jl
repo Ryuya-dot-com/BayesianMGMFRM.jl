@@ -1,5 +1,6 @@
 module PosteriorRankingChecks
 using BayesianMGMFRM,Test,Statistics,Serialization
+using BayesianMGMFRM.Legacy
 import ..CommonPredictionRefitChecks, ..CommonPredictionKfoldChecks
 const B=BayesianMGMFRM;const R=CommonPredictionRefitChecks;const K=CommonPredictionKfoldChecks
 function selected(fit)

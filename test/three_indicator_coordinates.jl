@@ -1,5 +1,7 @@
 module ThreeIndicatorCoordinateChecks
 using BayesianMGMFRM,Test,JSON3,Statistics
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import ..ThreeIndicatorConcurrentChecks as Fixtures
 import ..ThreeIndicatorConcurrentWorkflowChecks as Existing
 const B=BayesianMGMFRM

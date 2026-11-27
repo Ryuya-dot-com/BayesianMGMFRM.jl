@@ -1,5 +1,6 @@
 module ThreeIndicatorConcurrentChecks
 using BayesianMGMFRM, Test, LinearAlgebra
+using BayesianMGMFRM.GlassBox
 const B=BayesianMGMFRM
 const T=B.Experimental.ThreeIndicator
 const C=T.Concurrent

@@ -1,5 +1,8 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
+using BayesianMGMFRM.ValidationSuite: release_scope_summary
 
 function _experimental_namespace_data()
     rows = (
@@ -20,8 +23,12 @@ end
 @testset "experimental namespace boundary" begin
     @test isdefined(BayesianMGMFRM, :Experimental)
     @test :Experimental ∉ names(BayesianMGMFRM)
-    @test :GMFRMFit in names(BayesianMGMFRM)
-    @test :MGMFRMFit in names(BayesianMGMFRM)
+    @test :GMFRMFit ∉ names(BayesianMGMFRM)
+    @test :MGMFRMFit ∉ names(BayesianMGMFRM)
+    @test isdefined(BayesianMGMFRM.Experimental, :GMFRMFit)
+    @test isdefined(BayesianMGMFRM.Experimental, :MGMFRMFit)
+    @test :GMFRMFit in names(BayesianMGMFRM.Legacy)
+    @test :MGMFRMFit in names(BayesianMGMFRM.Legacy)
     experimental = BayesianMGMFRM.Experimental
     contract = experimental.surface_contract()
 
@@ -56,6 +63,11 @@ end
         :NormalizedMGMFRMPrior,
         :MeanProfilePrior,
         :NormalizedMGMFRMFit,
+        :ScaleIdentifiedMGMFRM,
+        :ScaleIdentifiedMGMFRMPrior,
+        :ScaleIdentifiedMGMFRMTarget,
+        :ScaleIdentifiedMGMFRMFit,
+        :scale_identified_target,
         :cached_fit,
         :fit,
         :fit_cache_key,

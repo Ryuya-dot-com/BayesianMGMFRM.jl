@@ -1,7 +1,7 @@
 # Computed reports share the public lifecycle; none of these adapters fits a model.
 const PRIOR_SCHEMA="bayesianmgmfrm.additive_facet_prior_predictive.v1"
 const PREDICTION_SCHEMA="bayesianmgmfrm.additive_facet_prediction.v1"
-const REPORT_SCHEMAS=(REPORT_SCHEMA,PPC_SCHEMA,PRIOR_SCHEMA,PREDICTION_SCHEMA,BOUNDED_PPC_SCHEMA,BOUNDED_PREDICTION_SCHEMA,COUNT_PPC_SCHEMA,COUNT_PREDICTION_SCHEMA,MIXED_PPC_SCHEMA,MIXED_PREDICTION_SCHEMA)
+const REPORT_SCHEMAS=(REPORT_SCHEMA,PPC_SCHEMA,PRIOR_SCHEMA,PREDICTION_SCHEMA,BOUNDED_PPC_SCHEMA,BOUNDED_PREDICTION_SCHEMA,COUNT_PPC_SCHEMA,COUNT_PREDICTION_SCHEMA,MIXED_PPC_SCHEMA,MIXED_PREDICTION_SCHEMA,FAIR_REFERENCE_SCHEMA)
 
 function prior_report(t,counts;seed,interval=.95,owner_counts=nothing,source=:generated)
     lo,hi=interval_bounds(interval);n=length(t.person);K=length(t.categories)
@@ -27,7 +27,7 @@ function prior_report(t,counts;seed,interval=.95,owner_counts=nothing,source=:ge
     stats(x)=(;mean=mean(x),median=median(x),lower=quantile(x,lo),upper=quantile(x,hi))
     rows=[merge((;category=t.categories[k],n=g==0 ? n : count(==(g),t.group),stats(view(values,:,j))...),
         mixed ? (;owner=t.owner,level=deepcopy(t.group_levels[g])) : (;)) for (j,(g,k)) in enumerate(cells)]
-    (;schema=PRIOR_SCHEMA,kind=:prior_predictive,category_levels=copy(t.categories),
+    (;schema=PRIOR_SCHEMA,kind=:prior_predictive,api=contract(t),category_levels=copy(t.categories),
       replicated_counts=copy(counts),count_shape=size(counts),seed=Int(seed),ndraws=size(counts,1),
       design=design(t),rows,interval,n_observations=n,grouping_by_support=mixed,
       target_identity=B._cache_hash(record(t)),source,
@@ -49,6 +49,7 @@ function trace_payload(t,run;scale,parameters)
 end
 
 function check_plot_report(rep)
+    rep.schema == FAIR_REFERENCE_SCHEMA && return check_fair_reference_report(rep)
     rep.schema in (MIXED_PPC_SCHEMA,MIXED_PREDICTION_SCHEMA) && return check_mixed_report(rep)
     rep.schema in (BOUNDED_PPC_SCHEMA,BOUNDED_PREDICTION_SCHEMA) && return check_bounded_report(rep)
     rep.schema in (COUNT_PPC_SCHEMA,COUNT_PREDICTION_SCHEMA) && return check_count_report(rep)

@@ -36,7 +36,7 @@ function _source_signature()
     end
     files["lkj_kernel"] = bytes2hex(sha256(read(LKJ_SOURCE)))
     proj = Base.active_project()
-    man = proj === nothing ? nothing : joinpath(dirname(proj), "Manifest.toml")
+    man = proj === nothing ? nothing : Base.project_file_manifest_path(proj)
     return (;
         source_hash = B._cache_hash(files),
         julia = string(VERSION),
@@ -316,7 +316,7 @@ function _build_star_result(
     warm_stats,
     ret_stats;
     provenance = (; operation = :fit),
-    warnings::Vector{String} = ["Experimental model; scientific prior choice, fit and sensitivity require assessment."],
+    warnings::Vector{String} = ["Assess prior choice, model fit and sensitivity for the intended analysis."],
 )
     (size(draws) == (cfg.chains * cfg.ndraws, m.dim) && all(isfinite, draws)) ||
         throw(ArgumentError("invalid draws shape or nonfinite values"))
@@ -334,7 +334,7 @@ function _build_star_result(
         push!(w_out, "Shared single-mode warm-start initialization used; between-chain R-hat may underestimate non-convergence on multimodal or weakly identified posteriors.")
     end
     if cfg.adaptation === :clamped_regularized
-        push!(w_out, "Experimental clamped_regularized warmup adaptation used; step-size bounds and metric ratio caps may cause divergences on high-curvature or misspecified-scale posteriors.")
+        push!(w_out, "clamped_regularized warmup adaptation used; step-size bounds and metric ratio caps may cause divergences on high-curvature or misspecified-scale posteriors.")
     end
     if swarn
         push!(w_out, "Sampling warning: MCMC diagnostics below qualification thresholds (inspect qualify/diagnostics).")

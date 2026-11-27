@@ -502,7 +502,7 @@ end
 
 function mixed_outcome_model(table; outcomes::NamedTuple, person::Symbol, facets::NamedTuple,
         population::NamedTuple, predictors::NamedTuple = (;), decompose = nothing,
-        levels = nothing, performance = nothing, assessment = nothing)
+        levels = nothing, performance = nothing, assessment = nothing, missing_audit = nothing)
     reserved = (:person, :response, :steps, :global, :score, :performance, :assessment)
     !isempty(outcomes) || throw(ArgumentError("outcomes must declare at least one named outcome"))
     out_names = collect(keys(outcomes))
@@ -538,7 +538,10 @@ function mixed_outcome_model(table; outcomes::NamedTuple, person::Symbol, facets
         ix, lev = _labels(raw[c], name, levels === nothing ? nothing : levels.facets[name])
         push!(blocks, Block(name, c, lev, ix, 0.0, 0.0, 1:0))
     end
-    columns = (; person, outcomes = (;(oname => getproperty(outcomes, oname).score for oname in out_names)...), facets, performance, assessment)
+    out_col_nt = (;(oname => getproperty(outcomes, oname).score for oname in out_names)...)
+    columns = missing_audit === nothing ?
+        (; person, outcomes = out_col_nt, facets, performance, assessment) :
+        (; person, outcomes = out_col_nt, facets, performance, assessment, missing_audit = deepcopy(missing_audit))
     groups = _groups(raw, (; person, score = first(score_cols), facets, performance, assessment), p_idx, blocks)
     identity = (; table = raw, columns, person = p_idx, people = p_lev, facets = blocks)
     derived, dec = decompose === nothing ? (Dict{Symbol,Vector}(), nothing) : decompose_predictors(identity, table, decompose)
@@ -1291,7 +1294,8 @@ function restore_mixed(r)
     rules = hasproperty(s, :decomposition) ? (;(d.source => (; between = d.between, within = d.within) for d in s.decomposition.rules)...) : nothing
     t = mixed_outcome_model(r.table; outcomes = outs, person = r.columns.person, facets = r.columns.facets,
         population = pop, predictors = preds, decompose = rules, levels = r.levels,
-        performance = r.columns.performance, assessment = r.columns.assessment)
+        performance = r.columns.performance, assessment = r.columns.assessment,
+        missing_audit = hasproperty(r.columns, :missing_audit) ? r.columns.missing_audit : nothing)
     B._cache_hash(record(t)) == B._cache_hash(r) || throw(ArgumentError("mixed-outcome design record is not reproducible"))
     t
 end
@@ -1341,7 +1345,7 @@ function design(t::MixedOutcomeTarget)
        owners = [(; name = ob.name, levels = length(ob.levels), dimensions = ob.D_dim, dim_names = copy(ob.dim_names), correlation = ob.corr_kind) for ob in t.owners],
        allocation = t.allocation, grouping = t.groups, response_patterns = pat,
        warnings = vcat(pat.warnings, [
-           "Experimental mixed-outcome joint model: conditional within-event independence given declared owner/performance effects; verify with paired joint PPC.",
+           "mixed-outcome joint model: conditional within-event independence given declared owner/performance effects; verify with paired joint PPC.",
            "Different outcome families use distinct link scales and measures (ordinal mass, continuous ZOIB density with endpoint atoms, count mass); raw coefficients are not directly commensurable across families.",
            "Distinct architectural scope from Concurrent (fixed 9/9/2 Sekiguchi protocol + Plackett copula) and StarAssociation (ordinal-only star event association).",
        ]),

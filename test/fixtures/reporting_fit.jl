@@ -1,3 +1,5 @@
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy: MFRMFit, MFRMPrior
 # Deterministic reporting inputs, never posterior or backend-validation evidence.
 function reporting_fit(family; backend = :advancedhmc, warmup = 3, recorded = true,
         thresholds = :partial_credit, data = nothing, ndraws = 4, chains = 1,

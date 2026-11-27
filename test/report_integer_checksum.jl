@@ -1,5 +1,6 @@
 module ReportIntegerChecksumChecks
 using Test, BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 const exact = :cache_stable_string_exact_integers_v1
 hashof(x; canonicalization = exact) =

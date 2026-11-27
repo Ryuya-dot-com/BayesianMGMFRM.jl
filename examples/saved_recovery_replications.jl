@@ -1,4 +1,5 @@
 using BayesianMGMFRM, Serialization
+using BayesianMGMFRM.GlassBox
 
 """
     saved_recovery_replications(paths; kwargs...)

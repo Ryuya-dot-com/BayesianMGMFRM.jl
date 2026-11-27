@@ -1,6 +1,9 @@
 using Test
 using Random
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
+using BayesianMGMFRM.ValidationSuite: local_dependence_calibration_contract, local_dependence_calibration_row, local_dependence_calibration_summary, local_dependence_simulation_grid, simulate_local_dependence
 
 if !isdefined(@__MODULE__, :test_group_enabled)
     include("test_groups.jl")

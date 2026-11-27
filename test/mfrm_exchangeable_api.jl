@@ -1,6 +1,7 @@
 isdefined(@__MODULE__, :MFRMExchangeableSampleChecks) || include("mfrm_exchangeable_samples.jl")
 module MFRMExchangeableAPIChecks
 using Test, BayesianMGMFRM, Random, Serialization
+using BayesianMGMFRM.Legacy
 using ..MFRMExchangeableRaterChecks: specification, target, SCALES
 using ..MFRMExchangeableSampleChecks: synthetic_record, rehash
 const B = BayesianMGMFRM

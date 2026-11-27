@@ -1,5 +1,7 @@
 module CriterionCollapseLifecycleChecks
 using BayesianMGMFRM, Test, Statistics, LinearAlgebra
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 const L = B.LogDensityProblems
 const C = B.Experimental.CriterionCollapse

@@ -1,5 +1,6 @@
 module WrightHistogramRenderChecks
 using BayesianMGMFRM, CairoMakie, Test
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 const W = Main.WrightHistogramChecks
 axes(fig) = filter(x -> x isa Axis, fig.content)

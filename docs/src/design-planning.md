@@ -26,7 +26,7 @@ replication uncertainty requirement before a larger study.
 This route uses a **unidimensional MFRM with fixed unit slopes and item-owned
 partial-credit steps**, on the unit-logit scale. The first canonical rater and
 item have zero reference values; each item's steps sum to zero. Categories are
-consecutive integers. The analysis prior is an explicit `MFRMPrior`.
+consecutive integers. The analysis prior is an explicit `BayesianMGMFRM.Legacy.MFRMPrior`.
 
 For example, `rater[R2]` measures R2's severity relative to reference R1.
 Positive severity lowers the expected score for an otherwise identical speaker.
@@ -68,6 +68,7 @@ version-specific manifest, supply that file instead of `Manifest.toml`.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 const P = BayesianMGMFRM.Experimental.RecoveryPlanning
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "plan_mfrm_recovery.jl"))
 manifest_path = joinpath(dirname(Base.active_project()), "Manifest.toml")
@@ -109,7 +110,7 @@ The objects have distinct roles:
 
 **Only fit the design returned by `bind_data` for the actual response table.**
 The generator's placeholder design exists because the existing generator takes
-a `FacetDesign`; its scores play no role in the generating probabilities.
+a `BayesianMGMFRM.Legacy.FacetDesign`; its scores play no role in the generating probabilities.
 
 The next fragment **generates responses** when run. It is separate from plan
 preparation:
@@ -286,6 +287,7 @@ describes the interval's repeated-sampling interpretation.
 
 ```julia
 using BayesianMGMFRM, CairoMakie, Serialization
+using BayesianMGMFRM.Legacy
 # These are saved recovery_replications summaries, not raw fit caches.
 summaries = deserialize.(["design-A-summary.jls", "design-B-summary.jls"])
 rows = BayesianMGMFRM.design_precision_plot_data(summaries; parameter="rater[R2]")
@@ -307,7 +309,7 @@ per-scenario intervals, not a test of the difference between designs, simultaneo
 intervals or a rule for repeatedly checking and stopping a study. They concern
 estimated widths and do not correct MCMC classification error near the threshold.
 Keep the numerical summaries and external note with exported figures. Plotting
-does not generate data, refit models or promote the experimental design workflow
+does not generate data, refit models or promote the design workflow
 to an accepted design recommendation.
 
 ## Prepare a joint-prior SBC study
@@ -324,7 +326,7 @@ fragment prepares two jobs without generating parameters, scores or posterior
 samples. Two jobs illustrate the inputs; they are not an adequate SBC study.
 
 ```julia
-prior = MFRMPrior(person_sd=1.5, rater_sd=1.0, item_sd=1.0, step_sd=1.0)
+prior = BayesianMGMFRM.Legacy.MFRMPrior(person_sd=1.5, rater_sd=1.0, item_sd=1.0, step_sd=1.0)
 sbc_jobs = [(; dataset_id="sbc-$i", parameter_seed=3i,
               response_seed=3i+1, fit_seed=3i+2) for i in 1:2]
 study = P.prepare_sbc(plan.assignments; levels=plan.levels,

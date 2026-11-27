@@ -1,5 +1,7 @@
 module PosteriorPlotChecks
 using Test, Statistics, BayesianMGMFRM, Random
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("fixtures/reporting_fit.jl")
 const fits = Dict(family => reporting_fit(family) for family in (:mfrm, :gmfrm, :mgmfrm))
@@ -8,7 +10,7 @@ const fits = Dict(family => reporting_fit(family) for family in (:mfrm, :gmfrm, 
     @test :plot_posterior ∉ names(B)
     contract = B._root_api_contract()
     @test setdiff(Set(names(B)), Set([:BayesianMGMFRM])) ==
-        union(Set(contract.stable), Set(contract.compatibility), Set(contract.research))
+        Set(contract.layer1_practitioner)
     if Base.get_extension(B, :BayesianMGMFRMCairoMakieExt) === nothing
         error = try B.plot_posterior(fits[:mfrm]); catch err; err; end
         @test error isa ArgumentError

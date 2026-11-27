@@ -1,41 +1,39 @@
 # Installation
 
-Use **Julia 1.10.8 or newer** and source snapshot **`20261119-distribution-ci-freeze`**,
-matching this manual. This is package **0.1.2 (unreleased)**, a development
+Use **Julia 1.10.8 or newer** with the matching **`0.2.0-DEV (unreleased)`**
+source tree that accompanies this manual. This is a local development
 distribution rather than a registered General release.
 
-## Install from GitHub
+## Install from the matching `0.2.0-DEV` source tree
 
-In a dedicated analysis project, install and pin the matching development snapshot branch:
-
-```julia
-using Pkg
-Pkg.activate("rating-analysis")
-Pkg.add(url="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl",
-    rev="development/20261119-distribution-ci-freeze")
-Pkg.pin("BayesianMGMFRM")
-using BayesianMGMFRM
-```
-
-## Install from an extracted source archive
-
-Alternatively, extract the matching source archive (`BayesianMGMFRM-20261119-distribution-ci-freeze`),
-start Julia in the directory containing the extracted folder, and run:
+In a dedicated analysis project, develop the local or extracted `0.2.0-DEV`
+source folder (`BayesianMGMFRM.jl`, containing `Project.toml` with
+`version = "0.2.0-DEV"`):
 
 ```julia
 using Pkg
-source_dir = abspath("BayesianMGMFRM-20261119-distribution-ci-freeze")
+source_dir = abspath("path/to/BayesianMGMFRM.jl")  # matching 0.2.0-DEV tree
 Pkg.activate("rating-analysis")
 Pkg.develop(path=source_dir)
 using BayesianMGMFRM
 pkgdir(BayesianMGMFRM)
 ```
 
-The final line should show the extracted source folder. `rating-analysis` is
-your separate analysis project; keep both folders. If the source folder is
-elsewhere, replace `source_dir` with its absolute path. If Julia syntax is new,
-the [Julia basics guide](learning-guide.md#julia-for-beginners) explains projects,
+The final line should print your `0.2.0-DEV` source folder, and
+`isfile(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_analysis_v02.jl"))`
+should return `true`. `rating-analysis` is your separate analysis project; keep
+both folders. If Julia syntax is new, the
+[Julia basics guide](learning-guide.md#julia-for-beginners) explains projects,
 paths and help.
+
+!!! note "Do not use the older `0.1.2` GitHub snapshot for this manual"
+    The previously published GitHub snapshot branch
+    (`development/20261119-distribution-ci-freeze`, package `0.1.2`) predates
+    `0.2.0-DEV`, does not include `examples/first_analysis_v02.jl`, and does not
+    use the `0.2.0-DEV` isometric `prior = :default` specification. Install from
+    the matching `0.2.0-DEV` source tree above (or, once a `0.2.0-DEV` branch or
+    tag is published, pin that exact matching revision with `Pkg.add(url=...,
+    rev=...)` and `Pkg.pin("BayesianMGMFRM")`).
 
 **Continue to [Your First Rating Analysis](first-analysis.md).** Its supplied
 figures can also be read without installing or running Julia.

@@ -1,4 +1,5 @@
 using Test, BayesianMGMFRM, ForwardDiff, LinearAlgebra, Random, Statistics
+using BayesianMGMFRM.GlassBox
 using Distributions: Normal, LogNormal, logpdf, params
 
 # Independent Bradlow–Wainer–Wang (1999) / Wang–Wilson (2005) scalar Rasch/PCM

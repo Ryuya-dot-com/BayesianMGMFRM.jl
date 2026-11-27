@@ -1,5 +1,7 @@
 # Opt-in integration check using the locally imported official PDF. No MCMC.
 using Test, SHA, JSON3, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import LogDensityProblems as L
 include("../scripts/chopin_stage1_spec.jl")
 length(ARGS) == 1 || error("provide the new Chopin input directory")

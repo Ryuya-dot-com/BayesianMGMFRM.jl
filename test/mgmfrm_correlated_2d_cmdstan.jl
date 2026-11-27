@@ -1,5 +1,7 @@
 module MGMFRMCorrelated2DCmdStanChecks
 using Test, BayesianMGMFRM, ForwardDiff, LinearAlgebra
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import JSON3
 const B = BayesianMGMFRM
 include("test_groups.jl")

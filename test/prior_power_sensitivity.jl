@@ -1,5 +1,6 @@
 module PriorPowerSensitivityTests
 using Test, BayesianMGMFRM, Statistics, SHA
+using BayesianMGMFRM.GlassBox
 const B=BayesianMGMFRM
 const fixture=Main.MeanProfileSensitivityTests.profile_fit
 

@@ -12,6 +12,7 @@
 *.yaml text eol=lf
 *.py text eol=lf
 *.sh text eol=lf
+*.svg text eol=lf whitespace=-trailing-space
 
 # These two fixtures preserve the exact CRLF bytes hashed by the executed
 # ConQuest bundle. Treat them as byte artifacts rather than normalizing them.
@@ -31,6 +32,10 @@ test/fixtures/conquest_5_47_5/pcm_history.tsv whitespace=-trailing-space
 .gitattributes export-ignore
 .gitignore export-ignore
 Manifest*.toml export-ignore
+AGENTS.md export-ignore
+/ROADMAP.md export-ignore
+artifacts export-ignore
+docs/internal export-ignore
 
 docs/src/assets/category-report export-ignore
 docs/src/assets/criterion export-ignore
@@ -44,16 +49,33 @@ docs/src/assets/prior-sensitivity export-ignore
 docs/src/assets/rater-agreement export-ignore
 docs/src/assets/repeated export-ignore
 docs/src/assets/visual-guide export-ignore
-docs/src/assets/first-analysis/* export-ignore
-docs/src/assets/first-analysis/posterior.png -export-ignore
+# Keep the complete supplied teaching bundle: the example and ordinary tests
+# verify its report, tables and figure checksums after installation.
 
 examples/reports export-ignore
 
-test/fixtures/local_dependence_pilot_*.json export-ignore
-test/fixtures/local_dependence_calibration_scorer_preflight.json export-ignore
-test/fixtures/mgmfrm_publication_grade_*.json export-ignore
-test/fixtures/mgmfrm_full_heldout_mcmc_refit_*.json export-ignore
-test/fixtures/mgmfrm_tam_direct_agreement_*.json export-ignore
-test/fixtures/existing_api_design_robustness_stress_grid.json export-ignore
-test/fixtures/gmfrm_prior_likelihood_sensitivity_grid.json export-ignore
-test/fixtures/mgmfrm_heldout_prediction_execution.json export-ignore
+# Exclude one-off historical study generators and opt-in
+# `BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true` study harnesses/JSON archives
+# from the installable package archive while retaining active CLI/CI scripts
+# and ordinary `Pkg.test()` fixtures.
+scripts/generate_*.jl export-ignore
+scripts/generate_validation_plan.jl -export-ignore
+scripts/generate_local_dependence_pilot_batch_execution_harness.jl -export-ignore
+
+test/existing_api_design_robustness_recovery_scorer.jl export-ignore
+test/full_paper_reproduction_archive_contract.jl export-ignore
+test/legacy_archive_provenance.jl export-ignore
+test/local_dependence_calibration_artifact.jl export-ignore
+test/local_dependence_calibration_pilot.jl export-ignore
+test/local_dependence_pilot_*.jl export-ignore
+test/mgmfrm_free_latent_correlation_2d_study.jl export-ignore
+test/mgmfrm_free_latent_correlation_2d_study_unit_runner.jl export-ignore
+test/publication_grade_policy_contract.jl export-ignore
+
+test/fixtures/*.json export-ignore
+test/fixtures/gmfrm_guarded_fit_api_dry_run.json -export-ignore
+test/fixtures/local_dependence_known_truth_preflight.json -export-ignore
+test/fixtures/scalar_validation_known_value.json -export-ignore
+test/fixtures/scalar_validation_medium_known_value.json -export-ignore
+test/fixtures/scalar_validation_medium_stan_logdensity.json -export-ignore
+test/fixtures/scalar_validation_stan_logdensity.json -export-ignore

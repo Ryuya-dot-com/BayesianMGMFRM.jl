@@ -1,5 +1,12 @@
 using Documenter
 using BayesianMGMFRM
+for _sym in (
+    BayesianMGMFRM.GlassBox._GLASS_BOX_NAMES...,
+    BayesianMGMFRM.Legacy._LEGACY_NAMES...,
+    BayesianMGMFRM.ValidationSuite._RESEARCH_ROOT_NAMES...,
+)
+    @eval using BayesianMGMFRM: $(_sym)
+end
 
 const ROOT_API_REFERENCE_PAGES = (
     "api-data-design.md",
@@ -29,11 +36,11 @@ end
 
 function check_root_api_documentation()
     contract = BayesianMGMFRM._root_api_contract()
-    required = union(Set(contract.stable), Set(contract.compatibility))
+    required = Set(contract.layer1_practitioner)
     missing = sort!(collect(setdiff(required, documented_root_bindings()));
         by = String)
     isempty(missing) || error(
-        "stable/compatibility root bindings missing from the API reference: " *
+        "layer1_practitioner root bindings missing from the API reference: " *
         join(missing, ", "),
     )
     return nothing
@@ -41,7 +48,43 @@ end
 
 check_root_api_documentation()
 
-makedocs(;
+# The compact source archive omits large galleries. Keep their labels and link
+# to the full manual when rebuilding documentation from that archive.
+const ARCHIVE_GALLERIES = Set(("category-report", "criterion", "explanatory", "explanatory-diagnostics",
+    "integrated-report", "moderation", "posterior-reliability", "prior-predictive-sensitivity",
+    "prior-sensitivity", "rater-agreement", "repeated", "visual-guide"))
+const GALLERY_LINK = r"(?:\[?!)?\[([^\]\n]+)\]\((assets/[^\s)]+)\)(?:\]\(assets/[^\s)]+\))?"
+const ONLINE_MANUAL = "https://ryuya-dot-com.github.io/BayesianMGMFRM.jl/dev/"
+
+function with_manual_source(build)
+    src = joinpath(@__DIR__, "src")
+    ispath(joinpath(@__DIR__, "..", ".git")) && return build(src)
+    all(isdir(joinpath(src, "assets", gallery)) for gallery in ARCHIVE_GALLERIES) && return build(src)
+    return mktempdir() do tmp
+        copied = cp(src, joinpath(tmp, "src"))
+        for name in filter(endswith(".md"), readdir(copied))
+            path = joinpath(copied, name)
+            content = read(path, String)
+            content = replace(content, GALLERY_LINK => function (text)
+                link = match(GALLERY_LINK, text)
+                label, asset = link.captures
+                gallery = split(asset, '/')[2]
+                if gallery in ARCHIVE_GALLERIES && !isdir(joinpath(src, "assets", gallery))
+                    page = splitext(name)[1]
+                    return "[$label]($(ONLINE_MANUAL)$page/)"
+                end
+                return text
+            end)
+            write(path, content)
+        end
+        build(copied)
+    end
+end
+
+with_manual_source() do source
+document = makedocs(;
+    debug = true,
+    source,
     sitename = "BayesianMGMFRM.jl",
     modules = [BayesianMGMFRM, BayesianMGMFRM.Experimental],
     remotes = nothing,
@@ -68,6 +111,8 @@ makedocs(;
             "Data Validation" => "data-validation.md",
             "Bayesian Fitting" => "fitting.md",
             "Custom Stan Adapter & Handoffs" => "stan-adapter.md",
+            "Compare Groups on a Linked Scale" => "equating-and-populations.md",
+            "Read Category Design Matrices" => "design-matrix-mrcml.md",
             "Frequentist 1D JMLE & MMLE" => "frequentist-mfrm.md",
             "Reading Results and Comparing Models" => "interpreting-results.md",
             "Visualization Gallery" => "visualization-gallery.md",
@@ -83,10 +128,11 @@ makedocs(;
             "Saved Prediction and Recovery" => "common_prediction_comparison.md",
             "Plan a Rating Study" => "design-planning.md",
         ],
-        "Experimental Model Extensions" => [
-            "Experimental Models Overview" => "experimental.md",
+        "Model Extensions" => [
+            "Model Extensions Overview" => "experimental.md",
             "User-Named Additive Facets" => "additive-facets.md",
             "Explain Ratings and Rater Severity" => "explanatory-ratings.md",
+            "Multivariate Generalizability" => "multivariate-generalizability.md",
             "Analyze Bounded Scores" => "bounded-scores.md",
             "Analyze Correct Counts" => "count-scores.md",
         "Random slopes" => "random-slopes.md",
@@ -119,9 +165,20 @@ makedocs(;
             "Workflow and Diagnostics" => "api-workflow-diagnostics.md",
             "Saving and Reopening Results" => "api-saved-reporting.md",
             "Prediction and Recovery" => "api-prediction-recovery.md",
-            "Experimental Models" => "api-experimental.md",
+            "Model Extensions" => "api-experimental.md",
             "Validation and Evidence" => "api-validation-evidence.md",
         ],
     ],
     warnonly = [:missing_docs],
 )
+# Documenter's binding/signature check is stricter than a warning count: a new
+# omission cannot be offset by documenting a previously omitted binding.
+expected_missing = Set(filter(line -> !isempty(line) && !startswith(line, "#"),
+    strip.(readlines(joinpath(@__DIR__, "missing-docstrings.txt")))))
+actual_missing = Set(string(binding, signature === Union{} ? "" : " :: $signature")
+    for (binding, signatures) in Documenter.missingbindings(document)
+    for signature in signatures)
+actual_missing == expected_missing || error(
+    "Docstring coverage changed. New omissions: $(sort!(collect(setdiff(actual_missing, expected_missing)))); " *
+    "resolved omissions (remove from baseline): $(sort!(collect(setdiff(expected_missing, actual_missing))))")
+end

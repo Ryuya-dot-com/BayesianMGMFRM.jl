@@ -1,5 +1,6 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.ValidationSuite: mgmfrm_response_stress_fit_attempts, mgmfrm_response_stress_plan, mgmfrm_validation_primary_resource_plan
 
 @testset "bounded MGMFRM fit attempts" begin
     plan = mgmfrm_response_stress_plan(

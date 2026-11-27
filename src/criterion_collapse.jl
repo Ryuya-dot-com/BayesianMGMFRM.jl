@@ -1,4 +1,4 @@
-"""Experimental scalar criterion collapse with one persistent latent class per rater."""
+"""scalar criterion collapse with one persistent latent class per rater."""
 module CriterionCollapse
 import BayesianMGMFRM as B
 import LogDensityProblems as L

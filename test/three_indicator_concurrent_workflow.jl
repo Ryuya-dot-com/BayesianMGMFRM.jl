@@ -1,5 +1,7 @@
 module ThreeIndicatorConcurrentWorkflowChecks
 using BayesianMGMFRM, Test, JSON3, Serialization, Statistics
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import ..ThreeIndicatorConcurrentChecks as Fixtures
 const B=BayesianMGMFRM
 const T=B.Experimental.ThreeIndicator

@@ -1,5 +1,7 @@
 module GeneralizedSummaryChecks
 using Test, BayesianMGMFRM, Statistics
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B=BayesianMGMFRM
 const E=B.Experimental
 include("mgmfrm_correlated_2d_fixtures.jl")

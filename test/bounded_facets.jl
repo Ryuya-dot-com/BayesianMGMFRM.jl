@@ -1,4 +1,6 @@
 using Test, BayesianMGMFRM, Distributions, ForwardDiff, Random, Statistics, JSON3
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import LogDensityProblems as L
 const BF=BayesianMGMFRM.AdditiveFacets
 function bounded_fixture(;P=12,R=6)

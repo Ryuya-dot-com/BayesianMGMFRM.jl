@@ -35,9 +35,70 @@ const STEP_BUDGET_SECONDS = (
     docs = 600.0,
 )
 
+function _filter_export_ignored(paths::Vector{String})
+    isempty(paths) && return paths
+    git_exe = Sys.which("git")
+    (git_exe === nothing || !ispath(joinpath(ROOT, ".git"))) && return paths
+    parents = Set{String}()
+    for path in paths
+        parent = dirname(path)
+        while !isempty(parent) && !(parent in parents)
+            push!(parents, parent)
+            parent = dirname(parent)
+        end
+    end
+    input = IOBuffer()
+    for p in Iterators.flatten((paths, parents))
+        write(input, p, '\0')
+    end
+    seekstart(input)
+    out = read(pipeline(Cmd(`$git_exe check-attr --stdin -z export-ignore`; dir = ROOT); stdin = input), String)
+    fields = split(out, '\0')
+    ignored = Set{String}()
+    # NUL-delimited format: <path>\0<attr>\0<info>\0
+    i = 1
+    while i + 2 <= length(fields)
+        p, _, val = fields[i], fields[i + 1], fields[i + 2]
+        val == "set" && push!(ignored, p)
+        i += 3
+    end
+    # Git archive prunes an ignored directory before evaluating its children.
+    return filter(paths) do path
+        while !isempty(path)
+            path in ignored && return false
+            path = dirname(path)
+        end
+        return true
+    end
+end
+
 function candidate_paths()
-    command = Cmd(`git ls-files -co --exclude-standard -z`; dir = ROOT)
-    paths = sort!(filter(!isempty, split(String(read(command)), '\0')))
+    paths = if ispath(joinpath(ROOT, ".git")) && Sys.which("git") !== nothing
+        command = Cmd(`git ls-files -co --exclude-standard -z`; dir = ROOT)
+        raw_paths = sort!(filter(!isempty, String.(split(String(read(command)), '\0'))))
+        _filter_export_ignored(raw_paths)
+    else
+        skipped_roots = Set((".git", "artifacts", "results", "data", "public-package"))
+        skipped_rels = Set(("Manifest.toml", "Manifest-v1.10.toml", "AGENTS.md", "ROADMAP.md",
+                            joinpath("docs", "Manifest.toml")))
+        collected = String[]
+        for (dir, dirs, files) in walkdir(ROOT)
+            rel_dir = dir == ROOT ? "" : relpath(dir, ROOT)
+            if isempty(rel_dir)
+                filter!(d -> !(d in skipped_roots) && d != "__pycache__", dirs)
+            else
+                filter!(d -> d != "__pycache__" && !(rel_dir == "docs" && d in ("build", "internal")), dirs)
+            end
+            for f in files
+                f == ".DS_Store" && continue
+                endswith(f, ".cov") && continue
+                rel = isempty(rel_dir) ? f : joinpath(rel_dir, f)
+                rel in skipped_rels && continue
+                push!(collected, rel)
+            end
+        end
+        sort!(collected)
+    end
     isempty(paths) && error("distribution candidate contains no files")
     for path in paths
         isabspath(path) && error("distribution path is absolute: $path")
@@ -67,10 +128,13 @@ function assert_clean_candidate(paths, destination::AbstractString)
         ".git",
         ".DS_Store",
         "Manifest.toml",
+        "AGENTS.md",
         joinpath("docs", "Manifest.toml"),
         joinpath("docs", "build"),
+        joinpath("docs", "internal"),
         "artifacts",
         "results",
+        "data",
     )
     for relative in forbidden
         !ispath(joinpath(destination, relative)) ||
@@ -102,6 +166,7 @@ function smoke_environment()
             "HTTP_PROXY",
             "HTTPS_PROXY",
             "JULIA_DEPOT_PATH",
+            "JULIA_PKG_OFFLINE",
             "JULIA_PKG_SERVER",
             "JULIA_SSL_CA_ROOTS_PATH",
             "LANG",
@@ -233,4 +298,6 @@ function main()
     return timings
 end
 
-main()
+if abspath(PROGRAM_FILE) == @__FILE__
+    main()
+end

@@ -12,6 +12,9 @@ include(joinpath(@__DIR__, "..", "src", "local_dependence_known_truth_dgp.jl"))
 end
 
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
+using BayesianMGMFRM.ValidationSuite: mgmfrm_predictive_recovery_score, mgmfrm_validation_replication_precision, parameter_recovery_summary
 
 function mfrm_anchor_test_panel(sparse; events = [(p, r, i) for p in 1:40 for r in 1:4 for i in 1:4
         if !sparse || r in (mod1(p, 4), mod1(p + 1, 4))])

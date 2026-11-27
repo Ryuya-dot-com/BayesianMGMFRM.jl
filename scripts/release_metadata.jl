@@ -66,6 +66,9 @@ function check(root = dirname(@__DIR__))
     news = read(joinpath(root, "NEWS.md"), String)
     heading = match(r"(?m)^## ([^\r\n]+)", news)
     heading === nothing && error("NEWS.md is missing its latest version heading")
+    preamble = strip(news[firstindex(news):prevind(news, heading.offset)])
+    occursin(r"^# [^\r\n]+$", preamble) || error(
+        "NEWS.md must contain only its title before the latest version heading; move release notes under that heading")
     release = match(r"^([^ ]+) \((unreleased|\d{4}-\d{2}-\d{2})\)$", heading.captures[1])
     release === nothing && error("Latest NEWS.md heading must be ## VERSION (unreleased or YYYY-MM-DD)")
     VersionNumber(release.captures[1]) == version || error(

@@ -1,6 +1,7 @@
 using LogDensityProblems
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
 
 function _free_correlation_recovery_capture_error(f)
     try

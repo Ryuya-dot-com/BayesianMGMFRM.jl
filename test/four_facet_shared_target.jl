@@ -1,5 +1,7 @@
 module FourFacetSharedTargetChecks
 using Test, BayesianMGMFRM, ForwardDiff, LinearAlgebra, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy: MFRMPrior
 import LogDensityProblems as L
 const B = BayesianMGMFRM
 include("../scripts/four_facet_shared_target.jl")

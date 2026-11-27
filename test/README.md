@@ -20,7 +20,7 @@ Run one ordinary group through the existing selector, for example:
 
 ```sh
 BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=false BAYESIANMGMFRM_TEST_GROUP=generalized \
-  julia --startup-file=no --compiled-modules=yes --project=. -e 'using Pkg; Pkg.test()'
+  julia --startup-file=no --check-bounds=auto --project=. -e 'using Pkg; Pkg.test(; coverage=false, julia_args=`--check-bounds=auto`)'
 ```
 
 The six groups are `core`, `fitting_core`, `fitting_reports`,
@@ -31,9 +31,43 @@ verification. Avoid repeatedly running it between prose edits or already-covered
 commits. Report the source revision, environment and actual checks run;
 see [Contributing](../docs/src/contributing.md).
 
-This is the local selection policy. Hosted CI still runs its existing ordinary
-matrix for pull requests and main/master pushes. Changing that routing is separate
-work: required check names and skipped-workflow behavior must be checked first.
+`runtests.jl` owns imports and shard selection. Shared fixture/check definitions
+are grouped by responsibility in [support/](support/README.md), while the large
+core and fitting-core bodies live in [suites/](suites/README.md). These files
+retain the original definition/execution order and shared testset scope; use
+the runner above rather than including a fragment alone. File organization
+does not change which checks or optional research gates a shard executes.
+
+The structured ordinal model has a standalone specification check:
+
+```sh
+julia --startup-file=no --project=. test/mrcml_specification.jl
+```
+
+It checks Helmert/Kronecker constraints, reduction to the additive model, label
+permutations, analytic versus automatic gradients, LLTM/interaction/tuple-step
+designs, and rank-deficient fit refusals. It uses fixed seeds for finite numerical
+checks and does not sample a posterior. `mrcml_design_matrix.jl` includes the same
+checks before its estimator, comparison and persistence tests; those broader
+checks still run through the ordinary `fitting_reports` group. Input/setup data are
+local to each testset, so the specification check needs no earlier shard state.
+
+Pull requests and pushes to main run all six Julia 1.13 shards. Feature branches
+run through their PR. A newer commit cancels the preceding run on that PR or on
+main. On pushes to main and on manual dispatch, the full suite runs on both Julia 1.13
+and 1.10.8. PRs retain the focused 1.10.8 compatibility checks. Ordinary shards
+use automatic bounds checks and disable coverage in the Pkg test process.
+Julia uses the available threads with one BLAS thread, except that
+`fitting_reports` requires a single Julia thread for the drift and
+three-indicator restoration tests.
+
+The deterministic RSM/PCM anchor grid runs in `core`. Its scope and assertions
+are identical across all three events. For the two MRCML reporting-lifecycle
+fits only, setting `BAYESIANMGMFRM_PR_SMOKE=true` uses two chains with 25 warmup
+and 32 retained draws per chain. Local, main and manual runs default to
+the longer two-chain configuration (150 warmup and 200 retained per chain).
+These short fits exercise the reporting and persistence interfaces.
+
 No elapsed-time cutoff is imposed on ordinary local tests. Monitor progress and
 resources; do not reduce draw counts or relax numerical assertions to meet a clock.
 Use the normal compiled-module mode (`yes`), not restricted cache modes as a speed

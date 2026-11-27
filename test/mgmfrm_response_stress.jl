@@ -1,5 +1,6 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.ValidationSuite: mgmfrm_response_stress_plan, mgmfrm_response_stress_preflight, simulate_mgmfrm_response_stress
 
 @testset "MGMFRM five-category response stress preflight" begin
     plan = mgmfrm_response_stress_plan()

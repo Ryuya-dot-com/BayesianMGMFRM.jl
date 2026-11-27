@@ -3,7 +3,7 @@
 For a bounded slider including its endpoints, see [Bounded Scores](bounded-scores.md).
 This page uses declared ordinal categories.
 
-Use this **experimental scalar model** to ask: does speaking rate relate to
+Use this **scalar model** to ask: does speaking rate relate to
 ratings, does experience relate to rater severity, and does experience change
 the rate–rating association? It jointly estimates the regression and latent
 effects, retaining their uncertainty. Start with one outcome; [criterion-owned supports and effects](criterion-effects.md)
@@ -33,6 +33,7 @@ not recommended priors for a speaking study.
 
 ```julia
 using BayesianMGMFRM, JSON3
+using BayesianMGMFRM.Legacy
 using Distributions: Normal, LogNormal  # selective import avoids a `fit` name conflict
 
 ratings = JSON3.read(read(joinpath(pkgdir(BayesianMGMFRM),
@@ -81,14 +82,14 @@ Figure annotations are written outside the image by default; retain them with th
 figure. The PPC compares observed category counts and rater mean ratings with
 replicated datasets from the **posterior**. Its intervals describe replicated
 data, not coefficients. They are pointwise, and endpoint MCSE is not assessed.
-Neither a successful PPC nor a numerical gate proves the model is appropriate.
+Neither a successful PPC nor passing numerical diagnostics proves the model is appropriate.
 Inspect parameter/interval-endpoint MCSE separately; 500 PPC replicates are an
 exploratory display. Native draws require their producing source and compatible
 environment; portable reports contain computed values, not reusable samples.
 
 ### Read the supplied result without fitting
 
-The artificial four-chain example passed its whole-fit numerical gates (maximum
+The artificial four-chain example passed its whole-fit numerical diagnostics (maximum
 Rhat 1.0031; minimum bulk/tail ESS 1,630; no retained divergences). The rate
 coefficient is 0.37 with a 95% credible interval [−0.004, 0.745]; its lower endpoint
 MCSE is 0.010, so treating its exact side of zero as a stable decision would be
@@ -117,7 +118,7 @@ known-owner predictions; it cannot establish local independence or general adequ
 
 Changing only the rater-SD prior from `LogNormal(log(0.5),0.5)` to
 `LogNormal(log(0.8),0.7)` changed its posterior median from 0.61 to 0.68 and its
-95% interval from [0.39,1.00] to [0.41,1.20]. Both fits passed numerical gates.
+95% interval from [0.39,1.00] to [0.41,1.20]. Both fits passed numerical diagnostics.
 The ten-rater example retains prior sensitivity; two priors are not a general
 robustness analysis. Across these fits, focal mean MCSE was at most 0.0083 and
 interval-endpoint MCSE at most 0.024. No scientific decision tolerance is implied.
@@ -143,15 +144,16 @@ Their residuals have population mean zero; they do **not** sum to zero in the
 observed panel. Other facets and step vectors retain the finite sum-zero priors
 in [user-named additive facets](additive-facets.md).
 
-- Supply a positive number in `population` to fix an iid residual SD, or a
-  `LogNormal(logmean, logsd)` to estimate it. Omit that owner's competing
+- Supply a nonnegative number in `population` to fix an iid residual SD, or
+  `LogNormal(logmean, logsd)`, `truncated(Normal(0, s), 0, Inf)` (HalfNormal),
+  or `truncated(LocationScale(0, s, TDist(ν)), 0, Inf)` (Half-t) to estimate it. Omit that owner's competing
   `prior_sd` entry. `population=(person=..., assessor=...)` can estimate both
   residual SDs when the allocation provides information. Priors for coefficients
   are explicit `Normal` distributions; other prior families are not yet supported.
 - An optional Normal `intercept` adds one global intercept. Duplicate mean
   predictors or coincident estimated covariance components are refused for
   fitting. Estimated residual SDs require repeated observations within owner in
-  this experimental domain. Passing these screens does not establish global
+  this domain. Passing these screens does not establish global
   identification. Few raters can make variance estimates prior-sensitive.
 - Known-owner prediction preserves fitted owner attributes. You may change
   ordinary response covariates explicitly; decomposed known-performance predictors
@@ -168,12 +170,14 @@ in [user-named additive facets](additive-facets.md).
   discrete rating and a rater consistency mechanism. The residual severity SD
   here is not within-rater inconsistency, halo or a measure of rater accuracy.
 
-`coordinates` exposes coefficients, residual SDs and the change-of-volume. The
-sampler uses standard-normal white coordinates: β = μ + s q and
-σ = exp(μ_logσ + s_logσ q). Its normalized prior is a standard-normal density
-on q. The volume includes m log σ per iid residual block, log(s_logσ σ) per
-estimated SD, coefficient log scales and finite-subspace scales. Adding a
-second lognormal prior to this white target would count the prior twice.
+`coordinates` exposes coefficients, residual SDs and the change-of-volume.
+Coefficients use white coordinates β = μ + s q. LogNormal SDs use
+σ = exp(μ_logσ + s_logσ q) with a standard-normal prior on q. HalfNormal and
+Half-t SDs use u = log σ with normalized density `log p(exp(u)) + u`;
+this log-scale coordinate is not standard normal. The volume includes m log σ
+per iid residual block, log(s_logσ σ) for a LogNormal SD or log σ for a
+HalfNormal/Half-t SD, coefficient log scales and finite-subspace scales.
+Do not add a second SD prior or Jacobian to this target.
 `stan_data` exports dense reference matrices for `src/stan/explanatory_facets.stan`;
 serialize matrices as arrays of rows for CmdStan JSON. This is a finite-point
 verification reference, not a second fitted posterior or a speed comparison.
@@ -192,3 +196,65 @@ verification reference, not a second fitted posterior or a speed comparison.
   Their continuous score-difference likelihood is not this ordinal PCM.
 
 For multiple performances per person, see [between/within associations](repeated-performances.md).
+
+See [category design matrices](design-matrix-mrcml.md) for the coefficients of a task feature in an LLTM. A person covariate instead enters the population mean, as in the [linked group example](equating-and-populations.md).
+
+## [Shared event effects](@id Shared-event-effects-(Experimental))
+
+When several criteria describe the same person/rater assessment, a shared
+residual can represent their remaining dependence. Create globally unique
+person/rater pair IDs; do not use the rater ID alone. A person/testlet ID can
+instead link the items in a testlet. Repeated observations within each event,
+and multiple events per person, are needed to separate the event and person SDs.
+The structure is an exchangeable Gaussian event effect; it does not identify a
+psychological cause of halo or establish recovery across arbitrary designs.
+
+```julia
+using Distributions: Normal, truncated
+# ratings.event contains the same ID across criteria of one assessment.
+spec = mfrm_spec(ratings; person=:person, score=:score,
+    facets=(item=:item, rater=:rater, event=:event),
+    assessment=:event, steps=:global, category_levels=0:4,
+    prior=:default,
+    random_effects=(event=truncated(Normal(), 0, Inf),))
+fit_event = fit(spec; chains=4, warmup=1000, ndraws=1000, seed=42)
+posterior_summary(fit_event; parameters=["residual_sd[event]"])
+event_loo = criteria(fit_event; unit=:assessment, integrate=:event)
+```
+
+The MRCML shared-effect route reports person deviations and `population_mean` separately.
+The predictor-based `population=(event=..., ...)` route retains its `coefficient[intercept]` name.
+Add their joint posterior draws for absolute ability on the centered-facet
+scale. Shared facet effects enter with a minus sign in the adjacent logit.
+Their SD measures event variation, with no sign attached.
+
+HalfNormal and Half-t priors have positive density at zero but no point mass
+there. They permit learning small SDs without guaranteeing unbiased boundary
+estimation. With a continuous SD prior, `Pr(σ > 0)` is one and is not evidence
+for an effect. Report a credible upper bound and probabilities such as
+`Pr(σ < δ | data)` for a substantively justified, stated `δ`. Check the MCSE
+of that probability along with R-hat, bulk/tail ESS, and sampler diagnostics.
+
+Assessment-unit LOO integrates a single shared effect jointly over all ratings
+in the held-out assessment. The other owners must remain represented in the
+training data. Inspect quadrature and Pareto-k warnings before interpreting a
+score difference. Q3 and Infit/Outfit condition on the estimated shared effects;
+their posterior predictive references ask about remaining misfit. Reliability
+reports the finite-cohort posterior variance ratio and its numerical MCSE.
+Population/design reliability and a credible interval for that posterior
+functional are not supplied.
+
+```julia
+q3 = diagnostics(fit_event; kind=:residual_correlation, by=:item, unit=:event)
+fit_stats = diagnostics(fit_event; kind=:fit_statistics, by=:rater)
+rel = reliability(fit_event)
+# Fit the standard model to exactly the same rows and declared event IDs.
+standard_loo = criteria(fit_standard; unit=:assessment)
+comparison = compare_models(:shared => event_loo, :standard => standard_loo;
+    criterion=:psis_loo, independent_model_rng=true)
+```
+
+The independence flag requires independently generated model/refit draws. High
+Pareto-k events can be explicitly refitted with `BayesianMGMFRM.loo_refit_plan`;
+failed or unavailable MCSE remains visible. Neither event-wise deletion nor its
+Monte Carlo error estimates a population sampling SE for a crossed design.

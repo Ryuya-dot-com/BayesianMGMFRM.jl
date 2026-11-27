@@ -12,8 +12,9 @@ running Julia. You do not need to study all the model families first.
 ## [Installation](@id Install-this-development-preview)
 
 To run the tutorial, follow [installation](installation.md), then return to it.
-This manual source matches development snapshot **`20261119-distribution-ci-freeze`**, package
-**0.1.2 (unreleased)**. Use its matching source archive and Julia 1.10.8 or newer.
+This manual matches package **0.2.0-DEV (unreleased)** for Julia 1.10.8 or
+newer. Install from the matching local or extracted `0.2.0-DEV` source tree
+rather than older `0.1.x` snapshots.
 
 ## [After the first analysis](@id find-by-task)
 

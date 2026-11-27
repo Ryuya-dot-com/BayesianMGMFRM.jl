@@ -16,7 +16,7 @@ struct Block
     raw::UnitRange{Int}
 end
 
-abstract type AbstractTarget end
+abstract type AbstractTarget <: B.AbstractMFRMSpec end
 
 struct Target <: AbstractTarget
     table::Dict{Symbol,Vector}
@@ -50,11 +50,12 @@ function _sd(x, active, name)
     y
 end
 
+_valid_facet_label(x) = x isa AbstractString || x isa Symbol || (x isa Integer && !(x isa Bool))
+
 function _labels(values, name, declared=nothing)
-    valid(x) = x isa AbstractString || x isa Symbol || (x isa Integer && !(x isa Bool))
-    all(valid,values) || throw(ArgumentError("$name labels must be nonmissing strings, symbols or integers"))
+    all(_valid_facet_label,values) || throw(ArgumentError("$name labels must be nonmissing strings, symbols or integers"))
     lev=declared===nothing ? B._stable_levels(values,name) : Any[declared...]
-    !isempty(lev) && all(valid,lev) && length(unique(lev))==length(lev) ||
+    !isempty(lev) && all(_valid_facet_label,lev) && length(unique(lev))==length(lev) ||
         throw(ArgumentError("$name declared levels must be nonempty, unique valid labels"))
     ix=Dict(x=>i for (i,x) in enumerate(lev))
     all(x->haskey(ix,x),values) || throw(ArgumentError("$name contains labels outside its declared levels"))
@@ -142,15 +143,16 @@ end
 
 function model(table;person::Symbol,score::Symbol,facets::NamedTuple,steps::Symbol,
         prior_sd::NamedTuple,category_levels,levels=nothing,
-        performance::Union{Nothing,Symbol}=nothing,assessment::Union{Nothing,Symbol}=nothing)
+        performance::Union{Nothing,Symbol}=nothing,assessment::Union{Nothing,Symbol}=nothing,
+        missing_audit=nothing)
     reserved=(:person,:steps,:global,:score,:performance,:assessment)
     all(k->!(k in reserved),keys(facets)) || throw(ArgumentError("facet names cannot use reserved roles $reserved"))
     all(x->x isa Symbol,values(facets)) || throw(ArgumentError("facet mapping values must be column symbols"))
     steps===:global || steps in keys(facets) || throw(ArgumentError("steps must be :global or a declared facet name"))
     selected=Symbol[person,score,values(facets)...]
-    # Performance metadata may also name its explicitly declared residual facet.
+    # Event metadata may also name its explicitly declared residual facet.
     performance!==nothing && !(performance in values(facets)) && push!(selected,performance)
-    assessment!==nothing && push!(selected,assessment)
+    assessment!==nothing && !(assessment in values(facets)) && push!(selected,assessment)
     length(unique(selected))==length(selected) || throw(ArgumentError("each selected role must use a distinct column"))
     raw=Dict{Symbol,Vector}(c=>deepcopy(B._column(table,c)) for c in selected)
     n=length(raw[score]);n>0 || throw(ArgumentError("ratings cannot be empty"))
@@ -184,7 +186,9 @@ function model(table;person::Symbol,score::Symbol,facets::NamedTuple,steps::Symb
     all(isfinite,scales) || throw(ArgumentError("step prior transform scale overflows"))
     scale=all(==(first(scales)),scales) ? first(scales) : scales
     ranges=_step_ranges(supports,offset);dimension=last(last(ranges))
-    columns=(;person,score,facets,performance,assessment)
+    columns=missing_audit===nothing ?
+        (;person,score,facets,performance,assessment) :
+        (;person,score,facets,performance,assessment,missing_audit=deepcopy(missing_audit))
     grouping=_groups(raw,columns,p,blocks)
     category_levels isa AbstractDict && (grouping=merge(grouping,(;category_support_by_owner=true)))
     allocation=_allocation(p,ps,blocks,group,supports,dimension)
@@ -223,9 +227,10 @@ function _weights!(a,t,v,n)
     B._logsumexp(a)
 end
 
+_white_logprior(q) = -length(q)*log(2pi)/2-sum(abs2,q)/2
 function logprior(t,q)
     _check(t,q)
-    -length(q)*log(2pi)/2-sum(abs2,q)/2
+    _white_logprior(q)
 end
 function logprobs(t,q)
     v=coordinates(t,q); out=Matrix{eltype(v.person)}(undef,length(t.person),length(t.categories))
@@ -293,10 +298,11 @@ function record(t)
       coordinates=:white,prior_scale=:reconstructed_marginal_sd,basis=:helmert_ascending)
 end
 function restore(r)
+    r.schema in (MRCML_SCHEMA,MRCML_PERSON_CHART_SCHEMA) && return restore_mrcml(r)
     r.schema==MIXED_SCHEMA && return restore_mixed(r)
     r.schema==BOUNDED_SCHEMA && return restore_bounded(r)
     r.schema==COUNT_SCHEMA && return restore_count(r)
-    r.schema in ("bayesianmgmfrm.explanatory_facet_design.v1","bayesianmgmfrm.explanatory_facet_design.v2","bayesianmgmfrm.explanatory_facet_design.v3") && return restore_explanatory(r)
+    r.schema in ("bayesianmgmfrm.explanatory_facet_design.v1","bayesianmgmfrm.explanatory_facet_design.v2","bayesianmgmfrm.explanatory_facet_design.v3","bayesianmgmfrm.explanatory_facet_design.v4") && return restore_explanatory(r)
     r.schema in ("bayesianmgmfrm.additive_facet_design.v1","bayesianmgmfrm.additive_facet_design.v2") && r.coordinates===:white &&
         r.prior_scale===:reconstructed_marginal_sd && r.basis===:helmert_ascending ||
         throw(ArgumentError("unsupported additive design record"))
@@ -314,7 +320,7 @@ function design(t)
       step_owner=t.owner,step_groups=deepcopy(t.group_levels),n_parameters=t.dimension,
       allocation=deepcopy(t.allocation),grouping=t.groups,response_patterns=patterns,
       warnings=["Conditional independence and one stable trait are assumptions, not validated by rank.",
-        "Experimental additive model: numerical qualification does not establish scientific validity or calibration.",
+        "additive model: numerical qualification does not establish scientific validity or calibration.",
         (t.groups.performance_effect!==:absent ? "Performance effects are declared explicitly; their dependence and information still require checking." : t.groups.performance_available ? "No residual performance effect is modeled." : "No performance IDs: repeated-performance dependence cannot be audited."),patterns.warnings...])
 end
 
@@ -334,19 +340,25 @@ function contract(t)
       scientific_acceptance=false,record=record(t))
 end
 
-function prior_draw(t;seed=1)
-    seed isa Integer && !(seed isa Bool) && 0<=seed<=typemax(Int) || throw(ArgumentError("seed must be a nonnegative integer representable as Int"))
-    randn(MersenneTwister(Int(seed)),t.dimension)
+function _check_seed(seed)
+    seed isa Integer && !(seed isa Bool) && 0<=seed<=typemax(Int) ||
+        throw(ArgumentError("seed must be a nonnegative integer representable as Int"))
+    return Int(seed)
 end
-function simulate(t;seed=1,q=nothing)
-    # One common parameter draw per whole replicate preserves shared effects.
-    prior=prior_draw(t;seed);truth=q===nothing ? prior : collect(q)
-    probs=exp.(logprobs(t,truth));rng=MersenneTwister(Int(seed))
-    # Advance past the prior draw consistently whether truth is supplied or not.
-    randn(rng,t.dimension)
-    cat=[_sample_category(t,n,view(probs,n,:),rand(rng)) for n in eachindex(t.person)]
-    data=deepcopy(t.table);data[t.columns.score]=t.categories[cat]
-    (;seed=Int(seed),truth,simulated=data,category=cat,design=record(t),conditioning=:all_declared_effects)
+_prior_draw!(rng::AbstractRNG, t) = randn(rng, Float64, t.dimension)
+prior_draw(t; seed=1) = _prior_draw!(MersenneTwister(_check_seed(seed)), t)
+function simulate(t; seed=1, q=nothing)
+    # Thread one single RNG cleanly through prior sampling (including any extra
+    # Chisq draws for Half-t/Half-Cauchy scales) and subsequent response simulation
+    # so prior and response draws never overlap in the RNG stream.
+    s_int = _check_seed(seed)
+    rng = MersenneTwister(s_int)
+    prior = _prior_draw!(rng, t)
+    truth = q === nothing ? prior : collect(q)
+    probs = exp.(logprobs(t, truth))
+    cat = [_sample_category(t, n, view(probs, n, :), rand(rng)) for n in eachindex(t.person)]
+    data = deepcopy(t.table); data[t.columns.score] = t.categories[cat]
+    (; seed = s_int, truth, simulated = data, category = cat, design = record(t), conditioning = :all_declared_effects)
 end
 function prior_check(t;ndraws=50,seed=1,interval=.95)
     interval_bounds(interval)
@@ -400,21 +412,27 @@ include("location_slopes.jl")
 include("bounded_distributional.jl")
 include("count_facets.jl")
 include("mixed_outcomes.jl")
+include("mrcml_calibration.jl")
+include("mrcml_design.jl")
 include("additive_facets_workflow.jl")
 include("explanatory_facets_workflow.jl")
 include("bounded_facets_workflow.jl")
 include("count_facets_workflow.jl")
 include("mixed_outcomes_workflow.jl")
 include("additive_facets_predictive.jl")
+include("mrcml_practitioner_reports.jl")
+include("mrcml_fair_reference.jl")
 include("additive_facets_plot_reports.jl")
 end # module
+
+const MRCML = AdditiveFacets.MRCML
 
 """
     mfrm_spec(table; person, score, facets, steps, prior_sd, category_levels,
               levels=nothing, performance=nothing, assessment=nothing,
               population=nothing, predictors=nothing, intercept=nothing, decompose=nothing)
 
-Compile an experimental scalar additive RSM/PCM with any number of user-named
+Compile a scalar additive RSM/PCM with any number of user-named
 facets. `facets=(judge=:who, session=:when)` names effects and selects columns;
 neither name has special behavior. `steps=:global` shares steps, while
 `steps=:judge` assigns a centered step vector to each level of that named facet.
@@ -467,7 +485,7 @@ the audit; old saved reports retain their original contents.
 Inspect `design_summary`, `contract`, and `getdesign`, or use `prior_draw`,
 `simulate`, `prior_predictive_check`, and the mathematical inspection functions.
 Rank-deficient designs remain inspectable/generatable; fitting refuses them.
-Use the shared fit, summary, prediction and save/load verbs for the experimental
+Use the shared fit, summary, prediction and save/load verbs for the
 fitted workflow. Check whole-fit diagnostics and focal MCSE separately. The existing
 `mfrm_spec(::FacetData)` fitting route and its prior semantics are unchanged.
 
@@ -500,32 +518,369 @@ or shared owner declarations in `population`. See the mixed-outcomes guide for
 loading/correlation identification, joint paired PPC, held-performance integration,
 and distinct `mode=:known_owners` vs. `mode=:new_owners` prediction contracts.
 
+For a scalar ordinal transfer, `fixed_calibration=(facets=(item=locations,),
+steps=(owner=:global, values=Dict(:global=>steps_by_upper_score)))` fixes external
+logit locations and centered adjacent-category steps by label. Optional blocks
+can be omitted. Supply `estimate_mean=true` to marginal maximum likelihood, or
+declare an `intercept=Normal(mu,sd)` and explicit `prior_sd` for the Bayesian
+population mean. Uncertainty is conditional on the supplied fixed calibration.
+Use `fixed_calibration=(groups=[(block=:item, levels=["a","b"], mean=0.4)],)`
+to fix an equally weighted subset mean while estimating its member contrasts.
+Use `sum` for a fixed total. The facet SD applies to a unit-length free contrast.
+To fix a doubly centered interaction residual, declare its facet pair in
+`interactions` and supply e.g. `fixed_calibration=(cells=[(levels=(rater="R1",
+item="I1"),value=0.6)],)`. Positive residuals lower the adjacent-category logit.
+Use `calibration=(coordinates=rows, covariance=V)` for uncertainty transfer.
+Each row names its facet block, level and estimate. A step also names its owner
+and upper category. List independent coordinates in the order of the axes of V.
+For independently sampled panels, MMLE propagates this covariance to the
+receiving population mean or to each group-versus-reference contrast in a
+grouped population. See `design_summary(fit_result).calibration` for conditional
+and propagated SEs. In the single-panel Bayesian mean model, NUTS uses the
+joint Gaussian calibration distribution when the other model priors are supplied.
+
+Use `population=(roster=people, person=:id, group=:study, reference="first",
+covariates=(:practice,))` for linked group means, common slopes and group-specific
+SDs. For NUTS, add independent `coefficient_prior=Normal(...)` and
+`sd_prior=LogNormal(...)` to that declaration and supply the measurement priors.
+The default `person_coordinates=:noncentered` samples standardized abilities.
+Use `:centered` for physical abilities, a dictionary mapping every person ID to
+either symbol, or `(information_cutoff=8.0,)` for an explicit reference-design
+rule. Inspect the saved assignment in `design_summary(target).population.person_chart`
+when selecting an alternative. Model-scale summaries and joint plausible values
+always reconstruct abilities on the linked reporting scale.
+
 Input columns must be equally long; labels must be nonmissing strings, symbols
 or integers. For ordinal scores, categories are explicitly declared consecutive integer labels.
 `levels=(person=[...], facets=(judge=[...], session=[...]))` preserves full panels
 in subsets. Grouping IDs are retained, but do not add residual performance effects.
 See the additive-facets guide for constraints, examples and unsupported combinations.
 """
-function mfrm_spec(table;outcomes=nothing,observation=nothing,population=nothing,predictors=nothing,intercept=nothing,decompose=nothing,kwargs...)
+const _EXPLICIT_PARADIGM_MSG = "explicit paradigm required: supply `prior = :default` for the standard isometric + population Bayesian MFRM, `prior_sd = ...` for custom Bayesian scales, or `prior = :none` for a prior-free frequentist specification"
+
+function _prior_sd_uses_mrcml_scale(psd)
+    psd isa NamedTuple || return false
+    hasproperty(psd, :person) && AdditiveFacets._is_scale_prior_dist(psd.person) && return true
+    hasproperty(psd, :step) && AdditiveFacets._is_scale_prior_dist(psd.step) && return true
+    if hasproperty(psd, :facets) && psd.facets isa NamedTuple
+        any(AdditiveFacets._is_scale_prior_dist, values(psd.facets)) && return true
+    end
+    return false
+end
+
+function _default_mrcml_intercept(intercept, fixed_calibration, lltm, kwargs)
+    intercept !== nothing && return intercept
+    if lltm isa NamedTuple && any(v -> v isa NamedTuple && hasproperty(v, :center) && !Bool(v.center), values(lltm))
+        return nothing
+    end
+    facets_kw = get(kwargs, :facets, nothing)
+    if !isnothing(fixed_calibration) && fixed_calibration isa NamedTuple &&
+            facets_kw isa NamedTuple && !isempty(facets_kw)
+        ff = get(fixed_calibration, :facets, (;))
+        fg = get(fixed_calibration, :groups, ())
+        all_anchored = ff isa NamedTuple && all(k -> haskey(ff, k) ||
+            (fg isa Union{Tuple,AbstractVector} && any(g -> g isa NamedTuple && get(g, :block, nothing) === k, fg)),
+            keys(facets_kw))
+        all_anchored && return nothing
+    end
+    return Distributions.Normal(0.0, 2.5)
+end
+
+# Keep roster-to-response matching explicit before adding population coefficients.
+function _compile_grouped_mrcml_spec(table;
+        prior, population, outcomes, observation, predictors, intercept, decompose,
+        interactions, lltm, design_matrix, fixed_calibration, calibration, missing_audit,
+        kwargs...)
+    all(isnothing,(outcomes,observation,predictors,intercept,decompose)) ||
+        throw(ArgumentError("a roster population supplies the scalar location and common person covariates"))
+    if !isnothing(design_matrix)
+        isempty(kwargs) && all(isnothing,(interactions,lltm,fixed_calibration,calibration)) ||
+            throw(ArgumentError("an explicit design_matrix already defines its measurement model"))
+        return mfrm_spec(design_matrix; population)
+    end
+    options = (;kwargs...)
+    person_col = get(options, :person, :person)
+    context_facets = if interactions !== nothing && haskey(options, :facets) &&
+            options[:facets] isa NamedTuple && !(population.group in keys(options[:facets])) &&
+            haskey(population, :person) && haskey(population, :reference)
+        roster_people = collect(_column(population.roster, population.person))
+        roster_groups = collect(_column(population.roster, population.group))
+        _check_length!(length(roster_people), roster_groups, population.group)
+        allunique(roster_people) || throw(ArgumentError("supply distinct person IDs in population.roster"))
+        person_to_group = Dict{Any,Any}(roster_people[i] => roster_groups[i] for i in eachindex(roster_people))
+        observed_people = _column(table, person_col)
+        all(pid -> haskey(person_to_group, pid), observed_people) ||
+            throw(ArgumentError("supply a population.roster row for every observed person ID"))
+        observed_groups = [person_to_group[pid] for pid in observed_people]
+        NamedTuple{(population.group,)}(((; values = observed_groups, reference = population.reference),))
+    else
+        nothing
+    end
+    if prior === :none
+        measurement = AdditiveFacets.compile_structured_mrcml(table; fixed_calibration, calibration,
+            interactions, context_facets = context_facets, lltm, missing_audit, Base.structdiff(options,(;prior_sd=nothing))...)
+        return mfrm_spec(measurement; population)
+    end
+    measurement_prior = get(options,:prior_sd,nothing)
+    isnothing(measurement_prior) && throw(ArgumentError(_EXPLICIT_PARADIGM_MSG))
+    measurement_prior isa NamedTuple || throw(ArgumentError("prior_sd must declare the scalar measurement scales"))
+    options = merge(options,(;prior_sd=merge((person=1.0,),measurement_prior)))
+    measurement = AdditiveFacets.compile_structured_mrcml(table; fixed_calibration,calibration,
+        interactions, context_facets = context_facets, lltm, missing_audit, options...)
+    return mfrm_spec(measurement; population)
+end
+
+function _filter_1d_table_missing_rows(table, missing_policy::Symbol, outcomes, observation, lltm, kwargs)
+    missing_policy in (:error, :drop_with_audit) ||
+        throw(ArgumentError("missing_policy must be :error or :drop_with_audit (got $(repr(missing_policy)))"))
+    missing_policy === :error && return (table, nothing)
+
+    person_col = get(kwargs, :person, :person)
+    req_cols = Symbol[person_col]
+    if outcomes === nothing
+        push!(req_cols, get(kwargs, :score, :score))
+    end
+    facets_kw = get(kwargs, :facets, nothing)
+    if facets_kw isa NamedTuple
+        for fc in values(facets_kw)
+            fc isa Symbol && push!(req_cols, fc)
+        end
+    end
+    for opt_k in (:performance, :assessment)
+        v = get(kwargs, opt_k, nothing)
+        v isa Symbol && push!(req_cols, v)
+    end
+    if observation isa NamedTuple && hasproperty(observation, :trials) && observation.trials isa Symbol
+        push!(req_cols, observation.trials)
+    end
+    if lltm isa NamedTuple
+        for lspec in values(lltm)
+            if lspec isa NamedTuple && hasproperty(lspec, :features)
+                for fc in lspec.features
+                    fc isa Symbol && push!(req_cols, fc)
+                end
+            end
+        end
+    end
+    unique!(req_cols)
+
+    first_vec = _column(table, req_cols[1])
+    n_input = length(first_vec)
+    keep = trues(n_input)
+    dropped_by_column = Dict{Symbol,Int}()
+    for cname in req_cols
+        col = _column(table, cname)
+        _check_length!(n_input, col, cname)
+        cnt = 0
+        for idx in 1:n_input
+            v = col[idx]
+            if ismissing(v) || v === nothing
+                keep[idx] = false
+                cnt += 1
+            end
+        end
+        cnt > 0 && (dropped_by_column[cname] = cnt)
+    end
+    dropped_rows = findall(!, keep)
+    n_dropped = length(dropped_rows)
+    filtered_table = if n_dropped == 0
+        table
+    else
+        @warn "mfrm_spec(missing_policy = :drop_with_audit) dropped $n_dropped of $n_input row(s) containing missing/nothing values; inspect validate_design(spec).missing_audit." dropped_by_column=dropped_by_column
+        if table isa AbstractVector
+            table[keep]
+        elseif table isa NamedTuple
+            NamedTuple{keys(table)}(Tuple(
+                v isa AbstractVector && length(v) == n_input ? v[keep] : v for v in values(table)
+            ))
+        elseif table isa AbstractDict
+            Dict(k => (v isa AbstractVector && length(v) == n_input ? v[keep] : v) for (k, v) in pairs(table))
+        else
+            pnames = Tuple(Symbol.(propertynames(table)))
+            NamedTuple{pnames}(Tuple(begin
+                v = _column(table, pn)
+                v isa AbstractVector && length(v) == n_input ? v[keep] : v
+            end for pn in pnames))
+        end
+    end
+    audit = (;
+        policy = :drop_with_audit,
+        n_input_rows = n_input,
+        n_dropped_rows = n_dropped,
+        n_retained_rows = n_input - n_dropped,
+        dropped_rows,
+        dropped_by_column,
+    )
+    return (filtered_table, audit)
+end
+
+function mfrm_spec(table;
+        prior = nothing, outcomes = nothing, observation = nothing, population = nothing,
+        predictors = nothing, intercept = nothing, decompose = nothing,
+        interactions = nothing, lltm = nothing, design_matrix = nothing,
+        fixed_calibration = nothing, calibration = nothing, missing_audit = nothing,
+        kwargs...)
+    # Slopes and latent dimensions select the scale-identified model family.
+    if (haskey(kwargs, :slope) && kwargs[:slope] !== nothing) ||
+       (haskey(kwargs, :q_matrix) && kwargs[:q_matrix] !== nothing) ||
+       _is_scale_identified_prior(prior)
+        all(isnothing, (outcomes, observation, population, predictors, decompose, interactions, lltm, design_matrix, fixed_calibration, calibration)) ||
+            throw(ArgumentError("generalized `mfrm_spec` (`slope = ...` / `q_matrix = ...`) cannot be combined with 1D `outcomes`, `observation`, `population`, `predictors`, `decompose`, `interactions`, `lltm`, `design_matrix`, or `fixed_calibration`"))
+        return _compile_generalized_table_spec(table; prior, intercept, missing_audit, kwargs...)
+    end
+    if haskey(kwargs, :missing_policy)
+        miss_pol = kwargs[:missing_policy]
+        miss_pol isa Symbol || throw(ArgumentError("missing_policy must be :error or :drop_with_audit (got $(repr(miss_pol)))"))
+        kwargs = Base.structdiff((; kwargs...), (; missing_policy = nothing))
+        table, auto_audit = _filter_1d_table_missing_rows(table, miss_pol, outcomes, observation, lltm, kwargs)
+        missing_audit === nothing && (missing_audit = auto_audit)
+    end
+    prior === nothing || prior === :default || prior === :none || throw(ArgumentError(
+        "unsupported `prior = $(repr(prior))` in mfrm_spec; supply `prior = :default`, `prior_sd = ...`, or `prior = :none`"))
+    # The ordinary ordinal route supplies its population location and scale priors.
+    if prior === :default
+        get(kwargs,:prior_sd,nothing) === nothing || throw(ArgumentError(
+            "cannot combine `prior = :default` with `prior_sd`; omit `prior_sd` to use the standard isometric + population prior or omit `prior` when supplying custom `prior_sd`"))
+        design_matrix === nothing || throw(ArgumentError(
+            "an explicit design_matrix already defines its prior/paradigm; omit `prior`"))
+        all(isnothing,(outcomes,observation,population,predictors,decompose)) || throw(ArgumentError(
+            "`prior = :default` applies to 1D ordinal MFRM specifications without `outcomes`, `observation`, `population`, `predictors`, or `decompose`"))
+        eff_intercept = _default_mrcml_intercept(intercept, fixed_calibration, lltm, kwargs)
+        return AdditiveFacets.compile_structured_mrcml(table;
+            default_prior = true, fixed_calibration, calibration, intercept = eff_intercept,
+            interactions, lltm, missing_audit, kwargs...)
+    end
+    if prior === :none
+        get(kwargs,:prior_sd,nothing) === nothing || throw(ArgumentError(
+            "cannot combine `prior = :none` with `prior_sd`; omit `prior_sd` for a prior-free frequentist specification or omit `prior = :none` for a Bayesian specification"))
+        design_matrix === nothing || throw(ArgumentError(
+            "an explicit design_matrix already defines its prior/paradigm; omit `prior`"))
+        all(isnothing,(outcomes,observation,predictors,intercept,decompose)) || throw(ArgumentError(
+            "`prior = :none` frequentist specifications apply to 1D ordinal facet/MRCML models without `outcomes`, `observation`, `predictors`, `intercept`, or `decompose`"))
+    end
+    # Grouped population models share the measurement scale through a person roster.
+    if population isa NamedTuple && haskey(population,:roster) && get(population,:group,nothing) isa Symbol
+        return _compile_grouped_mrcml_spec(table;
+            prior, population, outcomes, observation, predictors, intercept, decompose,
+            interactions, lltm, design_matrix, fixed_calibration, calibration, missing_audit,
+            kwargs...)
+    end
+    # Explicit matrices, calibration and structured terms define ordinal MRCML routes.
+    if design_matrix!==nothing
+        (outcomes===nothing && observation===nothing && population===nothing && predictors===nothing && intercept===nothing && decompose===nothing && interactions===nothing && lltm===nothing && fixed_calibration===nothing && calibration===nothing) ||
+            throw(ArgumentError("design_matrix=... supplies an explicit MRCML specification and cannot be combined with structured outcomes, predictors, interactions, or lltm"))
+        design_matrix isa Union{AdditiveFacets.MRCMLTarget,AdditiveFacets.MRCMLSpec} ||
+            throw(ArgumentError("design_matrix must be an MRCMLTarget or MRCMLSpec built with `BayesianMGMFRM.MRCML`"))
+        return design_matrix
+    end
+    if fixed_calibration !== nothing || calibration !== nothing
+        all(isnothing,(outcomes,observation,population,predictors,decompose)) ||
+            throw(ArgumentError("fixed_calibration requires the scalar ordinal MRCML specification"))
+        if prior === :none
+            return AdditiveFacets.compile_structured_mrcml(table; fixed_calibration, calibration, intercept, interactions, lltm, missing_audit, Base.structdiff((;kwargs...),(;prior_sd=nothing))...)
+        end
+        isnothing(get(kwargs,:prior_sd,nothing)) && throw(ArgumentError(_EXPLICIT_PARADIGM_MSG))
+        return AdditiveFacets.compile_structured_mrcml(table; fixed_calibration, calibration, intercept, interactions, lltm, missing_audit, kwargs...)
+    end
+    if interactions!==nothing || lltm!==nothing || (haskey(kwargs,:steps) && kwargs[:steps] isa Tuple)
+        (outcomes===nothing && observation===nothing && population===nothing && predictors===nothing && decompose===nothing) ||
+            throw(ArgumentError("structured MRCML `interactions`, `lltm`, and tuple `steps` apply to 1D ordinal facet models without `outcomes`, `observation`, `population`, or `predictors`; supply hierarchical interaction SDs inside `prior_sd`"))
+        if prior === :none
+            intercept === nothing || throw(ArgumentError("`prior = :none` frequentist specifications do not accept `intercept`"))
+            return AdditiveFacets.compile_structured_mrcml(table;interactions,lltm,missing_audit,Base.structdiff((;kwargs...),(;prior_sd=nothing))...)
+        end
+        isnothing(get(kwargs,:prior_sd,nothing)) && throw(ArgumentError(_EXPLICIT_PARADIGM_MSG))
+        return AdditiveFacets.compile_structured_mrcml(table;intercept,interactions,lltm,missing_audit,kwargs...)
+    end
+    if outcomes===nothing && observation===nothing && population===nothing && predictors===nothing && decompose===nothing &&
+            (_prior_sd_uses_mrcml_scale(get(kwargs, :prior_sd, nothing)) || haskey(kwargs,:random_effects))
+        return AdditiveFacets.compile_structured_mrcml(table; intercept, missing_audit, kwargs...)
+    end
+    # Outcome-specific models retain their own population and observation declarations.
+    def_kw = merge((; person = :person), outcomes === nothing ? (; score = :score) : (;), (; kwargs...))
     if outcomes!==nothing
         observation===nothing && intercept===nothing || throw(ArgumentError("outcomes=... cannot be combined with scalar observation=... or scalar intercept=...; declare per-outcome intercepts in outcomes or predictors"))
         population!==nothing || throw(ArgumentError("outcomes=... requires explicit population declarations for every owner"))
-        return AdditiveFacets.mixed_outcome_model(table;outcomes,population,predictors=predictors===nothing ? (;) : predictors,decompose,kwargs...)
+        return AdditiveFacets.mixed_outcome_model(table;outcomes,population,predictors=predictors===nothing ? (;) : predictors,decompose,missing_audit,def_kw...)
     end
-    observation!==nothing ? AdditiveFacets.observation_model(table;observation,population,
-        predictors=predictors===nothing ? (;) : predictors,intercept,decompose,kwargs...) :
-    population===nothing && predictors===nothing && intercept===nothing && decompose===nothing && !(get(kwargs,:category_levels,nothing) isa AbstractDict) ?
-    (haskey(kwargs,:prior_sd) ? AdditiveFacets.model(table;kwargs...) : FrequentistMFRM.build_spec(table;kwargs...)) :
-    AdditiveFacets.explanatory_model(table;
+    observation!==nothing && return AdditiveFacets.observation_model(table;observation,
         population=population===nothing ? (;) : population,
-        predictors=predictors===nothing ? (;) : predictors,intercept,decompose,kwargs...)
+        predictors=predictors===nothing ? (;) : predictors,intercept,decompose,missing_audit,def_kw...)
+    if population===nothing && predictors===nothing && intercept===nothing && decompose===nothing
+        if prior === :none
+            return FrequentistMFRM.build_spec(table; missing_audit, Base.structdiff(def_kw,(;prior_sd=nothing))...)
+        end
+        isnothing(get(kwargs,:prior_sd,nothing)) && throw(ArgumentError(_EXPLICIT_PARADIGM_MSG))
+        return get(kwargs,:category_levels,nothing) isa AbstractDict ?
+            AdditiveFacets.explanatory_model(table;population=(;),predictors=(;),intercept=nothing,decompose=nothing,missing_audit,def_kw...) :
+            AdditiveFacets.model(table;missing_audit,def_kw...)
+    end
+    prior === :none && throw(ArgumentError("`prior = :none` frequentist specifications do not accept `population` random-effect SDs"))
+    return AdditiveFacets.explanatory_model(table;
+        population=population===nothing ? (;) : population,
+        predictors=predictors===nothing ? (;) : predictors,intercept,decompose,missing_audit,def_kw...)
 end
+mfrm_spec(s::Union{AdditiveFacets.MRCMLSpec,AdditiveFacets.MRCMLTarget}; population::NamedTuple) =
+    MRCML._with_population(s,population)
+
+"""
+    mfrm_spec(spec::FacetSpec; fixed_calibration, prior=nothing, prior_sd=nothing, intercept=nothing, interactions=nothing)
+
+Build a scalar MRCML equating specification from the labeled persons, raters,
+items and category scale in a Rasch facet specification. Named location anchors
+are absolute logit locations. A cell in a declared facet-by-facet interaction
+fixes its additional severity after the main effects and retains both zero
+margins. Unanchored facets use the structured sum-zero coding. Supply Bayesian
+priors (`prior_sd`) explicitly for the free coordinates, or pass `prior = :none`
+for a prior-free frequentist specification.
+"""
+function mfrm_spec(spec::FacetSpec; fixed_calibration=nothing, calibration=nothing, prior=nothing, prior_sd=nothing, intercept=nothing, interactions=nothing)
+    isnothing(fixed_calibration) && isnothing(calibration) && throw(ArgumentError("supply fixed_calibration or calibration"))
+    spec.family === :mfrm && spec.dimensions == 1 && spec.discrimination === :none &&
+        isnothing(spec.q_matrix) && isempty(spec.validation_bias_terms) ||
+        throw(ArgumentError("named fixed calibration requires a scalar unit-slope MFRM without Q or DFF"))
+    if !isempty(spec.anchors)
+        isnothing(calibration) || throw(ArgumentError("declare the joint transfer on a FacetSpec without existing fixed anchors"))
+        fixed_calibration isa NamedTuple || throw(ArgumentError("fixed_calibration must be a named tuple"))
+        declared = get(fixed_calibration, :facets, (;))
+        declared isa NamedTuple && all(v -> v isa AbstractDict, values(declared)) ||
+            throw(ArgumentError("fixed_calibration.facets must map facet roles to dictionaries"))
+        combined = Dict{Symbol,Dict{Any,Any}}(k => Dict{Any,Any}(pairs(v)) for (k,v) in pairs(declared))
+        for anchor in spec.anchors
+            role = _stable_anchor_block(anchor.block)
+            role in (:rater,:item) && anchor.anchor_type === :hard_anchor && ismissing(anchor.anchor_scale) ||
+                throw(ArgumentError("only fixed rater and item locations can be imported from FacetSpec.anchors"))
+            level = _anchor_target(anchor)
+            dict = get!(combined, role, Dict{Any,Any}())
+            haskey(dict,level) && dict[level] != anchor.value &&
+                throw(ArgumentError("conflicting calibrations for $role level $(repr(level))"))
+            dict[level] = anchor.value
+        end
+        fixed_calibration = merge(fixed_calibration, (; facets=(; combined...)))
+    end
+    d = spec.data
+    facets = isnothing(d.columns.rater) ? (item=:item,) : (rater=:rater, item=:item)
+    facet_levels = isnothing(d.columns.rater) ? (item=d.item_levels,) : (rater=d.rater_levels, item=d.item_levels)
+    table = (person=d.person_levels[d.person], item=d.item_levels[d.item], score=d.score)
+    if !isnothing(d.columns.rater)
+        table = merge(table, (rater=d.rater_levels[d.rater],))
+    end
+    assessment = nothing
+    if haskey(d.optional,:response_id)
+        table = merge(table, (response_id=d.optional_levels[:response_id][d.optional[:response_id]],))
+        assessment = :response_id
+    end
+    levels = (person=d.person_levels, facets=facet_levels)
+    ma = hasproperty(d.columns, :missing_audit) ? deepcopy(d.columns.missing_audit) : nothing
+    return mfrm_spec(table; person=:person, score=:score, facets,
+        steps=spec.thresholds === :rating_scale ? :global : :item, category_levels=d.category_levels,
+        levels, fixed_calibration, calibration, prior, prior_sd, intercept, assessment, interactions,
+        missing_audit = ma)
+end
+
 getdesign(t::AdditiveFacets.AbstractTarget)=t
 design_summary(t::AdditiveFacets.AbstractTarget)=AdditiveFacets.design(t)
-function validate_design(t::AdditiveFacets.AbstractTarget)
-    patterns=AdditiveFacets.response_patterns(t)
-    merge(deepcopy(t.allocation),(;response_patterns=patterns,warnings=[patterns.warnings;hasproperty(t.allocation,:slope_warnings) ? t.allocation.slope_warnings : String[]]))
-end
+# Unified `validate_design(::AdditiveFacets.AbstractTarget)` is implemented in `design_connectedness.jl`.
 contract(t::AdditiveFacets.AbstractTarget)=AdditiveFacets.contract(t)
 parameter_names(t::AdditiveFacets.AbstractTarget;scale::Symbol=:raw)=AdditiveFacets.names(t,scale)
 coordinates(t::AdditiveFacets.AbstractTarget,q::AbstractVector{<:Real})=AdditiveFacets.coordinates(t,q)
@@ -556,14 +911,21 @@ stan_data(t::AdditiveFacets.AbstractTarget)=AdditiveFacets.stan_data(t)
 Fit an identified user-named scalar additive model with analytic-gradient NUTS.
 Required counts and seed are explicit. Controls: target_accept=.9, max_depth=10,
 step_size=.03, init_jitter=.1, metric=:diagonal, progress=false,
-chain_execution=:serial, max_parallel_chains=chains. Inspect sampler_controls,
+chain_execution=:auto, max_parallel_chains=chains. Inspect sampler_controls,
 diagnostics, qualify and posterior_mcse; no retry or scientific acceptance is automatic.
 """
-function fit(t::AdditiveFacets.AbstractTarget;method::Union{Nothing,Symbol}=nothing,kwargs...)
-    method===nothing && return AdditiveFacets.fit(t;kwargs...)
-    any(k->k in (:target_accept,:adapt_delta,:max_depth,:max_treedepth),keys(kwargs)) &&
+function fit(t::AdditiveFacets.MRCMLTarget; method::Symbol = :nuts, kwargs...)
+    method === :nuts && return AdditiveFacets.fit(t; kwargs...)
+    any(k -> k in (:target_accept, :adapt_delta, :max_depth, :max_treedepth), keys(kwargs)) &&
         throw(ArgumentError("NUTS controls (`target_accept`/`adapt_delta`, `max_depth`/`max_treedepth`) do not apply to frequentist `method = $(repr(method))`"))
-    return FrequentistMFRM.fit(t;method,kwargs...)
+    return FrequentistMFRM.fit(AdditiveFacets._to_mrcml_spec(t); method, kwargs...)
+end
+
+function fit(t::AdditiveFacets.AbstractTarget; method::Union{Nothing,Symbol} = nothing, kwargs...)
+    (method === nothing || method === :nuts) && return AdditiveFacets.fit(t; kwargs...)
+    any(k -> k in (:target_accept, :adapt_delta, :max_depth, :max_treedepth), keys(kwargs)) &&
+        throw(ArgumentError("NUTS controls (`target_accept`/`adapt_delta`, `max_depth`/`max_treedepth`) do not apply to frequentist `method = $(repr(method))`"))
+    return FrequentistMFRM.fit(t; method, kwargs...)
 end
 getdesign(f::AdditiveFacets.Fit)=AdditiveFacets.checked(f)
 design_summary(f::AdditiveFacets.Fit)=design_summary(getdesign(f))
@@ -571,12 +933,78 @@ validate_design(f::AdditiveFacets.Fit)=validate_design(getdesign(f))
 contract(f::AdditiveFacets.Fit)=contract(getdesign(f))
 parameter_names(f::AdditiveFacets.Fit;scale=:model)=parameter_names(getdesign(f);scale)
 sampler_controls(f::AdditiveFacets.Fit)=(AdditiveFacets.checked(f);deepcopy(f.record.run.controls))
-diagnostics(f::AdditiveFacets.Fit)=AdditiveFacets.diagnostics(f)
+function diagnostics(f::AdditiveFacets.Fit; kind::Symbol = :mcmc,
+        by::Union{Nothing,Symbol} = nothing, pair = nothing,
+        level::Real = 0.95, seed::Integer = 1,
+        baseline::Symbol = :sample_mean, step_group = nothing,
+        reference_plan = nothing, threshold = nothing, comparisons = nothing,
+        shared_effects = nothing, interaction_effects = nothing, quadrature_orders = (61,121), quadrature_tolerance = 1e-7,
+        min_obs::Integer = 1,
+        unit::Symbol = :auto, min_common_units::Integer = 5,
+        max_draws::Union{Nothing,Integer} = 1000)
+    if kind !== :fair_average && any(!isnothing, (reference_plan,threshold,comparisons,shared_effects,interaction_effects))
+        throw(ArgumentError("reference_plan, threshold and comparisons apply only to :fair_average"))
+    end
+    if kind === :mcmc
+        (by === nothing && pair === nothing && step_group === nothing) ||
+            throw(ArgumentError("`by`, `pair`, and `step_group` do not apply when `kind = :mcmc`"))
+        return AdditiveFacets.diagnostics(f)
+    elseif kind === :fit_statistics
+        pair === nothing || throw(ArgumentError("`pair` applies only when `kind = :pair_bias`"))
+        t = AdditiveFacets.checked(f; full = true)
+        by_sym = by === nothing ? :person : by
+        return AdditiveFacets._mrcml_fit_statistics(t, f; by = by_sym, level, seed)
+    elseif kind === :fair_average
+        pair === nothing || throw(ArgumentError("`pair` applies only when `kind = :pair_bias`"))
+        t = AdditiveFacets.checked(f; full = true)
+        if reference_plan !== nothing
+            by in (nothing,:person,:entity) && step_group === nothing && baseline === :sample_mean ||
+                throw(ArgumentError("a common reference plan defines person scores; by, baseline and step_group must not select a different target"))
+            return AdditiveFacets._mrcml_fair_reference(t,f;reference_plan,level,threshold,comparisons,
+                shared_effects,interaction_effects,quadrature_orders,quadrature_tolerance)
+        end
+        threshold === nothing && comparisons === nothing && shared_effects === nothing && interaction_effects === nothing || throw(ArgumentError("threshold, comparisons, shared_effects and interaction_effects require an explicit reference_plan"))
+        by_sym = by === nothing ? :rater : by
+        return AdditiveFacets._mrcml_fair_average(t, f; by = by_sym, level, baseline, step_group)
+    elseif kind === :pair_bias
+        by === nothing || throw(ArgumentError("use `pair = (:facet1, :facet2)` rather than `by` when `kind = :pair_bias`"))
+        t = AdditiveFacets.checked(f; full = true)
+        return AdditiveFacets._mrcml_pair_bias(t, f; pair, level, min_obs)
+    elseif kind === :residual_correlation
+        (pair === nothing && step_group === nothing) ||
+            throw(ArgumentError("`pair` and `step_group` do not apply when `kind = :residual_correlation`"))
+        t = AdditiveFacets.checked(f; full = true)
+        by_sym = by === nothing ? :auto : by
+        return AdditiveFacets._mrcml_residual_correlation(t, f;
+            by = by_sym, unit, min_common_units, level, seed, max_draws)
+    end
+    throw(ArgumentError("unsupported diagnostics `kind = $(repr(kind))`; expected `:mcmc`, `:fit_statistics`, `:fair_average`, `:pair_bias`, or `:residual_correlation`"))
+end
+
+dff_report(f::AdditiveFacets.Fit; pair = nothing, interval::Real = 0.95, level::Union{Nothing,Real} = nothing, min_n::Integer = 1, min_obs::Union{Nothing,Integer} = nothing) =
+    diagnostics(f; kind = :pair_bias, pair, level = something(level, interval), min_obs = something(min_obs, min_n))
 qualify(f::AdditiveFacets.Fit;kwargs...)=AdditiveFacets.qualify(f;kwargs...)
 posterior_summary(f::AdditiveFacets.Fit;kwargs...)=AdditiveFacets.summary(f;kwargs...)
 posterior_mcse(f::AdditiveFacets.Fit;kwargs...)=AdditiveFacets.mcse(f;kwargs...)
 posterior_contrast(f::AdditiveFacets.Fit;kwargs...)=AdditiveFacets.contrast(f;kwargs...)
-contrast(f::AdditiveFacets.Fit;kwargs...)=posterior_contrast(f;kwargs...)
+function contrast(f::AdditiveFacets.Fit; kwargs...)
+    if haskey(kwargs, :interaction)
+        t = AdditiveFacets.checked(f; full = true)
+        return AdditiveFacets._mrcml_dff_contrast(t, f; kwargs...)
+    end
+    if haskey(kwargs, :group) || haskey(kwargs, :reference)
+        any(k -> !(k in (:group, :reference, :level)), keys(kwargs)) &&
+            throw(ArgumentError("grouped population contrast accepts only `group`, `reference`, and `level = 0.95`"))
+        (haskey(kwargs, :group) && haskey(kwargs, :reference)) ||
+            throw(ArgumentError("grouped population contrast requires both `group` and `reference`"))
+        t = AdditiveFacets.checked(f; full = true)
+        t isa AdditiveFacets.MRCMLTarget && hasproperty(t.spec_record, :population) ||
+            throw(ArgumentError("grouped population contrast requires a grouped scalar MRCML Bayesian fit"))
+        return contrast(plausible_values(f); group = kwargs[:group], reference = kwargs[:reference],
+            level = get(kwargs, :level, 0.95))
+    end
+    return posterior_contrast(f; kwargs...)
+end
 """
     predictive_probabilities(fit::AdditiveFacets.Fit; rows=nothing, data=nothing, interval=.95)
 
@@ -608,10 +1036,13 @@ predictive_check(f::AdditiveFacets.Fit;kwargs...)=AdditiveFacets.posterior_check
 plot(f::AdditiveFacets.Fit;kind=:posterior,kwargs...)=_plot_additive_report(f;kind,kwargs...)
 
 function _plot_additive_report(x;kind=:posterior,return_data=false,size=nothing,annotation_io=stdout,reference=nothing,interval_colors=nothing,kwargs...)
-    kind in (:posterior,:predictive,:diagnostics,:prediction) || throw(ArgumentError("additive plot kind must be :posterior, :predictive, :diagnostics or :prediction"))
+    kind in (:posterior,:predictive,:diagnostics,:prediction,:fair_average) || throw(ArgumentError("additive plot kind must be :posterior, :predictive, :diagnostics, :prediction or :fair_average"))
     kind===:posterior || (reference===nothing && interval_colors===nothing) ||
         throw(ArgumentError("reference coloring applies to posterior parameter CrIs, not predictive intervals"))
-    rep=if x isa AdditiveFacets.Fit
+    rep=if kind===:fair_average && x isa Union{AdditiveFacets.Fit,ScaleIdentifiedMGMFRM.Fit,FrequentistMFRM.Fit}
+        haskey(kwargs,:reference_plan) || throw(ArgumentError("Fair Average plotting requires an explicit reference_plan"))
+        diagnostics(x;kind,kwargs...)
+    elseif x isa AdditiveFacets.Fit
         if kind in (:posterior,:diagnostics)
             kind===:diagnostics && !haskey(kwargs,:parameters) && throw(ArgumentError("select parameters explicitly for a trace plot"))
             t=getdesign(x)
@@ -623,6 +1054,9 @@ function _plot_additive_report(x;kind=:posterior,return_data=false,size=nothing,
             fit_report(x;merge(defaults,(;kwargs...))...)
         elseif kind===:prediction
             predict(x;kwargs...)
+        elseif kind===:fair_average
+            haskey(kwargs,:reference_plan) || throw(ArgumentError("Fair Average plotting requires an explicit reference_plan"))
+            diagnostics(x;kind=:fair_average,kwargs...)
         else
             predictive_check(x;kwargs...)
         end
@@ -630,7 +1064,7 @@ function _plot_additive_report(x;kind=:posterior,return_data=false,size=nothing,
         isempty(kwargs) || throw(ArgumentError("saved additive plots accept no numerical controls; compute a new report from the native fit"))
         x
     end
-    expected=kind in (:posterior,:diagnostics) ? (AdditiveFacets.REPORT_SCHEMA,) : kind===:prediction ?
+    expected=kind===:fair_average ? (AdditiveFacets.FAIR_REFERENCE_SCHEMA,) : kind in (:posterior,:diagnostics) ? (AdditiveFacets.REPORT_SCHEMA,) : kind===:prediction ?
         (AdditiveFacets.PREDICTION_SCHEMA,AdditiveFacets.BOUNDED_PREDICTION_SCHEMA,AdditiveFacets.COUNT_PREDICTION_SCHEMA,AdditiveFacets.MIXED_PREDICTION_SCHEMA) : (AdditiveFacets.PPC_SCHEMA,AdditiveFacets.PRIOR_SCHEMA,AdditiveFacets.BOUNDED_PPC_SCHEMA,AdditiveFacets.COUNT_PPC_SCHEMA,AdditiveFacets.MIXED_PPC_SCHEMA)
     rep.schema in expected || throw(ArgumentError("report schema does not match plot kind"))
     kind===:diagnostics && !hasproperty(rep,:traces) && throw(ArgumentError("trace plotting needs fit_report(...;include_draws=true)"))

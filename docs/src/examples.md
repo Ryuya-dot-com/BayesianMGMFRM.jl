@@ -10,6 +10,11 @@ commands with `julia --project=.` assume you are in the source checkout.
 
 ## Ordinary binary IRT without raters
 
+This reference-coded example retains its original priors and saved-results
+interpretation for compatibility. For the standard isometric workflow, begin
+with [First MFRM analysis](#First-MFRM-analysis); the example below uses the
+legacy model explicitly.
+
 **Question: how difficult are items I02 and I03 relative to I01?** The ordinary
 Rasch/1PL example uses fixed artificial responses from 24 people to three items,
 with scores 0/1. It supplies no rater column and generates no new responses.
@@ -19,6 +24,7 @@ parameter-recovery study.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_irt_analysis.jl"))
 prepared = FirstIRTAnalysis.inputs()  # Inspect input and settings; no fit.
 prepared.spec
@@ -69,8 +75,10 @@ does not provide free-discrimination, guessing or multidimensional IRT.
 
 ## First MFRM analysis
 
-The complete beginner example is now [Your First Rating Analysis](first-analysis.md).
-The following recipes are for an existing run of that example.
+The complete beginner example is [Your First Rating Analysis](first-analysis.md)
+(`examples/first_analysis_v02.jl`, standard `0.2.0-DEV` isometric 1D MFRM with
+`prior = :default`). The following recipes operate on `analysis.directory` from
+a completed run of `analysis = FirstMFRMAnalysisV02.main()`.
 
 ### Run the analysis
 
@@ -82,92 +90,111 @@ Read [the estimate and uncertainty](first-analysis.md#read-the-answer).
 
 ### Save and reopen without refitting
 
-The returned `analysis.directory` is a new folder under `results/first_analysis/`:
+The returned `analysis.directory` is a new folder under
+`results/first_analysis_v02/` containing three files:
 
 | File | Use |
 | --- | --- |
-| `answer.txt` | Read the question, estimates, interpretation, MCSE limits and separate retained/warmup diagnostics. |
-| `answer.json` | Reuse the computed answer, prior settings, numerical criteria and complete diagnostic summary/sampler rows in other software. |
-| `fit.jls` | Recompute summaries or make figures from the saved posterior in the original environment. |
+| `answer.txt` | Plain-text summary of the prior, whole-fit qualification, warmup divergences, `R2 − R1` contrast and MCSE, posterior-integrated vs. plug-in Infit/Outfit, and person reliability. |
+| `fit.jls` | Same-environment native Julia cache (`load_fit`) for recomputing summaries, contrasts, diagnostics, or figures without refitting. |
+| `handoff.json` | Cross-environment SHA-256 verified `PortableHandoff` joint-draw export (`BayesianMGMFRM.PortableHandoff.load_handoff` in Julia, or `read_handoff_mgmfrm` in R). |
 
-The script reloads the fit and compares its answer with the original before
-finishing. In the same Julia session, inspect it yourself:
-
-```julia
-read(joinpath(analysis.directory, "answer.txt"), String)
-restored = load_fit_cache(joinpath(analysis.directory, "fit.jls"))
-FirstMFRMAnalysis.result(restored)
-```
-
-To regenerate the answer from that cache, without new MCMC, call:
-
-```julia
-reopened = FirstMFRMAnalysis.main([
-    "--saved-fit", joinpath(analysis.directory, "fit.jls")])
-```
-
-This writes a new output folder and rejects a cache from different ratings,
-model or prior. In a later session, retain the original analysis project and
-Julia/dependency environment and supply the saved path; see
-[reopening saved results](api-saved-reporting.md#saved-result-reproduction).
-JSON and text can be read without restoring a Julia fit. For optional figures,
-use the [plotting instructions](fitting.md#Posterior-interval-figures) with
-`restored`; figures need no refitting.
-
-The example saves `fit.jls` and prints its absolute path **before** computing
-the answer. If summarizing or writing the answer fails after that message, keep
-the cache and the error details. After resolving the reporting problem in the
-matching environment, use `FirstMFRMAnalysis.main(["--saved-fit", "the printed path"])`
-to write the answer into a new folder without sampling again. A fitting or
-cache-writing failure before that message has no such saved-fit guarantee.
-This checkpoint preserves completed draws; it does not resume an interrupted sampler.
-
-### [Read one fitted result through three figures](@id estimated-result-walkthrough)
-
-The interval, diagnostics and PPC are explained together in
-[the first-analysis tutorial](first-analysis.md#read-the-answer).
-To reopen a copied supplied bundle in a later session:
+The script verifies native reload and portable handoff digests before returning. Native and portable
+results are saved before optional report generation. The ordinary entry
+`examples/first_analysis.jl` shares this same implementation; it can also be run
+from a shell with `julia --project=. examples/first_analysis.jl`.
+To rebuild reports from a matching native cache without refitting, call
+`FirstMFRMAnalysisV02.main(["--saved-fit", path])`. The reports include seeded
+predictive generation.
+To inspect the saved output and reopen the fit without running new MCMC:
 
 ```julia
 using BayesianMGMFRM
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_analysis_v02.jl"))
+
+println(read(joinpath(analysis.directory, "answer.txt"), String))
+
+# Same-environment native cache reload (no refitting):
+restored = load_fit(joinpath(analysis.directory, "fit.jls"))
+reopened = FirstMFRMAnalysisV02.result(restored)
+reopened.contrast
+
+# Cross-environment SHA-256 verified portable handoff reload:
+handoff = BayesianMGMFRM.PortableHandoff.load_handoff(
+    joinpath(analysis.directory, "handoff.json"),
+)
+handoff.record.handoff_bundle_sha256
+```
+
+In a later Julia session, keep the original analysis project (`Project.toml`
+and `Manifest.toml`) and matching `0.2.0-DEV` source tree to reopen `fit.jls`;
+see [reopening saved results](api-saved-reporting.md#saved-result-reproduction).
+For cross-environment inspection or R postprocessing (`read_handoff_mgmfrm`),
+share `handoff.json` together with its file-level SHA-256 receipt when auditing
+displayed prior metadata alongside the embedded `handoff_bundle_sha256`.
+
+### [Make figures from your own first-analysis fit](@id first-analysis-own-figures)
+
+Using `analysis.directory` from your completed `FirstMFRMAnalysisV02.main()`
+run, activate that fit's environment, install `CairoMakie` if needed
+(`Pkg.add("CairoMakie")`), and draw posterior, trace-diagnostic, and posterior
+predictive figures directly from `load_fit` with no refitting:
+
+```julia
+using BayesianMGMFRM, CairoMakie
+
+fitted = load_fit(joinpath(analysis.directory, "fit.jls"))
+
+fig_post = BayesianMGMFRM.plot(
+    fitted;
+    kind = :posterior,
+    parameters = ["rater[\"R1\"]", "rater[\"R2\"]", "rater[\"R3\"]"],
+    size = (850, 320),
+)
+fig_diag = BayesianMGMFRM.plot(
+    fitted;
+    kind = :diagnostics,
+    parameters = ["rater[\"R1\"]", "rater[\"R2\"]", "rater[\"R3\"]"],
+    size = (1100, 470),
+)
+fig_ppc = BayesianMGMFRM.plot(
+    fitted;
+    kind = :predictive,
+    ndraws = 1000,
+    seed = 2026112402,
+    size = (850, 360),
+)
+
+save(joinpath(analysis.directory, "posterior.png"), fig_post)
+save(joinpath(analysis.directory, "diagnostics.png"), fig_diag)
+save(joinpath(analysis.directory, "ppc.png"), fig_ppc)
+```
+
+The `:predictive` call draws new posterior predictive replicated scores from the
+saved posterior draws; it does not refit the model. For single-view summaries
+or custom layouts (such as adding the joint `R2 − R1` contrast panel from
+`contrast(fitted; facet = :rater, left = "R2", right = "R1", interval = 0.90)`),
+you can also pass `return_data = true` to inspect the plotted report rows.
+
+### [Legacy (`0.1.x` reference-coded): read a saved figure bundle](@id estimated-result-walkthrough)
+
+!!! note "Legacy reference-coded workflow (`0.1.x`)"
+    The older `examples/first_analysis_figures.jl` (`FirstMFRMFigures`,
+    `R1 = 0`, `I1 = 0`, fixed person SD `1.5`, mean `R2 − R1 = 0.166` logit)
+    and `load_fit_cache` / `save_fit_report_bundle` helpers belong to the
+    historical `0.1.x` reference-coded path under `BayesianMGMFRM.Legacy`. New
+    analyses should use `FirstMFRMAnalysisV02` and `load_fit` /
+    `BayesianMGMFRM.plot` above.
+
+To reopen an existing historical `0.1.x` review directory without refitting:
+
+```julia
+using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_analysis_figures.jl"))
 reopened = FirstMFRMFigures.review("path/to/review-directory/report")
 reopened.answer.mean
 ```
-
-Use your actual directory printed by `FirstMFRMFigures.main()`. This verifies
-and reads existing results; it neither estimates nor generates responses.
-Portable reports cannot provide new contrasts or recover the full posterior;
-keep the native fit and its producing environment for new calculations.
-
-### [Make figures from your own first-analysis fit](@id first-analysis-own-figures)
-
-After reopening `restored` with the recipe above, set `fitted = restored`.
-Activate that fit's original environment and install CairoMakie there if needed.
-
-For your **own completed first-analysis fit**, create the same figure selection
-in that fit's matching environment with `using CairoMakie` and:
-
-```julia
-save_fit_report_bundle("new-figure-directory", fitted;
-    figures=(; posterior=(; block=:rater, size=(850,280)),
-        diagnostics=(; parameters=["rater[R2]"], size=(1100,470)), predictive=(;)),
-    posterior_lower=.05, posterior_upper=.95, predictive_interval=.9,
-    draw_indices=collect(1:size(fitted.draws,1)), seed=2026110903,
-    include_prior_predictive=false, include_posterior_predictive=true,
-    include_grouped_predictive=false, include_calibration=false,
-    include_category_functioning=false, include_rater_homogeneity=false,
-    include_waic=false, include_loo=false, include_artifact=false,
-    require_complete=true, on_section_error=:throw)
-```
-
-**This block generates new posterior predictive responses**, but does not
-refit. It is an alternative for an existing fit, not a step needed to read the
-supplied figures. Figure settings and included report sections are explicit;
-no omitted sensitivity, model comparison or broader adequacy check is implied.
-For single views, the common `BayesianMGMFRM.plot(fitted; kind=:posterior |
-:diagnostics | :predictive)` entry remains available with its documented
-model-specific options.
 
 
 ## Observed-score ICC without fitting
@@ -248,66 +275,59 @@ installing the project's dependencies:
 julia --project=. examples/minimal.jl
 ```
 
-The script validates the ratings, constructs a specification and calls
-`fit(spec; backend = :advancedhmc)` for Julia NUTS. It prints the diagnostic flag,
-maximum R-hat, minimum bulk/tail ESS and posterior medians with 95% central
-credible intervals. It then saves the fit, reloads it and checks that posterior
-summaries are identical. Design inspection and manual cache keys are not required.
+The script validates the ratings, builds the standard isometric partial-credit
+specification with `prior = :default`, and runs Julia NUTS. It reports whole-fit
+qualification, R-hat, bulk/tail ESS and posterior intervals. It saves and verifies
+both a native fit and a portable JSON handoff before optional plotting.
 
-The two chains each use only 50 warmup and 50 retained draws. This is a short
-workflow demonstration, not a substantive analysis. Inspect any reported
-warnings with `diagnostics(fit_result)` when working interactively. A completed
-script or successful save/reload does not establish convergence or model validity.
+Each of the two chains has only 50 warmup and 50 retained draws. This checks the
+workflow and is insufficient for inference. A completed script or successful
+save/reload does not establish convergence or model validity.
 
-For figures, install CairoMakie in the active Julia environment (for example,
-`using Pkg; Pkg.add("CairoMakie")`), then run:
+For figures, install CairoMakie in the active environment, then run:
 
 ```sh
 julia --project=. examples/minimal.jl --plots
 ```
 
-This mode loads CairoMakie before fitting and generates all figures from the
-reloaded fit. The default command does not load a plotting backend. Every run
-prints a new output directory under `results/minimal/`, retained after Julia
-exits. It contains:
+Each run prints a new directory under `results/minimal/` containing:
 
 | File | Contents |
 | --- | --- |
-| `fit.jls` | The fit, retained draws, model/data information and diagnostics |
-| `rater-posterior.pdf` | Rater medians and credible intervals, including the fixed reference |
-| `rater-chains.pdf` | Retained traces and rank histograms with diagnostic notes |
-| `category-predictive.pdf` | Observed versus replicated category proportions, using seed 42 |
-| `wright-map.pdf`, `wright-map.svg` | Stable MFRM facet measures and category boundaries on a shared scale |
+| `fit.jls` | Same-environment native fit with draws, model and diagnostics. |
+| `handoff.json` | SHA-256 verified portable joint-draw handoff. |
+| `rater-posterior.pdf`, `.svg` | Rater medians and intervals; no rater is fixed as a zero-error reference. |
+| `rater-chains.pdf`, `.svg` | Retained parameter traces and diagnostic notes. |
+| `category-predictive.pdf`, `.svg` | Observed versus replicated category counts and group mean scores, using seed 42. |
 
-With the default Julia backend, only `fit.jls` is written without `--plots`.
-In a later session, use the printed cache path to regenerate and edit a figure
-without running the script or MCMC again:
+Figures are written only with `--plots`. To generate them from a completed
+matching native fit without repeating MCMC:
+
+```sh
+julia --project=. examples/minimal.jl --saved-fit results/minimal/<printed-directory>/fit.jls --plots
+```
+
+Or use the unified plotting operation in Julia:
 
 ```julia
 using BayesianMGMFRM, CairoMakie
-restored = load_fit_cache("results/minimal/<printed-directory>/fit.jls")
-figure = BayesianMGMFRM.plot_posterior(restored; block = :rater)
-content(figure[1, 1]).xlabel = "Rater severity (logits)"
-save("rater-posterior-edited.svg", figure)
+restored = load_fit("results/minimal/<printed-directory>/fit.jls")
+parameters = [r.parameter for r in posterior_summary(restored).rows
+    if startswith(r.parameter, "rater[")]
+figure = BayesianMGMFRM.plot(restored; kind = :posterior, parameters)
+CairoMakie.save("rater-posterior-edited.svg", figure)
 ```
 
-Replace `<printed-directory>` with the actual directory name. The
-[plotting guide](fitting.md#Posterior-interval-figures) explains selection and
-intervals; the [reports guide](fitting.md#Reports-and-Reproducibility) covers
-the separate report, table and bundle APIs. To export selected figures
-with the same report, use the [figure bundle workflow](fitting.md#Reports-with-figures).
+Replace `<printed-directory>` with the actual directory name. Native caches
+require their producing source, Julia version and dependency environment.
+For exchange across environments, use the portable handoff and its documented
+operations. Predictive figures generate replicated outcomes even when no MCMC
+is run.
 
-With CmdStan configured, add `--cmdstan` (it can be combined with `--plots`):
-
-```sh
-julia --project=. examples/minimal.jl --cmdstan --plots
-```
-
-The same specification and workflow use `backend = :cmdstan`. Each CmdStan run
-gets a new `cmdstan-build/` directory alongside its saved fit; compiled-model
-reuse is not attempted. See [backend setup](fitting.md#Backends-and-Sampler-Controls)
-for runtime discovery and build requirements. Shared seeds do not imply identical
-draws across backends.
+For a matching externally fitted Stan model, use the [Stan adapter](stan-adapter.md).
+The old reference-coded demonstration, including `--cmdstan` and its Wright-map
+figures, remains at `examples/legacy/minimal.jl` for historical reproduction.
+The standard example rejects `--cmdstan` rather than silently changing its model.
 
 ## Synthetic paired-criterion ratings
 
@@ -361,15 +381,15 @@ julia --project=. examples/multidimensional_mfrm.jl --exchangeable --correlated 
 Its fixed Q assigns items 1–2 to reasoning and items 3–4 to communication.
 Active coefficients and rater consistency are one; person/item locations use
 zero-centered priors, rater severities sum to zero, and latent correlation is
-identity. `MFRMPrior` sets standard deviations on free unit-logit coordinates.
-The [experimental guide](experimental.md#Fixed-coefficient-multidimensional-MFRM)
+identity. `BayesianMGMFRM.Legacy.MFRMPrior` sets standard deviations on free unit-logit coordinates.
+The [model extensions guide](experimental.md#Fixed-coefficient-multidimensional-MFRM)
 explains the model and limits. Add `--correlated` to estimate population rho
 with an LKJ(2) prior on either backend; its figures show rho and its chains.
 Ability-pair marginal standard deviations remain fixed prior inputs.
 Add `--exchangeable` to use an exchangeable zero-sum rater prior with kernel
 SD 0.4 for either model/backend. This selects
 [`Experimental.ExchangeablePrior`](experimental.md#Exchangeable-rater-prior)
-for both the prior check and the fit; the default remains `MFRMPrior`.
+for both the prior check and the fit; the default remains `BayesianMGMFRM.Legacy.MFRMPrior`.
 
 Before fitting, the script prints prior parameter and rating summaries. Add
 `--prior-only` to stop there. `--plots` also saves ability-prior and rating-prior
@@ -394,7 +414,7 @@ Automatic request caching is unavailable for this model; manual save/reload is s
 ## Guarded Scalar GMFRM Workflow
 
 [`examples/guarded_gmfrm.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/guarded_gmfrm.jl)
-fits the experimental scalar GMFRM through
+fits the scalar GMFRM through
 `BayesianMGMFRM.Experimental.fit(spec)`:
 
 ```sh
@@ -406,13 +426,13 @@ discrimination and rater consistency, with rater-specific partial-credit
 steps. The script validates the ratings, prints model-scale posterior summaries
 and MCMC diagnostics, then saves and reloads the fit. It does not fit additional
 task effects, multidimensional ability, rating-scale generalized kernels or
-DFF terms. See the [experimental model guide](experimental.md) for the response
+DFF terms. See the [model guide](experimental.md) for the response
 equation, identification and raw-coordinate prior.
 
 ## Guarded Fixed-Q MGMFRM Workflow
 
 [`examples/guarded_mgmfrm.jl`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/examples/guarded_mgmfrm.jl)
-uses the same experimental entrypoint for two named ability dimensions:
+uses the same entrypoint for two named ability dimensions:
 
 ```sh
 julia --project=. examples/guarded_mgmfrm.jl
@@ -433,7 +453,7 @@ item-specific partial-credit steps are used. The two-item toy dataset illustrate
 the API and is insufficient for substantive multidimensional conclusions.
 Exploratory loadings, free latent correlations, validated bifactor support and
 model-weight claims are outside this fitting route. The
-[experimental model guide](experimental.md) explains these restrictions.
+[model guide](experimental.md) explains these restrictions.
 
 ## Explicit normalized-prior MGMFRM workflow
 
@@ -501,6 +521,7 @@ In Julia, inspect or adapt the complete specification before fitting:
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "normalized_mgmfrm.jl"))
 prepared = NormalizedMGMFRMExample.example_inputs()  # no fitting
 prepared.spec.q_matrix
@@ -540,6 +561,7 @@ chains; it performs no new fitting, prior simulation or predictive random draws.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "normalized_mgmfrm.jl"))
 analysis = NormalizedMGMFRMExample.main(["--saved-fit", "path/to/fit.jls"])
 read(joinpath(analysis.directory, "answer.txt"), String)
@@ -672,6 +694,7 @@ environment:
 
 ```julia
 using BayesianMGMFRM, CairoMakie
+using BayesianMGMFRM.Legacy
 restored = load_fit_cache("results/guarded_mgmfrm/<printed-directory>/fit.jls")
 figure = BayesianMGMFRM.plot_posterior(restored; scale = :model,
     block = :person, dimension = "communication")
@@ -694,7 +717,7 @@ julia --project=. examples/guarded_mgmfrm.jl --cmdstan --plots
 
 Configure the runtime using the [backend setup guide](fitting.md#Backends-and-Sampler-Controls).
 A shared seed does not imply identical draws across backends. Switching backends
-preserves the experimental model restrictions.
+preserves the model restrictions.
 
 ### Review a saved MGMFRM fit without fitting
 
@@ -753,13 +776,14 @@ warnings remain visible, and a complete report is not scientific acceptance.
 
 ### Compare persons or raters in a saved scalar MFRM fit
 
-For an ordinary one-dimensional `MFRMFit`, use the same named
+For an ordinary one-dimensional `BayesianMGMFRM.Legacy.MFRMFit`, use the same named
 [`BayesianMGMFRM.posterior_contrast`](@ref) operation for person or rater
 differences. It supports RSM and item-owned PCM. With the first-analysis
 example's trusted cache in its original environment:
 
 ```julia
 using BayesianMGMFRM, Serialization
+using BayesianMGMFRM.Legacy
 restored = load_fit_cache("analysis-fit.jls")
 BayesianMGMFRM.recovery_quantities(restored).rows # exact names and units
 ability = BayesianMGMFRM.posterior_contrast(restored;
@@ -802,6 +826,7 @@ no renderer or additional diagnostic dependency is needed:
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 restored = load_fit_cache("analysis-fit.jls")
 BayesianMGMFRM.recovery_quantities(restored).rows # exact names and units
 answer = BayesianMGMFRM.posterior_contrast(restored;
@@ -902,9 +927,9 @@ below uses the package adapter for existing fitted rows.
 
 The repository example `examples/common_prediction_observations.jl` reads a fit
 cache through the common prediction adapter. It works with eight
-result types: `MFRMFit`, `GMFRMFit`, `MGMFRMFit`, `NormalizedMGMFRMFit`,
+result types: `BayesianMGMFRM.Legacy.MFRMFit`, `GMFRMFit`, `MGMFRMFit`, `NormalizedMGMFRMFit`,
 `CorrelatedMGMFRMFit`, `MultidimensionalMFRMFit`, `CorrelatedMFRMFit` and
-`ExchangeableMFRMFit` (experimental types use the `Experimental` namespace).
+`ExchangeableMFRMFit`. Specialized types use the `Experimental` namespace.
 The adapter is included in this snapshot. Use the qualified module for its
 low-level methods; availability does not establish scientific acceptance of
 these models.
@@ -935,6 +960,7 @@ For use in a Julia session with the matching package loaded:
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 using BayesianMGMFRM.PredictionObservationAdapter
 
 restored = load_fit_cache("results/my-analysis/fit.jls")
@@ -1232,6 +1258,7 @@ unit logits.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 restored = load_fit_cache("profile-fit.jls")
 restored isa BayesianMGMFRM.Experimental.NormalizedMGMFRMFit ||
     error("Use the normalized fixed-one mean-profile fit for this example.")

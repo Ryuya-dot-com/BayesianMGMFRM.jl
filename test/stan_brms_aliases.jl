@@ -1,4 +1,6 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using Test
 
 @testset "Stan/brms NUTS control aliases, help guidance & migration docs" begin

@@ -1,5 +1,6 @@
 module CmdStanAdaptationSamplingChecks
 using Test, Random, JSON3, BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 include("../scripts/mgmfrm_adaptation_record.jl")
 const A = MGMFRMAdaptationRecord
 const B = BayesianMGMFRM

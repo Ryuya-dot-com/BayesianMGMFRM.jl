@@ -1,5 +1,6 @@
 module QualificationPredictionContractChecks
 using BayesianMGMFRM, Test, Random
+using BayesianMGMFRM.Legacy
 const B=BayesianMGMFRM;const SA=B.Experimental.StarAssociation
 include("common_prediction_fixtures.jl")
 include("fixtures/experimental_diagnostic_record.jl")

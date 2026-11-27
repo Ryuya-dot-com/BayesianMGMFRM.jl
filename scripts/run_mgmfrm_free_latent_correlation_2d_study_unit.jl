@@ -1,6 +1,8 @@
 #!/usr/bin/env julia
 
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.ValidationSuite
 using Dates
 using JSON3
 using LinearAlgebra

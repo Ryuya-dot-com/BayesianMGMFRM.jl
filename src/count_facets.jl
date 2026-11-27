@@ -23,7 +23,7 @@ function count_integers(x,name;positive=false)
 end
 function count_model(table;person::Symbol,score::Symbol,facets::NamedTuple,
         observation::NamedTuple,population::NamedTuple,observation_prior=(;),
-        predictors::NamedTuple=(;),intercept,levels=nothing,performance=nothing,assessment=nothing,decompose=nothing)
+        predictors::NamedTuple=(;),intercept,levels=nothing,performance=nothing,assessment=nothing,decompose=nothing,missing_audit=nothing)
     _keys(observation,(:family,:trials),:observation)
     :trials in keys(facets) && throw(ArgumentError("trials is reserved for denominator grouping in count models"))
     observation.family in (:binomial,:beta_binomial) || throw(ArgumentError("count family must be :binomial or :beta_binomial"))
@@ -44,7 +44,7 @@ function count_model(table;person::Symbol,score::Symbol,facets::NamedTuple,
     n=count_integers(collect(B._column(table,tc)),:trials;positive=true)
     length(y)==length(n) && !isempty(y) || throw(ArgumentError("successes and trials need equal nonzero lengths"))
     all(y.<=n) || throw(ArgumentError("successes exceed declared trials"))
-    loc,alloc=location_model(table;person,score,facets,population,predictors,intercept,levels,performance,assessment,decompose,allow_slopes=true)
+    loc,alloc=location_model(table;person,score,facets,population,predictors,intercept,levels,performance,assessment,decompose,allow_slopes=true,missing_audit)
     loc.table[score]=y;loc.table[tc]=n
     lc=[SF.loggamma(Float64(m)+1)-SF.loggamma(Float64(k)+1)-SF.loggamma(Float64(m-k)+1) for (k,m) in zip(y,n)]
     CountTarget(loc,observation,pr,y,n,lc,loc.dimension+Int(bb),alloc)
@@ -160,7 +160,7 @@ function design(t::CountTarget)
     pat=response_patterns(t)
     (;n_observations=length(t.y),n_persons=length(t.people),n_facets=length(t.facets)+1,n_parameters=t.dimension,
       observation=t.observation,allocation=t.allocation,grouping=t.groups,population=t.specification.population,response_patterns=pat,
-      warnings=[pat.warnings;hasproperty(t.allocation,:slope_warnings) ? t.allocation.slope_warnings : String[];"Experimental scalar count model: named owner effects and conditional response independence; not a word-specific difficulty model.";
+      warnings=[pat.warnings;hasproperty(t.allocation,:slope_warnings) ? t.allocation.slope_warnings : String[];"scalar count model: named owner effects and conditional response independence; not a word-specific difficulty model.";
       "Beta-binomial precision, when present, is intercept-only; within-response exchangeability does not establish rater reliability or Rasch specific objectivity.";
       "Population mean/covariance screening does not establish sufficient information, causal effects or general identification."],scientific_acceptance=false)
 end

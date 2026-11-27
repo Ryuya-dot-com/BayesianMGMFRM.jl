@@ -9,6 +9,8 @@ It starts no fitting or simulation.
 
 ```julia
 using BayesianMGMFRM, CairoMakie, JSON3
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 root = joinpath(pkgdir(BayesianMGMFRM), "examples", "reports", "explanatory-diagnostics")
 hashes = JSON3.read(read(joinpath(root, "sha256.json"), String))
 stored(name) = load_report(joinpath(root, name * ".json");

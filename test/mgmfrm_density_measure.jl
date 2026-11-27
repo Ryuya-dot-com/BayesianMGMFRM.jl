@@ -1,6 +1,8 @@
 module MGMFRMDensityMeasureChecks
 
 using Test, BayesianMGMFRM, ForwardDiff, ReverseDiff, LinearAlgebra
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import JSON3
 const B = BayesianMGMFRM
 include("test_groups.jl")

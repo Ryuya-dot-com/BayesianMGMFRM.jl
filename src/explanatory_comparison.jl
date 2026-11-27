@@ -5,16 +5,106 @@ const _EXPLANATORY_COMPARISON_SCHEMAS=(_EXPLANATORY_CRITERIA_SCHEMA,_EXPLANATORY
 _explanatory_score_report(x)=hasproperty(x,:schema) && x.schema in (_EXPLANATORY_CRITERIA_SCHEMA,"bayesianmgmfrm.bounded_rating_criteria.v1","bayesianmgmfrm.count_rating_criteria.v1","bayesianmgmfrm.mixed_event_criteria.v1","bayesianmgmfrm.mixed_profile_criteria.v1")
 _explanatory_absent(x)=x===nothing || ismissing(x)
 
+# Bind the held-out observations, independently of the model's latent effects.
+function _event_comparison_binding(t, unit, profiles)
+    column = getproperty(t.columns, unit)
+    column === nothing && throw(ArgumentError("declare the $unit ID column before event scoring"))
+    _cache_hash((; unit, column, ids=copy(t.table[column]),
+        people=deepcopy(t.people[t.person]), observed=t.categories[t.category],
+        supports=[t.categories[t.supports[g]] for g in t.group],
+        profiles=[(;p.performance,p.rows) for p in profiles]))
+end
+_event_comparison_binding(r) = get(r, :comparison_observation_binding, r.observation_binding)
+
+function _mrcml_profile_design(t::AdditiveFacets.MRCMLTarget, unit, integrate)
+    unit in (:performance, :assessment) || throw(ArgumentError("declare unit=:performance or :assessment"))
+    column=getproperty(t.columns,unit)
+    column === nothing && throw(ArgumentError("declare the $unit ID column before event scoring"))
+    random=get(t.spec_record,:random_effects,Symbol[])
+    candidates=filter(b->b.name in random && b.column===column,t.facets)
+    isempty(candidates) ? (integrate===nothing || throw(ArgumentError("no iid shared effect owns this event column"))) :
+        (length(candidates)==1 && integrate===only(candidates).name || throw(ArgumentError("integrate must name the iid shared effect owning this event column")))
+    block=integrate===nothing ? nothing : only(candidates)
+    residual=integrate===nothing ? nothing : only(filter(b->b.name===integrate,t.prior_blocks))
+    ids=t.table[column];_,levels=AdditiveFacets._labels(ids,column)
+    groups=[findall(isequal(id),ids) for id in levels]
+    for rows in groups
+        keep=setdiff(eachindex(t.person),rows)
+        Set(t.person[keep])==Set(t.person) || throw(ArgumentError("withholding an event removes a person; this comparison requires known persons"))
+        all(b->b.name===integrate || Set(b.index[keep])==Set(b.index),t.facets) || throw(ArgumentError("withholding an event removes a facet level; this comparison requires known levels"))
+        Set(t.group[keep])==Set(t.group) || throw(ArgumentError("withholding an event removes a step owner"))
+    end
+    profiles=[(;profile=i,performance=deepcopy(levels[i]),rows=copy(rows),n_ratings=length(rows)) for (i,rows) in enumerate(groups)]
+    observations=deepcopy(t.table)
+    supports=[copy(t.categories[t.supports[g]]) for g in t.group]
+    binding=_event_comparison_binding(t,unit,profiles)
+    (;unit,integrate,profiles,observations,supports,observation_binding=binding,
+        conditioning=:known_other_owners_observed_covariate_roster,
+        integration=integrate===nothing ? :joint_conditional_event_profile : :joint_shared_gaussian,
+        multiplier=1,groups,block,residual)
+end
+
+function _explanatory_training_target(t::AdditiveFacets.MRCMLTarget,d,id)
+    A=AdditiveFacets;j=findfirst(p->isequal(p.performance,id),d.profiles)
+    j===nothing && throw(ArgumentError("unknown withheld event ID"))
+    keep=setdiff(eachindex(t.person),d.groups[j]);r=A.record(t)
+    # Keep the full parameter roster, basis, anchors and priors. Only likelihood rows change.
+    op=merge(r.operator,(;n_obs=length(keep),pattern_of_row=r.operator.pattern_of_row[keep]))
+    facets=[merge(b,(;index=b.index[keep])) for b in r.facets]
+    spec_record=r.spec_record
+    if hasproperty(spec_record,:context_facets)
+        spec_record=merge(spec_record,(;context_facets=[merge(b,(;index=b.index[keep])) for b in spec_record.context_facets]))
+    end
+    A.restore_mrcml(merge(r,(;operator=op,facets,spec_record,person=r.person[keep],
+        category=r.category[keep],group=r.group[keep],table=Dict(c=>v[keep] for (c,v) in r.table))))
+end
+
+function _explanatory_integrals(t::AdditiveFacets.MRCMLTarget,d,run,quads;
+        training=t,profiles=eachindex(d.groups))
+    # Training keeps the same coordinates; evaluate held-out rows in the full target.
+    A=AdditiveFacets
+    A.names(training,:raw)==A.names(t,:raw) || throw(ArgumentError("event refit changed parameter coordinates"))
+    selected=collect(profiles);coarse=zeros(size(run.draws,1),length(selected));fine=similar(coarse)
+    for (s,q) in enumerate(eachrow(run.draws))
+        if d.integrate===nothing
+            row_ll=A.pointwise(t,q)
+            for (g,i) in enumerate(selected);coarse[s,g]=fine[s,g]=sum(row_ll[d.groups[i]]);end
+        else
+            v=A._mrcml_unpack(t,q);b=d.residual
+            sd=b.hyper_idx==0 ? b.marginal_sd : v.hyper_sds[b.name]
+            weights=A._diagnostic_logweights(t,q)
+            for (g,i) in enumerate(selected)
+                rows=d.groups[i];level=d.block.index[first(rows)]
+                effect=v.eta_xi[b.eta_range[level]]
+                for (out,quad) in zip((coarse,fine),quads)
+                    sums=copy(quad.logweights)
+                    for j in eachindex(sums),n in rows
+                        slots=t.operator.pattern_ranges[t.operator.pattern_of_row[n]]
+                        logits=weights[n,1:length(slots)] .+ t.operator.B_pat[slots].*(effect-sd*quad.nodes[j])
+                        y=t.category[n]-first(t.supports[t.group[n]])+1
+                        sums[j]+=logits[y]-_logsumexp(logits)
+                    end
+                    out[s,g]=_logsumexp(sums)
+                end
+            end
+        end
+    end
+    all(isfinite,coarse) && all(isfinite,fine) || throw(ArgumentError("nonfinite event log likelihood"))
+    (;coarse,fine)
+end
+
 function _explanatory_profile_design(t,unit,integrate)
     A=AdditiveFacets
+    t isa A.MRCMLTarget && return _mrcml_profile_design(t,unit,integrate)
     t isa A.ExplanatoryTarget || throw(ArgumentError("profile integration requires an explanatory fit"))
-    unit===:performance || throw(ArgumentError("declare unit=:performance explicitly"))
-    integrate isa Symbol || throw(ArgumentError("integrate must name the iid performance facet"))
+    unit in (:performance,:assessment) || throw(ArgumentError("declare unit=:performance or :assessment explicitly"))
+    integrate isa Symbol || throw(ArgumentError("integrate must name the iid shared-event facet"))
     found=findall(b->b.name===integrate,t.facets)
     length(found)==1 || throw(ArgumentError("integrate must name a declared facet"))
     b=t.facets[only(found)];rb=only(r for r in t.residuals if r.name===integrate)
-    t.columns.performance!==nothing && b.column===t.columns.performance && rb.kind===:iid_population ||
-        throw(ArgumentError("integrate requires the declared performance column and an iid population residual; finite-sum-zero effects are not supported"))
+    owner_column=getproperty(t.columns,unit)
+    owner_column!==nothing && b.column===owner_column && rb.kind===:iid_population ||
+        throw(ArgumentError("integrate requires the declared $unit column and an iid population residual; finite-sum-zero effects are not supported"))
     any(p->p.by===integrate,t.terms) && throw(ArgumentError("performance-specific response coefficients need additional integration; this route integrates one residual only"))
     groups=[findall(==(i),b.index) for i in eachindex(b.levels)]
     all(!isempty,groups) || throw(ArgumentError("every performance needs observed ratings"))
@@ -28,14 +118,15 @@ function _explanatory_profile_design(t,unit,integrate)
         Set(t.group[keep])==Set(t.group) || throw(ArgumentError("withholding removes a steps owner"))
     end
     cols=unique([t.columns.person,t.columns.score,values(t.columns.facets)...,
-        t.columns.performance,(t.columns.assessment===nothing ? Symbol[] : [t.columns.assessment])...])
+        (t.columns.performance===nothing ? Symbol[] : [t.columns.performance])...,
+        (t.columns.assessment===nothing ? Symbol[] : [t.columns.assessment])...])
     observations=Dict(c=>copy(t.table[c]) for c in cols)
     supports=[copy(t.categories[t.supports[t.group[n]]]) for n in eachindex(t.person)]
     profiles=[(;profile=i,performance=deepcopy(b.levels[i]),rows=copy(rows),n_ratings=length(rows)) for (i,rows) in enumerate(groups)]
     binding=_cache_hash((;columns=t.columns,observations,supports,integrate,unit))
     (;unit,integrate,profiles,observations,supports,observation_binding=binding,
       conditioning=:known_other_owners_observed_covariate_roster,
-      integration=:one_iid_performance_residual_joint_profile,
+      integration=unit===:performance ? :one_iid_performance_residual_joint_profile : :one_iid_assessment_residual_joint_profile,
       multiplier=1,groups,block=b,residual=rb)
 end
 
@@ -46,7 +137,7 @@ function _explanatory_training_target(t,d,id)
     # Materialize the original means/deviations. Recomputing them would change the task.
     s=hasproperty(r.specification,:decomposition) ? Base.structdiff(r.specification,(;decomposition=nothing)) : r.specification
     levels=merge(r.levels,(;facets=merge(r.levels.facets,NamedTuple{(d.integrate,)}((filter(!isequal(id),d.block.levels),)))))
-    schema=(A._expanded_terms(t) || A._owned_support(t)) ? "bayesianmgmfrm.explanatory_facet_design.v3" : "bayesianmgmfrm.explanatory_facet_design.v1"
+    schema=A._explanatory_logscale(t) ? "bayesianmgmfrm.explanatory_facet_design.v4" : (A._expanded_terms(t) || A._owned_support(t)) ? "bayesianmgmfrm.explanatory_facet_design.v3" : "bayesianmgmfrm.explanatory_facet_design.v1"
     A.restore_explanatory(merge(r,(;schema,specification=s,levels,table=Dict(c=>v[keep] for (c,v) in t.table))))
 end
 
@@ -56,7 +147,8 @@ end
 
 Return `target` for an explicit held-performance refit, preserving all common
 priors and the original observed predictor means/deviations. `integrate` names
-the iid facet associated with the declared performance column. Fit `plan.target`
+the iid facet associated with the declared performance column (or assessment
+column with `unit=:assessment`). Fit `plan.target`
 with explicit sampler controls, then supply `performance_id => saved_fit` to
 `criteria(...; refits=[...])`. This call starts no fitting or RNG.
 """
@@ -84,7 +176,7 @@ function _explanatory_transport(from,to,q)
     A=AdditiveFacets;out=zeros(to.dimension)
     for b in from.residuals
         dest=only(r for r in to.residuals if r.name===b.name)
-        (b.kind,b.sd,b.logmean,b.logsd)==(dest.kind,dest.sd,dest.logmean,dest.logsd) || throw(ArgumentError("residual prior mismatch"))
+        (b.kind,b.sd,b.logmean,b.logsd,b.scale_kind)==(dest.kind,dest.sd,dest.logmean,dest.logsd,dest.scale_kind) || throw(ArgumentError("residual prior mismatch"))
         old=A._owner_levels(from,b.name);new=A._owner_levels(to,b.name)
         if isempty(b.raw)
             isempty(dest.raw) || throw(ArgumentError("residual active/zero mismatch"))
@@ -161,26 +253,107 @@ end
     pointwise_loglikelihood(fit::AdditiveFacets.Fit; unit=:performance,
         integrate, quadrature_orders=(61,121), quadrature_tolerance=1e-7)
 
-Inspect prior-integrated **joint performance-profile** factors at all retained
+With `unit=:assessment`, the declared assessment column defines the held-out
+event instead. Standard MRCML uses `integrate=nothing` and sums conditional
+rating log densities within each event. For an iid shared-event model, name
+that facet with `integrate` to inspect prior-integrated **joint event-profile** factors at all retained
 draws. `integrate` is the user-declared iid performance facet, not a hard-coded
 role name. Other owners stay known. Returns fine/coarse log-density matrices,
 profile/observation bindings and chain order; this allocates draws × profiles.
 Factors integrate the performance residual once, retaining regression means.
 Use `criteria` for checked PSIS scoring; do not treat these as rating-wise factors.
 """
+function _additive_rating_binding(t)
+    row_cats = [copy(t.categories[t.supports[t.group[i]]]) for i in eachindex(t.person)]
+    payload = (;
+        people = [string(t.people[p]) for p in t.person],
+        observed = [t.categories[c] for c in t.category],
+        row_supports = row_cats,
+    )
+    return _cache_hash(payload)
+end
+
+function _compare_additive_rating_models(pairs_vec::AbstractVector{<:Pair};
+        criterion::Symbol = :psis_loo, pareto_k_threshold::Real = 0.7)
+    criterion in (:psis_loo, :loo, :waic) ||
+        throw(ArgumentError("AdditiveFacets rating-wise compare_models requires criterion in (:psis_loo, :loo, :waic); got $(repr(criterion))"))
+    length(pairs_vec) >= 2 || throw(ArgumentError("supply at least two labeled AdditiveFacets.Fit models to compare_models"))
+    labels = [strip(string(first(p))) for p in pairs_vec]
+    all(!isempty, labels) && allunique(labels) || throw(ArgumentError("distinct nonempty model labels are required"))
+    fits = AdditiveFacets.Fit[]
+    targets = Any[]
+    for p in pairs_vec
+        v = last(p)
+        v isa AdditiveFacets.Fit || throw(ArgumentError("all compared models must be AdditiveFacets.Fit objects"))
+        t = AdditiveFacets.checked(v; full = true)
+        t isa Union{AdditiveFacets.Target, AdditiveFacets.MRCMLTarget} ||
+            throw(ArgumentError("direct AdditiveFacets compare_models supports conditionally independent rating-wise models (`Target` / `MRCMLTarget`); for hierarchical performance models, pass `criteria(fit; unit = :performance, integrate = ...)` reports to `compare_models`"))
+        push!(fits, v)
+        push!(targets, t)
+    end
+    obs0 = _additive_rating_binding(targets[1])
+    for (lbl, tk) in zip(labels, targets)
+        _additive_rating_binding(tk) == obs0 ||
+            throw(ArgumentError("model $(repr(lbl)) does not bind the exact same rating observations and category supports"))
+    end
+    crit_key = criterion === :loo ? :psis_loo : criterion
+    evals = [crit_key === :waic ? waic(fk) : psis_loo(fk; pareto_k_threshold) for fk in fits]
+    elpds = [crit_key === :waic ? e.elpd_waic : e.elpd_loo for e in evals]
+    pws = [crit_key === :waic ? e.pointwise.elpd_waic : e.pointwise.elpd_loo for e in evals]
+    order = sortperm(elpds; rev = true)
+    best_idx = order[1]
+    N_u = length(pws[best_idx])
+    rows = [
+        begin
+            diff_vec = pws[idx] .- pws[best_idx]
+            d_elpd = sum(diff_vec)
+            se_d = (idx == best_idx || N_u <= 1) ? 0.0 : sqrt(N_u * var(diff_vec; corrected = true))
+            (;
+                rank = rnk,
+                model_label = labels[idx],
+                elpd = elpds[idx],
+                p_effective = crit_key === :waic ? evals[idx].p_waic : evals[idx].p_loo,
+                elpd_difference = d_elpd,
+                se_difference = se_d,
+                bad_pareto_k_count = crit_key === :waic ? missing : evals[idx].bad_pareto_k_count,
+                max_pareto_k = crit_key === :waic ? missing : evals[idx].max_pareto_k,
+                qualified = qualify(fits[idx]).qualified,
+                source_content_hash = fits[idx].record.content_hash,
+            )
+        end for (rnk, idx) in enumerate(order)
+    ]
+    body = (;
+        schema = "bayesianmgmfrm.additive_rating_comparison.v1",
+        criterion = crit_key,
+        unit = :rating,
+        observation_binding = obs0,
+        n_units = N_u,
+        rows,
+        warning = "Rating-wise elpd comparison conditions on known finite-panel levels; inspect pareto_k and whole-fit qualification before substantive model selection.",
+    )
+    return merge(body, (; report_hash = _cache_hash(body)))
+end
+
 function pointwise_loglikelihood(f::AdditiveFacets.Fit;unit=nothing,integrate=nothing,
         quadrature_orders=nothing,quadrature_tolerance=1e-7)
     t=AdditiveFacets.checked(f;full=true)
-    if t isa Union{AdditiveFacets.Target,AdditiveFacets.BoundedTarget,AdditiveFacets.CountTarget}
+    if t isa Union{AdditiveFacets.Target,AdditiveFacets.MRCMLTarget,AdditiveFacets.BoundedTarget,AdditiveFacets.CountTarget} &&
+            !(t isa AdditiveFacets.MRCMLTarget && unit in (:performance,:assessment))
         (unit in (nothing,:rating) && integrate===nothing && quadrature_orders===nothing) ||
-            throw(ArgumentError("finite-panel or scalar bounded/count AdditiveFacets fits evaluate conditional rating-wise log-densities (`unit = :rating`, `integrate = nothing`)"))
+            throw(ArgumentError("finite-panel, MRCML, or scalar bounded/count AdditiveFacets fits evaluate conditional rating-wise log-densities (`unit = :rating`, `integrate = nothing`)"))
         S=size(f.record.run.draws,1)
         pw1=AdditiveFacets.pointwise(t,view(f.record.run.draws,1,:))
         ll=Matrix{Float64}(undef,S,length(pw1))
         ll[1,:].=pw1
-        for s in 2:S;ll[s,:].=AdditiveFacets.pointwise(t,view(f.record.run.draws,s,:));end
-        return (;log_density=ll,observation_binding=f.record.target_identity,unit=:rating,integrate=nothing,
-            conditioning=t isa AdditiveFacets.Target ? :known_finite_panel_levels : :known_owners_observed_covariates,
+        _parallel_ranges(S-1, length(pw1)) do indices
+            for i in indices
+                s = i + 1
+                ll[s,:] .= AdditiveFacets.pointwise(t,view(f.record.run.draws,s,:))
+            end
+        end
+        obs_b=t isa Union{AdditiveFacets.Target,AdditiveFacets.MRCMLTarget} ? _additive_rating_binding(t) : f.record.target_identity
+        return (;log_density=ll,observation_binding=obs_b,unit=:rating,integrate=nothing,
+            conditioning=t isa Union{AdditiveFacets.Target,AdditiveFacets.MRCMLTarget} ? :known_finite_panel_levels : :known_owners_observed_covariates,
             source_sample_hash=f.record.content_hash,target_identity=f.record.target_identity,
             chain_ids=copy(f.record.run.chain_ids),iterations=copy(f.record.run.iterations),multiplier=1)
     end
@@ -208,9 +381,10 @@ function pointwise_loglikelihood(f::AdditiveFacets.Fit;unit=nothing,integrate=no
           target_identity=f.record.target_identity,chain_ids=copy(f.record.run.chain_ids),
           iterations=copy(f.record.run.iterations),multiplier=1)
     end
-    q_orders=quadrature_orders===nothing ? (61,121) : quadrature_orders
+    t isa AdditiveFacets.MRCMLTarget && integrate===nothing && quadrature_orders!==nothing && throw(ArgumentError("MRCML event scores do not use quadrature"))
+    q_orders=t isa AdditiveFacets.MRCMLTarget && integrate===nothing ? () : quadrature_orders===nothing ? (61,121) : quadrature_orders
     d=_explanatory_profile_design(t,unit,integrate)
-    quads=_explanatory_quadrature(q_orders,quadrature_tolerance,1e-5)
+    quads=isempty(q_orders) ? nothing : _explanatory_quadrature(q_orders,quadrature_tolerance,1e-5)
     x=_explanatory_integrals(t,d,f.record.run,quads)
     error=maximum(abs.(x.fine.-x.coarse))
     (;log_density=x.fine,coarse_log_density=x.coarse,profiles=d.profiles,
@@ -252,7 +426,7 @@ _explanatory_profile_metadata(d)=(;d.unit,d.integrate,d.profiles,d.observations,
         quadrature_orders=(61,121), quadrature_tolerance=1e-7,
         score_tolerance=1e-5)
 
-Score joint held-performance predictions with integrated PSIS and all original
+Score joint held-performance (or `unit=:assessment`) predictions with integrated PSIS and all original
 draws. Supply existing `performance_id => fit` refits; each is checked against
 `loo_refit_plan(fit,id;unit,integrate).target`, including unchanged common priors,
 materialized features and row identities. This never starts MCMC. Explicitly
@@ -269,11 +443,11 @@ function criteria(f::AdditiveFacets.Fit;unit=nothing,integrate=nothing,refits=Pa
         independent_refit_rng::Bool=false,mcse_blocks=(),quadrature_orders=nothing,
         quadrature_tolerance=1e-7,score_tolerance=1e-5,criteria::Tuple=(:waic,:psis_loo),pareto_k_threshold::Real=0.7)
     A=AdditiveFacets;CC=_CC_MOD;t=A.checked(f;full=true)
-    if t isa A.Target
+    if t isa Union{A.Target,A.MRCMLTarget} && !(t isa A.MRCMLTarget && unit in (:performance,:assessment))
         (unit in (nothing,:rating) && integrate===nothing && isempty(refits) && !independent_refit_rng && isempty(mcse_blocks) && quadrature_orders===nothing) ||
-            throw(ArgumentError("finite-panel AdditiveFacets.Target has conditionally independent rating rows (`unit = :rating`, `integrate = nothing`, no performance refits)"))
+            throw(ArgumentError("finite-panel / MRCML AdditiveFacets targets have conditionally independent rating rows (`unit = :rating`, `integrate = nothing`, no performance refits)"))
         !isempty(criteria) && allunique(criteria) && all(in((:waic,:psis_loo)),criteria) ||
-            throw(ArgumentError("choose distinct criteria from (:waic, :psis_loo) for finite-panel AdditiveFacets.Fit"))
+            throw(ArgumentError("choose distinct criteria from (:waic, :psis_loo) for finite-panel / MRCML AdditiveFacets.Fit"))
         scores=map(c->c===:waic ? waic(f) : psis_loo(f;pareto_k_threshold),criteria)
         return NamedTuple{criteria}(scores)
     end
@@ -287,12 +461,13 @@ function criteria(f::AdditiveFacets.Fit;unit=nothing,integrate=nothing,refits=Pa
             quadrature_orders,quadrature_tolerance,score_tolerance)
     end
     t isa Union{A.BoundedTarget,A.CountTarget} && return _bounded_criteria(f;unit,integrate,refits,independent_refit_rng,mcse_blocks)
-    q_orders=quadrature_orders===nothing ? (61,121) : quadrature_orders
+    t isa A.MRCMLTarget && integrate===nothing && quadrature_orders!==nothing && throw(ArgumentError("MRCML event scores do not use quadrature"))
+    q_orders=t isa A.MRCMLTarget && integrate===nothing ? () : quadrature_orders===nothing ? (61,121) : quadrature_orders
     d=_explanatory_profile_design(t,unit,integrate);run=f.record.run;S=size(run.draws,1)
     _check_psis_iterations(run.chain_ids,run.iterations)
     run.chain_ids==repeat(1:run.controls.chains;inner=S÷run.controls.chains) || throw(ArgumentError("stored chain order must remain intact"))
     refs=collect(refits);all(r->r isa Pair && last(r) isa A.Fit,refs) && allunique(first.(refs)) || throw(ArgumentError("refits must be unique performance_id => fit pairs"))
-    quads=_explanatory_quadrature(q_orders,quadrature_tolerance,score_tolerance)
+    quads=isempty(q_orders) ? nothing : _explanatory_quadrature(q_orders,quadrature_tolerance,score_tolerance)
     allunique(mcse_blocks) || throw(ArgumentError("MCSE block sizes must be distinct"))
     # Validate every reference before evaluating the full likelihood array.
     checked=map(refs) do (id,r)
@@ -321,7 +496,7 @@ function criteria(f::AdditiveFacets.Fit;unit=nothing,integrate=nothing,refits=Pa
         if j===nothing
             eligible=quadrature_ok && high.row.importance_status===:ok && high.row.mcse_status===:available
             push!(rows,(;p...,log_score=high.row.log_score,mcse=eligible ? high.row.mcse : nothing,
-                eligible,method=:integrated_psis,original,reference=nothing))
+                eligible,method=d.integrate===nothing ? :conditional_psis : :integrated_psis,original,reference=nothing))
             influences[:,g]=high.influence
         else
             r=checked[j];rr=r.fit.record.run
@@ -347,7 +522,7 @@ function criteria(f::AdditiveFacets.Fit;unit=nothing,integrate=nothing,refits=Pa
             end
         end
     end
-    keep=findall(r->r.method===:integrated_psis,rows)
+    keep=findall(r->r.method!==:direct_refit,rows)
     eligible=all(r->r.eligible,rows) && quality.qualified && (isempty(refs) || independent_refit_rng)
     total=isempty(keep) ? (;mcse=0.,mcse_status=:available,diagnostics=nothing) :
         CC._heldout_precision(vec(sum(influences[:,keep];dims=2)),run,eligible)
@@ -363,13 +538,15 @@ function criteria(f::AdditiveFacets.Fit;unit=nothing,integrate=nothing,refits=Pa
         end
     end
     _prediction_seal((;schema=_EXPLANATORY_CRITERIA_SCHEMA,_explanatory_profile_metadata(d)...,
+        comparison_observation_binding=_event_comparison_binding(t,unit,d.profiles),
         criterion=:psis_loo,rows,elpd=sum(r.log_score for r in rows),mcse,
         status=available ? :estimated : :diagnostic_only,
         problem_performances=[r.performance for r in rows if !r.eligible],
         mcse_status=available ? :available : :unavailable,shared_draw_precision=total,
         mcse_blocks=blocks,independent_refit_rng,reference_records,
         source_sample_hash=f.record.content_hash,target_identity=f.record.target_identity,
-        prior=deepcopy(t.specification),predictor_columns=Dict(p.column=>copy(t.table[p.column]) for p in t.terms if p.column!==nothing),
+        prior=deepcopy(t isa A.MRCMLTarget ? t.spec_record : t.specification),
+        predictor_columns=t isa A.MRCMLTarget ? Dict{Symbol,Vector}() : Dict(p.column=>copy(t.table[p.column]) for p in t.terms if p.column!==nothing),
         quality,sampling_warning=!quality.qualified,model_warnings=A.design(t).warnings,
         quadrature_orders=q_orders,quadrature_tolerance,score_tolerance,
         sampling_standard_error=nothing,sampling_uncertainty=:unassessed_crossed_design,
@@ -396,7 +573,7 @@ function _check_explanatory_comparison_report(r)
     else
         length(r.models)==2 || throw(ArgumentError("paired comparison requires two models"))
         foreach(_check_explanatory_comparison_report,r.models)
-        r.models[1].observation_binding==r.models[2].observation_binding==r.observation_binding || throw(ArgumentError("comparison observation mismatch"))
+        _event_comparison_binding(r.models[1])==_event_comparison_binding(r.models[2])==r.observation_binding || throw(ArgumentError("comparison observation mismatch"))
         isapprox(r.difference,r.models[1].elpd-r.models[2].elpd;atol=1e-9,rtol=1e-12) || throw(ArgumentError("comparison difference mismatch"))
     end
     r
@@ -410,7 +587,11 @@ function _compare_explanatory_profiles(models;criterion=:psis_loo,comparison_axi
     criterion===:psis_loo && comparison_axis in (nothing,:model) || throw(ArgumentError("use criterion=:psis_loo and comparison_axis=:model (or omit the axis)"))
     labels=string.(first.(models));allunique(labels) && all(!isempty,labels) || throw(ArgumentError("distinct nonempty model labels are required"))
     a,b=last.(models);foreach(_check_explanatory_comparison_report,(a,b))
-    a.observation_binding==b.observation_binding || throw(ArgumentError("models must score the same observations/supports, in the same order and conditioning"))
+    _event_comparison_binding(a)==_event_comparison_binding(b) || throw(ArgumentError("models must score the same observations/supports, in the same order and conditioning"))
+    a.unit==b.unit && a.conditioning==b.conditioning || throw(ArgumentError("models must use the same held-out unit and conditioning"))
+    for col in intersect(keys(a.observations),keys(b.observations))
+        collect(a.observations[col])==collect(b.observations[col]) || throw(ArgumentError("shared observation column $col differs between models"))
+    end
     for col in intersect(keys(a.predictor_columns),keys(b.predictor_columns))
         collect(a.predictor_columns[col])==collect(b.predictor_columns[col]) || throw(ArgumentError("shared predictor $col differs between models"))
     end
@@ -425,7 +606,7 @@ function _compare_explanatory_profiles(models;criterion=:psis_loo,comparison_axi
     blocks=[(;block=x.block,mcse=available && !_explanatory_absent(x.mcse) && !_explanatory_absent(y.mcse) ? hypot(x.mcse,y.mcse) : nothing)
         for x in a.mcse_blocks for y in b.mcse_blocks if x.block==y.block]
     _prediction_seal((;schema=_EXPLANATORY_COMPARISON_SCHEMA,names=collect(labels),models=[a,b],
-        observation_binding=a.observation_binding,unit=a.unit,integrate=a.integrate,
+        observation_binding=_event_comparison_binding(a),unit=a.unit,integrate=a.integrate,
         conditioning=a.conditioning,multiplier=1,criterion=:psis_loo,
         difference=a.elpd-b.elpd,mean_difference=(a.elpd-b.elpd)/length(rows),rows,
         direction=:primary_minus_baseline,mcse=available ? hypot(a.mcse,b.mcse) : nothing,

@@ -1,5 +1,6 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 issue_codes(report) = Set(issue.code for issue in report.issues)
 

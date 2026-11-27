@@ -283,7 +283,7 @@ end
 
 function Base.show(io::IO, spec::_SlopeRestrictedSpec)
     print(io,"Slope-restricted MGMFRM (item slopes ",spec.item_slopes,
-        "; rater consistency fixed at one; default gradient analytic; experimental)")
+        "; rater consistency fixed at one; default gradient analytic )")
 end
 
 function model_family_contract(spec::_SlopeRestrictedSpec)

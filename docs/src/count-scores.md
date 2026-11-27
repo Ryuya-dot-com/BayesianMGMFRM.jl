@@ -1,6 +1,6 @@
 # Analyze correct counts with known totals
 
-Use this **Experimental** route when each response reports correct words out of
+Use this route when each response reports correct words out of
 a known number of scored words. Keep both integers: 4/5 and 40/50 have the same
 proportion but supply different information under a binomial model. Do not
 convert rounded percentages into invented counts.
@@ -15,6 +15,7 @@ scoring rule before selecting observed rows.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 using Distributions: Normal, LogNormal
 
 spec = mfrm_spec(responses;

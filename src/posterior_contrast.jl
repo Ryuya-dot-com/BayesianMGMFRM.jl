@@ -115,7 +115,7 @@ already extracted draws. It returns `summary` directly, requires equal contiguou
 chain blocks, and cannot verify source identity, units or whole-fit diagnostics.
 The caller must retain joint pairing and supply the complete original chains;
 use the fit method when a supported saved fit is available.
-This operation does not promote the underlying experimental model to Supported.
+Interpretation depends on the fitted model, its assumptions, and diagnostic results.
 """
 function posterior_contrast(fit::Union{MFRMFit,MGMFRMFit,_NormalizedMGMFRMFit};
         left::AbstractString, right::AbstractString, operation::Symbol=:difference,

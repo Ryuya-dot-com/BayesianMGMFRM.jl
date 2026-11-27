@@ -1,6 +1,8 @@
 isdefined(@__MODULE__, :MFRMExchangeableRaterChecks) || include("mfrm_exchangeable_raters.jl")
 module MFRMRaterPriorPredictiveChecks
 using Test, BayesianMGMFRM, Random, Statistics, LinearAlgebra
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using ..MFRMExchangeableRaterChecks: specification, target, reference, SCALES
 const B = BayesianMGMFRM
 const PRIOR = MFRMPrior(person_sd=SCALES.person_sd, rater_sd=SCALES.rater_kernel_sd,

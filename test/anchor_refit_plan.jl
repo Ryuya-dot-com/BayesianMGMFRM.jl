@@ -1,5 +1,6 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 @testset "anchor-constrained refit preflight plan" begin
     table = (;

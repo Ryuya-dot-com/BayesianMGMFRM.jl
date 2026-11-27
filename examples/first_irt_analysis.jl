@@ -1,6 +1,8 @@
 module FirstIRTAnalysis
 
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using BayesianMGMFRM: JSON3
 
 """Prepare fixed binary responses and explicit Rasch settings without fitting."""

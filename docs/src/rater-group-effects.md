@@ -10,7 +10,7 @@ to differ in ability? `Experimental.RaterGroupEffects` fits **relative severity
 within an explicitly defined rater panel**. For example, compare the gap between
 judges R1 and R2 for groups B and A. This is a uniform severity effect on adjacent
 category logits, not a different use of middle categories or an ability-dependent
-slope. The route is Experimental.
+slope.
 
 ## Choose the question before fitting
 
@@ -356,7 +356,7 @@ group-specific rater contrasts, not the number of people.
 
 The implementation does not fit group-varying items or steps, centrality,
 free slopes, latent groups, multiple dimensions, covariates, time processes,
-anchors or combinations with other experimental effects. Item DIF, omitted
+anchors or combinations with other effects. Item DIF, omitted
 dependence and assignment related to unmodeled performance can invalidate a
 severity interpretation even with good MCMC diagnostics. Assess the design,
 residual fit, plausible alternative explanations and prior sensitivity before

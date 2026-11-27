@@ -10,14 +10,21 @@ This reference assumes a prepared specification or an existing fit. Start with
 it does not by itself rule out random prior/predictive generation. Preserve whole
 joint rows and their original chain/iteration order for uncertainty and MCSE.
 
-## Stable fitting and shared artifacts
+## Fitting and shared artifacts
+
+Standard `fit` results are subtypes of `AbstractMFRMFit`. Use this abstract type
+for functions that accept Bayesian MFRM/GMFRM/MGMFRM and JMLE/MMLE results;
+available summaries still depend on the model and estimation method.
+`BayesianMGMFRM.Legacy.MFRMPrior`, `MFRMLogDensity` and the concrete `BayesianMGMFRM.Legacy.MFRMFit` below describe
+the older reference-coded route, not the return type of standard v0.2 fitting.
 
 ```@docs
 SamplingProgress
 progress_snapshot
-MFRMPrior
+AbstractMFRMFit
+BayesianMGMFRM.MFRMPrior
 MFRMLogDensity
-MFRMFit
+BayesianMGMFRM.MFRMFit
 fit
 fit_metadata
 fit_artifact
@@ -78,7 +85,7 @@ BayesianMGMFRM.item_response_surface
 BayesianMGMFRM.plot_response_surface
 ```
 
-## Experimental saved multidimensional MFRM reports
+## [Saved multidimensional MFRM reports](@id Experimental-saved-multidimensional-MFRM-reports)
 
 For an existing fixed-coefficient multidimensional MFRM cache, use
 `load_fit_cache` followed by `fit_report`. Reports include the rating-design
@@ -104,7 +111,7 @@ artifact = fit_artifact(restored; view = :public)
 ```
 
 Posterior bounds must define a central interval strictly inside `(0, 1)`.
-These experimental models use unit logits and fixed Q coefficients. Abilities
+These models use unit logits and fixed Q coefficients. Abilities
 are independent by default; `Experimental.correlated(spec)` estimates population
 correlation for two between-item dimensions. Correlated reports default to
 `view = :public` and include rho intervals and diagnostics. Estimate with
@@ -140,7 +147,7 @@ inputs; reopening and verifying a bundle does not require CairoMakie. For large
 fits, select a smaller set of exact parameter names or explicitly increase
 `max_parameters` and the figure size. Whole-fit MCMC warnings remain visible.
 
-## Experimental model-scale summaries
+## [Model-scale summaries](@id Experimental-model-scale-summaries)
 
 Use `posterior_summary(fit; scale=:model)` or the qualified function below for
 transformed GMFRM/MGMFRM parameters. The default `posterior_summary(fit)` retains
@@ -150,12 +157,12 @@ its raw-coordinate meaning for those fits; always label the requested scale.
 BayesianMGMFRM.direct_posterior_summary
 ```
 
-## Experimental compatibility types
+## [Compatibility types](@id Experimental-compatibility-types)
 
-Earlier code may use `GMFRMFit` and `MGMFRMFit` at the package root. New
-generalized workflows should access these result types through
-`BayesianMGMFRM.Experimental`; see
-[Experimental Models](experimental.md).
+Earlier code may use `BayesianMGMFRM.Legacy.MFRMFit`, `GMFRMFit` and `MGMFRMFit` at the package root.
+These concrete compatibility types are available through `BayesianMGMFRM.Legacy`.
+New functions accepting standard results should use `AbstractMFRMFit`;
+see the [type contract](api.md#Specification-and-fit-types).
 
 ```@docs
 GMFRMFit
@@ -164,7 +171,7 @@ MGMFRMFit
 
 ## Carry joint draws into another calculation
 
-For `MFRMFit`, `GMFRMFit` and `MGMFRMFit`, request retained draws explicitly:
+For `BayesianMGMFRM.Legacy.MFRMFit`, `GMFRMFit` and `MGMFRMFit`, request retained draws explicitly:
 
 ```julia
 artifact = fit_artifact(fitted; view=:public, include_draws=true,
@@ -192,6 +199,7 @@ diagnostics, and posterior intervals with MCSE. It performs no sampling:
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "joint_draw_handoff.jl"))
 fitted = load_fit_cache("analysis-fit.jls")
 receipt = JointDrawHandoff.write_json("joint-draws.json", fitted)

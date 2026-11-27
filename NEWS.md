@@ -1,8 +1,195 @@
 # BayesianMGMFRM.jl release notes
 
+## 0.2.0-DEV (unreleased)
 
+- Generalized `mfrm_spec`, `ScaleIdentifiedMGMFRM`, and the R `fit_mgmfrm`
+  wrapper now support non-compensatory `:softmin` cross-loading aggregation,
+  configurable `rater_slope_scope` (`:entire_linear_predictor` or
+  `:ability_only`), label-keyed `q_matrix` inputs, `:criterion`-role facets and
+  step ownership across summaries, contrasts, Fair Average, and verified
+  portable JSON handoffs, `missing_policy` and `missing_audit` propagation, and
+  `CairoMakie` diagnostic, posterior, prediction, and posterior predictive
+  figures. Prior predictive simulation preserves rating-scale vs.
+  partial-credit step specifications and tolerates single-category prior draws.
+- Added Householder and `SO(2D)` orthogonal location-decoupling charts for
+  Julia NUTS sampling on isometric 1D MRCML and scale-identified GMFRM/MGMFRM
+  targets, preserving exact target densities and analytical gradients.
+- Aligned frequentist JMLE/MMLE reporting with FACETS Table 7 conventions,
+  optional `WHEXACT` ZSTD standardization, and raw-observation JMLE
+  log-likelihood accounting, and added validated portable Exchange Schema `v1.0`
+  export and import helpers.
+
+- `fit` and `predict` now extend the StatsAPI generics, so importing
+  `Distributions` alongside this package no longer makes `fit` ambiguous.
+  The compatibility-only `FacetDesign` and `MFRMPrior` types are exported by
+  `BayesianMGMFRM.Legacy`; the practitioner root now exports 41 names.
+- Validation issues and reports compare and hash by value. Omitted population
+  declarations in observation models now reach input validation.
+- Reproducibility records retain homonymous dependency UUIDs and distinguish
+  the active project from the environment resolving the package on `LOAD_PATH`.
+
+- The ordinary `first_analysis.jl` and `minimal.jl` entry points now use the
+  standard isometric MRCML specification and Julia NUTS. They save native and
+  verified portable results before optional reports or figures, and accept
+  `--saved-fit` for a matching cache. Related guides and inspection scripts
+  follow the same route. Original reference-coded examples remain under
+  `examples/legacy/`; the standard minimal example rejects `--cmdstan` and
+  points to the matching Stan adapter instead of changing models implicitly.
+
+- Added `AbstractMFRMSpec` and `AbstractMFRMFit` for type annotations spanning
+  standard Bayesian MFRM/GMFRM/MGMFRM, shared effects and JMLE/MMLE workflows.
+  They replace `FacetSpec` and `MFRMFit` in the root exports. The older concrete
+  types retain their qualified names and are exported by `BayesianMGMFRM.Legacy`;
+  old scripts can import them explicitly. Concrete fields and saved record
+  schemas are unchanged. The `FacetData` help example now uses the standard
+  isometric specification with `prior = :default`.
+
+- Reproducibility metadata now reads the resolved project and manifest without
+  loading Pkg or its download libraries. Package versions, dependency identities
+  and optional source paths remain available.
+
+- Added univariate and multivariate Gaussian G-theory with explicit ML/REML
+  estimation, crossed/nested random facets, D studies and asymptotic confidence
+  intervals. Covariance boundaries retain estimates and suppress Wald intervals.
+  Saved reports support component and D-study figures. R uses the existing
+  `fit_mgmfrm(model="gtheory")` entry, with offline summaries and plots.
+  Saved R results can evaluate new D-study counts, weights and confidence
+  levels. Complete balanced one-facet Gaussian designs additionally provide
+  exact F intervals for G and chi-square intervals for relative SEM, with
+  explicit empty-set reporting and no automatic extension to other metrics.
+  Gaussian mean-square region projections now cover G, Phi and both SEM metrics
+  in complete balanced one/two-facet crossed or nested designs. They protect
+  future plans jointly for a prespecified score/composite, retain empty regions
+  and original fit warnings, and work from saved Julia/R results.
+
+- Connected common-plan Fair Average to structured MRCML severity, group DFF
+  and category-use interactions. Explicit fitted/zero interaction reporting
+  preserves the original ability estimates and person group membership.
+  Julia/R scoring, covariance propagation, plots and offline handoffs retain
+  this conditioning; shared-event conditioning can be selected independently.
+
+- Extended common-plan Fair Average to shared-event MRCML (explicit zero or
+  new-event marginal conditioning), scale-identified GMFRM/MGMFRM and additive
+  JMLE/MMLE. JMLE propagates joint person/calibration covariance through Wald
+  intervals; MMLE uses conditional empirical-Bayes scoring with calibration
+  fixed. Julia/R plots label the method, and RDS/JSON retain offline scoring.
+
+- Added common-reference-plan expected scores for additive Bayesian MFRM,
+  propagating joint person and calibration uncertainty through each cell's
+  category probabilities. Reports include credible intervals, MCSE, threshold
+  probabilities and paired person contrasts. Julia and R plot the adjusted
+  scores beside observed averages; saved R fits can evaluate new plans offline.
+  R portable JSON handoffs also retain full double precision to prevent rounding
+  from changing recomputed rank diagnostics.
+
+- Shared-event MRCML now composes with group effects, DFF and fixed calibration; event-level comparison/refits and posterior Q3/Infit/Outfit are available. The R wrapper includes the shared-model diagnostic tables.
+- Added Bayesian multivariate Gaussian G-theory for one/two random facets, including nested designs, joint covariance reports, and posterior D-study G/Phi, SEM and threshold probabilities.
+
+- Added HalfNormal and Half-t SD priors to the explanatory MFRM,
+  including normalized log-scale densities, gradients, prior simulation,
+  scientific prior factors, versioned restoration, and Stan references.
+  R `fit_mgmfrm(..., random_effects = "event")` now accepts explicitly grouped
+  person/rater or person/testlet effects. Julia assessment-unit LOO integrates
+  their shared Gaussian effect jointly. Recovery and interval coverage across
+  rating designs remain unverified.
+
+- Stabilized the scale-identified MGMFRM Fisher-z correlation transform, its
+  Jacobian and analytic gradient when `tanh` rounds to a boundary. Correlations
+  are not clipped and the LKJ target is unchanged.
+- Generalized model design errors now identify disconnected facet subsets and
+  linking alternatives; R errors preserve the original IDs before fitting.
+
+- Promoted the label-permutation-invariant isometric Helmert zero-sum +
+  population-estimated (`population_mean`, `residual_sd[person]`) one-dimensional
+  Bayesian MFRM (`mfrm_spec(...; prior = :default)` and
+  `mfrm_spec(data; identification = :isometric)`) as the primary
+  unanchored 1D route, synchronized the R interface (`fit_mgmfrm(...,
+  identification = "isometric")`), and added explicit
+  `over_anchored_reference_prior_risk` declarations on unanchored reference-coded
+  `FacetSpec` models.
+
+- Added `Experimental.ScaleIdentifiedMGMFRMPrior` and
+  `Experimental.scale_identified_target` (`Experimental.ScaleIdentifiedMGMFRM`)
+  for 1D and multidimensional fixed-Q MGMFRM, decoupling dimension ability SDs
+  (`ability_sd[dim=d]`) from within-dimension item sensitivity via
+  `:geometric_mean_one` (orthonormal Helmert zero-sum pure-item log-loadings,
+  geometric mean `1.0`) or `:anchor_item` (`1.0` pure reference item per
+  dimension), reconstructing unit-variance population `standardized_loading`
+  draws, supporting `logit_scale = 1.7` or `1.0`, exact analytical reverse-mode
+  gradients, CmdStan `2.39.0` fixed-point parity, and `PortableHandoff` export,
+  and harmonizing `logit_scale`, `step_owner`, `loading_scope`, and
+  `available_scale_identifications` in `model_family_contract`.
+
+- Added `diagnostics(fit; kind = :fit_statistics, by = :rater | :item | :person)`
+  on scalar `MRCML` fits to separate posterior-integrated Bayesian
+  `Infit`/`Outfit` MNSQ and posterior predictive tail probabilities from
+  shrinkage-attenuated posterior-mean plug-in MNSQ. One-sided predictive-tail
+  probabilities now include MCSE; Q3 tail MCSE requires complete chains.
+  `reliability` reports the finite-cohort posterior functional and its numerical
+  MCSE. Removed proxy credible intervals and the mislabeled population ratio;
+  their compatibility fields are `missing` with explicit estimand status.
+
+- Slimmed the `0.2.x` top-level `BayesianMGMFRM` namespace to 41 Layer-1
+  practitioner exports, introduced explicit `BayesianMGMFRM.GlassBox`
+  (researcher coordinates, bases, Jacobians, target densities/gradients,
+  `MRCML`, `StanAdapter`, `PortableHandoff`, `ModelOperationMatrix`),
+  `BayesianMGMFRM.ValidationSuite` (simulation and calibration harnesses), and
+  `BayesianMGMFRM.Legacy` (`0.1.x` compatibility aliases) submodules, unified
+  `contrast` across facets and plausible values, and removed silent
+  Bayesian-to-frequentist fallback in `mfrm_spec` (`prior = :default`,
+  `prior_sd = ...`, or `prior = :none` required explicitly).
+
+- Upgraded the R wrapper (`interfaces/R/BayesianMGMFRM` `0.2.0`) to support
+  user-named measurement `facets`, rating-scale vs. partial-credit `steps`
+  (`"auto"`, `"global"`, `"item"`, `"rater"`), orthogonal estimation `method`
+  (`"nuts"`, `"mmle"`, `"jmle"`), multi-group populations (`group`),
+  experimental `model = "gmfrm"` and scale-identified `model = "mgmfrm"` (`Q`,
+  `scale_identification = "geometric_mean_one" | "anchor_item"`), S3 methods
+  (`print`, `summary`, `coef`, `vcov`, `as_draws`, `as_draws_array`), offline
+  `diagnostics_mgmfrm`, covariance-propagating `contrast_mgmfrm`, and portable
+  JSON `handoff_mgmfrm` / `read_handoff_mgmfrm`.
+
+- Organized the scalar Bayesian MFRM fitting, MCMC diagnostic, predictive
+  criterion, reliability, reporting, and simulation implementations into
+  dedicated `src/mfrm_core/` modules with unchanged mathematical definitions
+  and numerical results.
 
 ## 0.1.2 (unreleased)
+
+- Scalar grouped NUTS fits accept centered, noncentered and ID-specific person coordinates,
+  including an optional design-information cutoff. Native fits retain the assignment
+  and joint plausible values remain on the reporting scale.
+
+- Grouped MMLE now transfers independent calibration covariance to each adjusted
+  group-versus-reference contrast. The linking report returns its fixed-anchor
+  and propagated Wald intervals at the requested confidence level.
+
+- Added grouped scalar plausible values, covariate-adjusted population contrasts and verified portable PV bundles for MMLE and Bayesian fits.
+
+- Added scalar multi-group MMLE and Bayesian NUTS fitting through `mfrm_spec` with an ID-linked roster, a reference group, common numeric slopes and group-specific SDs.
+
+- Added `MRCML.population_design` to check which group mean contrasts and common covariate slopes can be separated from free measurement parameters in a scalar linked design.
+
+- Added `location=:linked` to `classification` for scalar Bayesian MRCML
+  equating with a population intercept. Individual intervals and cutoff
+  probabilities include the shared panel shift within each posterior draw.
+
+- Added named fixed facet-by-facet interaction cells on the original logit
+  scale. Row and column constraints are retained in Bayesian, MMLE and JMLE fits.
+
+- Added two-wave scalar linking reports for observed shared facet IDs, remaining
+  degrees of freedom and estimable changes under fixed, group and uncertain anchors.
+
+- Added named subset means and sums for scalar facet equating. Group members
+  can change individually while their declared average or total stays fixed.
+
+- Added joint transfer of preliminary facet and step estimates. MMLE propagates
+  their covariance to a second panel mean, and Bayesian fitting accepts the
+  corresponding multivariate normal calibration.
+
+- Added named fixed facet locations and owner-specific category steps for scalar
+  ordinal equating. The receiving panel mean can be estimated by marginal
+  maximum likelihood or assigned an explicit Bayesian intercept prior.
 
 - Separated lightweight installable package archive contents (`git archive`
   `<= 5,242,880` bytes via `.gitattributes` `export-ignore`) from rendered
@@ -1490,26 +1677,10 @@ the machine and target. No model, prior, adaptation rule or qualification gate c
   continues to verify its own content digest and provenance-field shapes, but
   ordinary tests no longer require its historical source digests to equal the
   current working tree.
-- Reorder the active roadmap around a distribution-first gate. Ordinary package
-  behavior, clean-clone release checks, stable-MFRM usability, root-API and
-  dependency budgets, and separation of research fixtures now precede new
-  generalized mechanisms or large simulation programs. An axis-lock checklist
-  now requires a named outcome and the weakest sufficient identity mechanism,
-  while making digest-only work and unfalsifiable evidence accumulation explicit
-  stop/move conditions. Exact digests remain for cache correctness and genuine
-  external-byte boundaries, but transitive source-hash chains are no longer
-  roadmap progress or scientific evidence.
 - Separate Uto's 30-repetition RMSE/bias study and two-rater ability comparison
   from package precision and sparse-robustness requirements. Primary-grid rows
   now report effective per-rater exposure and coverage roles, while the
   protocol requires link, coverage, fit, and assignment-order sensitivity.
-- Reframe the active MGMFRM roadmap around a narrow fixed-Q scientific
-  promotion decision. The new sequence separates pilot operability from
-  fresh-seed validation, external/independent evidence, and user-workflow
-  hardening; keeps Stan as a required reference rather than a default backend;
-  defers anchor-dose and broader model studies until their fitted contracts
-  exist; and replaces routine SHA-oriented gates with resource-aware executable
-  checks.
 - Refine the validation study specification with explicit estimand units, Q and sparse-design
   scope, executable prior-refit sensitivity, `1.7`/`1.702` scale
   harmonization, a paired CmdStan comparison subset, layered decision rules,

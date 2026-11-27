@@ -241,7 +241,7 @@ function _load_mfrm_fixed_q_samples(path::AbstractString; expected_identity::Abs
 end
 
 # Root type identity is preserved for persistence; fitting uses Experimental.fit.
-struct MultidimensionalMFRMFit
+struct MultidimensionalMFRMFit <: AbstractMFRMFit
     record::NamedTuple
 
     function MultidimensionalMFRMFit(record::NamedTuple; expected_identity::AbstractString)
@@ -259,7 +259,7 @@ Correlated two-dimensional MFRM result. Use `diagnostics` to assess sampling,
 `direct_posterior_summary` for rho and ability intervals, and
 `save_fit_cache`/`load_fit_cache` to save and reopen the fit.
 """
-struct _CorrelatedMFRMFit
+struct _CorrelatedMFRMFit <: AbstractMFRMFit
     record::NamedTuple
 
     function _CorrelatedMFRMFit(record::NamedTuple; expected_identity::AbstractString)
@@ -269,7 +269,7 @@ struct _CorrelatedMFRMFit
     end
 end
 
-struct _ExchangeableMFRMFit
+struct _ExchangeableMFRMFit <: AbstractMFRMFit
     record::NamedTuple
 
     function _ExchangeableMFRMFit(record::NamedTuple; expected_identity::AbstractString)
@@ -396,7 +396,7 @@ function Base.show(io::IO, fit::MultidimensionalMFRMFit)
     metadata = fit_metadata(fit)
     print(io, metadata.model_label, " (", metadata.dimensions, " dimensions, ",
         metadata.n_draws, " retained draws, ", metadata.backend_label,
-        "; unit logits; ", metadata.experimental_public ? "experimental)" : "private result)")
+        "; unit logits", metadata.experimental_public ? ")" : "; private result)")
 end
 
 function posterior_summary(fit::Union{MultidimensionalMFRMFit,_ExchangeableMFRMFit};
@@ -839,8 +839,8 @@ plot_predictive(fit::Union{MultidimensionalMFRMFit,_ExchangeableMFRMFit}; kwargs
 function _render_mfrm_fixed_q(extension, kind, data; size = nothing, annotation_io = stdout)
     backend = data.backend === :advancedhmc ? "Julia (AdvancedHMC)" : "CmdStan"
     correlated = _fixed_q_is_correlated(data)
-    model = correlated ? "Experimental correlated MFRM (fixed coefficients)" :
-        "Experimental fixed-coefficient multidimensional MFRM"
+    model = correlated ? "correlated MFRM (fixed coefficients)" :
+        "fixed-coefficient multidimensional MFRM"
     scale_note = correlated ? "locations: unit logits | rho: correlation" : "unit logits"
     units = Dict(:item_dimension_discrimination => "Loading (dimensionless)",
         :rater_consistency => "Consistency (dimensionless)", :latent_correlation => "Population correlation (rho)")
@@ -1004,7 +1004,7 @@ end
 Report a saved fixed-coefficient multidimensional MFRM result, including its
 rating-design audit and reproducibility artifact summary. Use
 `include_full_artifact = true` to embed the full artifact, or `view = :public`
-for reader-facing output. This experimental result uses unit logits, fixed Q
+for reader-facing output. This result uses unit logits, fixed Q
 coefficients and independent abilities unless `Experimental.correlated(spec)`
 was selected. Correlated results default to `view = :public` and include rho
 intervals and diagnostics. Estimate it with
@@ -1111,8 +1111,8 @@ function fit_report(fit::_FixedQMFRMFit; view::Symbol = _fixed_q_default_view(fi
         metadata = merge(fit_metadata(fit), (; estimation_status = :experimental,
             fitting_available = true,
             interpretation = _fixed_q_is_correlated(checked) ?
-                "Experimental correlated MFRM: locations and steps in unit logits; population rho on its correlation scale." :
-                "Experimental fixed-coefficient multidimensional MFRM reporting in unit logits.")),
+                "correlated MFRM: locations and steps in unit logits; population rho on its correlation scale." :
+                "fixed-coefficient multidimensional MFRM reporting in unit logits.")),
         manifest, rating_design, artifact, prior_predictive,
         report_policy = merge(base.report_policy, (; posterior_lower = lower, posterior_upper = upper,
             include_prior_predictive, prior_predictive_ndraws, prior_interval = Float64(prior_interval),

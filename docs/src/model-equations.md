@@ -22,7 +22,7 @@ fit-ready. `fit_ready` describes the stable compiler route;
 `experimental_fit_available` separately identifies an executable generalized
 configuration.
 
-Fitting supports one-dimensional MFRM/RSM/PCM, experimental fixed-coefficient
+Fitting supports one-dimensional MFRM/RSM/PCM, fixed-coefficient
 multidimensional MFRM, scalar GMFRM with item discrimination × rater consistency,
 and fixed-Q confirmatory MGMFRM with `dimensions >= 1`. Fixed-coefficient MFRM
 uses independent abilities by default; `Experimental.correlated(spec)` explicitly
@@ -83,10 +83,30 @@ These routes must be distinguished before assigning priors:
 
 | Route | Location and step conventions without user hard anchors | Prior meaning |
 | --- | --- | --- |
-| Stable scalar `family=:mfrm`, `MFRMPrior` | First item and rater levels fixed at zero; person locations free; shared RSM or item-owned PCM steps sum to zero. | Independent zero-centered normals on free coordinates. Fixed reference coordinates have no prior density. The final step is minus the sum of the free steps. |
-| Fixed-coefficient multidimensional MFRM, `MFRMPrior` | Active Q coefficients one; rater severities sum to zero; item and person locations prior-anchored; item-owned PCM steps. | Independent free-coordinate normals, including R-1 free severities. The reconstructed rater and step need not have the same variance as free entries. |
+| Primary `0.2.0-DEV` scalar `mfrm_spec(...; prior = :default)` (`identification = :isometric`) | Item difficulties, rater severities, and shared/item-owned steps sum to zero via orthonormal Helmert bases; person locations centered around estimated `population_mean` ``\mu_\theta`` with estimated SD `residual_sd[person]` ``\sigma_\theta``. | Exact label-permutation-invariant equal marginal prior SD (`1.0` logit) on every constrained facet and step coordinate; ``\mu_\theta \sim \mathcal{N}(0, 2.5)`` and ``\sigma_\theta \sim \mathrm{LogNormal}(0, 0.5)``. |
+| Reference-coded scalar `family=:mfrm`, `BayesianMGMFRM.Legacy.MFRMPrior` (`identification = :reference`) | First item and rater levels fixed at zero; person locations free; shared RSM or item-owned PCM steps sum to zero. | Independent zero-centered normals on free coordinates. Fixed reference coordinates have no prior density. The final step is minus the sum of the free steps. |
+| Fixed-coefficient multidimensional MFRM, `BayesianMGMFRM.Legacy.MFRMPrior` | Active Q coefficients one; rater severities sum to zero; item and person locations prior-anchored; item-owned PCM steps. | Independent free-coordinate normals, including R-1 free severities. The reconstructed rater and step need not have the same variance as free entries. |
 | The preceding route with `Experimental.ExchangeablePrior` | Same likelihood and constraints. | A normalized exchangeable centered rater prior replaces the free-rater prior. Item, ability and free-step priors retain their previous meanings. |
-| D1 `Experimental.slope_restriction` with both slope types `:fixed_one` and exchangeable `NormalizedMGMFRMPrior`, optionally `MeanProfilePrior` | Rater severities and item-owned steps sum to zero; item and person locations remain free; the raw response equation retains 1.7. | Centered exchangeable normal rater and step residuals; independent person/item normals. Mean profiles add fixed item/step means. This prior is distinct from scalar `MFRMPrior`. |
+| D1 `Experimental.slope_restriction` with both slope types `:fixed_one` and exchangeable `NormalizedMGMFRMPrior`, optionally `MeanProfilePrior` | Rater severities and item-owned steps sum to zero; item and person locations remain free; the raw response equation retains 1.7. | Centered exchangeable normal rater and step residuals; independent person/item normals. Mean profiles add fixed item/step means. This prior is distinct from scalar `BayesianMGMFRM.Legacy.MFRMPrior`. |
+
+### Isometric Helmert 1D MFRM (`prior = :default`) and why over-anchoring biases off-target panels
+
+In `0.2.0-DEV`, the recommended unanchored 1D Bayesian MFRM specification
+(`mfrm_spec(table; ..., prior = :default)` or `mfrm_spec(data; identification = :isometric)`)
+separates overall cohort location and spread from symmetric zero-sum facet subspaces:
+
+```math
+\log\frac{P(Y_{pir}=k)}{P(Y_{pir}=k-1)}
+= \mu_\theta + \sigma_\theta z_p - b_i - s_r - d_{ik},
+\qquad z_p \sim \mathcal{N}(0, 1),\quad
+\mu_\theta \sim \mathcal{N}(0, 2.5),\quad
+\sigma_\theta \sim \mathrm{LogNormal}(0, 0.5).
+```
+
+For any zero-sum block of ``J \ge 2`` levels with orthonormal Helmert columns ``C_J \in \mathbb{R}^{J \times (J-1)}`` (``C_J^\top C_J = I_{J-1}``, ``\mathbf{1}_{J}^\top C_J = \mathbf{0}``), the mapping
+``\mathbf{x} = \tau \sqrt{J/(J-1)}\, C_J \boldsymbol{\eta}`` with ``\boldsymbol{\eta} \sim \mathcal{N}(\mathbf{0}, I_{J-1})`` induces covariance ``\tau^2 \frac{J}{J-1}(I_J - \mathbf{1}_{J}\mathbf{1}_{J}^\top / J)``, so every level has exact marginal prior variance ``\tau^2`` (`1.0` under `prior = :default`) and permuting level labels corresponds to an orthogonal transformation ``Q = C_J^\top P C_J`` that leaves both the prior and likelihood invariant.
+
+By contrast, in an unanchored reference-coded specification (`s_1 = 0`, `b_1 = 0`) paired with a zero-mean fixed-SD person prior ``\theta_p \sim \mathcal{N}(0, \sigma_\theta^2)``, **two competing origin anchors act simultaneously**: ``b_1 + s_1 = 0`` fixes the first item–rater cell at zero while the person prior pulls average ability ``\bar{\theta}`` toward zero. When true cohort ability relative to the rubric is strongly positive (ceiling targeting) or negative (floor targeting), shrinkage of ``\theta_p`` toward zero forces unanchored facet parameters ``b_i`` and ``s_r`` (``i, r > 1``) to absorb the overall cohort offset even though ``b_1 = s_1 = 0`` cannot move, distorting or inverting contrasts such as ``s_2 - s_1``. Estimating ``(\mu_\theta, \sigma_\theta)`` while constraining ``\sum_i b_i = 0`` and ``\sum_r s_r = 0`` eliminates both reference-label prior asymmetry and off-target shrinkage transfer; `identification_declarations(spec)` flags unanchored reference-coded `BayesianMGMFRM.Legacy.FacetSpec` objects with `:over_anchored_reference_prior_risk`.
 
 For the last route, set ``\widetilde\theta=1.7\theta``,
 ``\widetilde b=1.7b``, ``\widetilde s=1.7s`` and
@@ -133,9 +153,18 @@ multiplier is `alpha_i * alpha_r`; that original equation does not include a
 fixed `1.7` factor. Uto (2021), Eq. 4 restates the scalar model with `1.7`,
 whereas the multidimensional Eq. 6 below also uses `1.7`. The implementation
 keeps the original 2020 scalar convention and the 2021 multidimensional
-convention explicit in `category.source_scale_contract`. Direct numerical
-comparison of discrimination parameters across those families therefore
-requires a predeclared scale harmonization rather than an implicit comparison.
+convention explicit in `category.source_scale_contract` and exposes four
+top-level structural fields on `model_family_contract(spec)`:
+
+| Family | `logit_scale` | `step_owner` | `loading_scope` | Adjacent-category log odds |
+| --- | --- | --- | --- | --- |
+| Scalar MFRM (`family = :mfrm`) | `1.0` | `:global` or `:item` | `:unit_slope` | ``\theta_p - \beta_i - \beta_r - d_{ik}`` |
+| Scalar GMFRM (`family = :gmfrm`) | `1.0` | `:rater` | `:entire_linear_predictor` | ``\alpha_i \alpha_r (\theta_p - \beta_i - \beta_r - d_{rk})`` |
+| Fixed-Q MGMFRM (`family = :mgmfrm`) | `1.7` (`1.0` optional in `ScaleIdentifiedMGMFRMPrior`) | `:item` | `:ability_only` (`rater_consistency_scope = :entire_linear_predictor`) | ``L\,\alpha_r \left(\sum_{d=1}^{D} a_{id}\theta_{pd} - \beta_i - \beta_r - d_{ik}\right)`` |
+
+Direct numerical comparison of discrimination parameters across those families
+therefore requires a predeclared scale and structural harmonization rather than
+an implicit comparison.
 
 ### Read model parameters and effective slopes
 
@@ -375,6 +404,71 @@ scientific appropriateness of the prior.
 The [MGMFRM prior comparison](@ref "MGMFRM prior choice and comparable scales")
 distinguishes the raw prior from explicit normalized priors, explains
 their rater asymmetry and gives explicit scale-matching conventions.
+
+### [Multiplicative scale identification (`ScaleIdentifiedMGMFRMPrior`)](@id multiplicative-scale-identification)
+
+Under prior-only scale anchoring (`GeneralizedPrior` or `NormalizedMGMFRMPrior`
+with fixed unit person SD ``\sigma_{\theta_d} = 1``), the multiplicative
+non-identification ``a_{id}\theta_{pd} = (a_{id}/t_d)(t_d\theta_{pd})`` is
+resolved solely by shrinking ``\log a_{id}`` toward zero. When every item on
+dimension ``d`` has weak true discrimination (for example ``a_{id} \in \{0.35, 0.50\}``),
+a narrow log-loading prior forces ``a_{id}`` upward toward `1.0` and absorbs
+the discrepancy by shrinking posterior person draws ``\theta_{pd}``, producing
+severe interval undercoverage even when HMC diagnostics pass.
+
+`Experimental.ScaleIdentifiedMGMFRMPrior` (compiled via
+`Experimental.scale_identified_target(spec; ...)`) separates **dimension spread**
+``\sigma_{\theta_d}`` (`ability_sd[dim=d]`) from **within-dimension relative
+item sensitivity** ``\tilde{a}_{id}`` (`loading[i, dim=d]`):
+
+```math
+P(Y_{pir}=k \mid \boldsymbol{\theta}_{p})
+\propto
+\exp\left\{
+\sum_{m=1}^{k} L\, c_r
+\left(
+\sum_{d=1}^{D} \tilde{a}_{id}\theta_{pd}
+- \beta_i - s_r - d_{im}
+\right)
+\right\},
+\qquad
+\theta_{pd} = \mu_{\theta_d} + \sigma_{\theta_d} z_{pd},\quad z_{pd} \sim \mathcal{N}(0, 1),
+```
+
+with ``L \in \{1.7, 1.0\}`` (`logit_scale`), ``\sum_r s_r = 0``,
+``\prod_r c_r = 1`` (or ``c_r \equiv 1`` when `rater_consistency = :fixed_one`),
+and ``\sum_{m=1}^{K-1} d_{im} = 0``. Every dimension ``d`` must have at least
+one pure item ``i \in \mathcal{I}_{d}^{\mathrm{pure}}`` (loading only on ``d``),
+and multiplicative scale is identified by one of two explicit constraints:
+
+- `scale_identification = :geometric_mean_one` (label-permutation-invariant):
+  pure-item structural log-loadings sum to zero within each dimension via an
+  orthonormal Helmert basis,
+  ```math
+  \sum_{i \in \mathcal{I}_{d}^{\mathrm{pure}}} \log \tilde{a}_{id} = 0
+  \quad\Longleftrightarrow\quad
+  \prod_{i \in \mathcal{I}_{d}^{\mathrm{pure}}} \tilde{a}_{id} = 1,
+  ```
+  giving every pure item in ``\mathcal{I}_{d}^{\mathrm{pure}}`` equal marginal
+  log-loading prior SD (`log_loading_sd`) while any cross-loaded active pairs
+  have independent ``\log \tilde{a}_{id} \sim \mathcal{N}(0, \sigma_{\log a}^2)``.
+- `scale_identification = :anchor_item`: one designated pure reference item
+  ``i_0(d) \in \mathcal{I}_{d}^{\mathrm{pure}}`` per dimension fixes
+  ``\tilde{a}_{i_0(d),d} = 1`` while remaining active loadings have independent
+  ``\log \tilde{a}_{id} \sim \mathcal{N}(0, \sigma_{\log a}^2)``.
+
+Additive location is identified either by `location_identification = :zero_mean_population`
+(``\mu_{\theta_d} = 0`` with free ``\beta_i \sim \mathcal{N}(0, \sigma_b^2)``)
+or `:centered_items_free_mean` (``\sum_{i \in \mathcal{I}_{d}^{\mathrm{pure}}} \beta_i = 0``
+via an orthonormal Helmert basis with estimated ``\mu_{\theta_d} \sim \mathcal{N}(0, \sigma_\mu^2)``).
+For direct comparison against unit-variance population parameterizations,
+`scale = :model` reconstructs draw-by-draw standardized loadings:
+
+```math
+a^{\mathrm{std}}_{id} = \tilde{a}_{id}\,\sigma_{\theta_d},
+\qquad \text{so that}\quad
+\tilde{a}_{id}(\theta_{pd} - \mu_{\theta_d}) = a^{\mathrm{std}}_{id} z_{pd}.
+```
 
 ## Density on free and constrained coordinates
 

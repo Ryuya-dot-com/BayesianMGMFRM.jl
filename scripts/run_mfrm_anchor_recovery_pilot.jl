@@ -7,6 +7,9 @@ using Random
 using Statistics
 
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
+using BayesianMGMFRM.ValidationSuite: parameter_recovery_summary
 
 include(joinpath(@__DIR__, "local_json.jl"))
 

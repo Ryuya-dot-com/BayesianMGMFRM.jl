@@ -1,5 +1,6 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.ValidationSuite: mgmfrm_validation_primary_grid_preflight
 
 # Explicit extended check: this materializes all 16 four-category candidate
 # datasets and their probability arrays. Keep it out of the default test entry

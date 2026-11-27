@@ -1,13 +1,14 @@
 module FirstAnalysisChecks
 using Test, BayesianMGMFRM, SHA
+using BayesianMGMFRM.Legacy
 const B=BayesianMGMFRM
-include("../examples/first_analysis.jl")
+include("../examples/legacy/first_analysis.jl")
 const A=FirstMFRMAnalysis
 include("fixtures/reporting_fit.jl")
 
 # Keep the injected reporting failure separate from the ordinary example module.
 module InterruptedAnalysis
-include("../examples/first_analysis.jl")
+include("../examples/legacy/first_analysis.jl")
 FirstMFRMAnalysis.result(::FirstMFRMAnalysis.MFRMFit, prepared) =
     error("injected first-analysis reporting failure")
 end

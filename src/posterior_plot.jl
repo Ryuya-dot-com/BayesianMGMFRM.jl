@@ -4,7 +4,7 @@
         max_parameters = 60, size = nothing, annotation_io = stdout)
 
 Draw posterior medians and central credible intervals from an existing MFRM,
-experimental GMFRM, or experimental fixed-Q MGMFRM fit. Load `CairoMakie` first.
+GMFRM, or fixed-Q MGMFRM fit. Load `CairoMakie` first.
 The returned CairoMakie `Figure` is editable and can be displayed or saved with
 `save("posterior.pdf", figure)` or `save("posterior.svg", figure)`. No fitting,
 random draw selection, or report construction is performed.
@@ -23,7 +23,7 @@ or explicitly increase the limit. `size = (width, height)` overrides automatic
 figure sizing. The diagnostic note always covers the whole fit.
 
 This optional entry point is qualified, not exported. Generalized figures
-retain the experimental status of their fitted models.
+retain the assumptions and diagnostics of their fitted models.
 
 Saved fixed-coefficient multidimensional MFRM fits also support this entry
 point. They use only `scale = :model` in unit logits, including fixed Q
@@ -218,7 +218,7 @@ end
         bins = 20, size = nothing, annotation_io = stdout)
 
 Draw retained-chain traces and pooled-rank histograms directly from an MFRM,
-experimental GMFRM, or experimental fixed-Q MGMFRM fit. Load `CairoMakie` first;
+GMFRM, or fixed-Q MGMFRM fit. Load `CairoMakie` first;
 returns its editable `Figure`, supporting `display` and PDF/SVG `save`.
 No sampling, thinning, warmup-draw reconstruction or random tie-breaking occurs.
 
@@ -344,7 +344,7 @@ end
         draw_indices = nothing, seed = 1, size = nothing, annotation_io = stdout)
 
 Compare observed category proportions with posterior predictive replicated
-proportions for an MFRM, experimental GMFRM, or experimental fixed-Q MGMFRM fit.
+proportions for an MFRM, GMFRM, or fixed-Q MGMFRM fit.
 Load `CairoMakie` first. Returns its editable `Figure`, supporting `display`
 and PDF/SVG `save`. No MCMC or refitting is performed.
 
@@ -434,7 +434,7 @@ end
     BayesianMGMFRM.plot_predictive(check::NamedTuple; interval = 0.9, size = nothing, annotation_io = stdout)
 
 Plot observed category proportions alongside prior-predictive means and central
-intervals from a `prior_predictive_check` result, including experimental models.
+intervals from a `prior_predictive_check` result, for the selected model.
 Load CairoMakie first; returns an editable Figure for display or PDF/SVG saving.
 Uses all the already generated replications without further random draws.
 The numerical values are `predictive_check_summary(check; interval)` rows with
@@ -460,7 +460,6 @@ function _prior_predictive_caption(data)
         "Bars: pointwise central predictive intervals for category proportions.\n" *
         "Prior-implication status: $(replace(String(data.implication_flag), '_' => ' ')).\n" *
         "Observed ratings are a comparison only; no posterior fitting."
-    data.stability === :experimental && (caption *= "\nModel support: experimental.")
     return caption
 end
 
@@ -476,7 +475,7 @@ end
 
 Draw a Wright map from a stable MFRM rating-scale or partial-credit fit.
 Load `CairoMakie` first; returns its editable `Figure` for `display` and PDF/SVG
-`save`. Experimental GMFRM/MGMFRM fits are unsupported. All retained draws are
+`save`. GMFRM/MGMFRM fits are unsupported. All retained draws are
 used without refitting, random selection, or recentering.
 
 Facet panels share a vertical logit scale. Higher person ability increases

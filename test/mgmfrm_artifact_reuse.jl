@@ -1,6 +1,8 @@
 isdefined(@__MODULE__, :MGMFRMCorrelated2DFixtures) || include("mgmfrm_correlated_2d_fixtures.jl")
 module MGMFRMArtifactReuseChecks
 using Test, BayesianMGMFRM, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using ..MGMFRMCorrelated2DFixtures: target, synthetic_record
 const B=BayesianMGMFRM
 const E=B.Experimental

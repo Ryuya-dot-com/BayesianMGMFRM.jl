@@ -1,5 +1,6 @@
 module CategoryReportChecks
 using BayesianMGMFRM,Test,Statistics,Serialization,Random
+using BayesianMGMFRM.Legacy
 import ..CommonPredictionRefitChecks, ..CommonPredictionKfoldChecks
 const B=BayesianMGMFRM
 const R=CommonPredictionRefitChecks

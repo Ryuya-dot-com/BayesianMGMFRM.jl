@@ -1,20 +1,48 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using BayesianMGMFRM.Distributions: Normal, LogNormal
 import BayesianMGMFRM.ForwardDiff as ForwardDiff
 using LinearAlgebra
 
-@testset "Layer-1 & Layer-2 model × operation contract freeze (FF4a)" begin
-    # 1. Root export freeze & ModelOperationMatrix
+module ContractReportingFixture
+using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
+const B = BayesianMGMFRM
+include("fixtures/reporting_fit.jl")
+end
+
+@testset "Layer-1 & Layer-2 model × operation contract freeze (CR2 / v0.2)" begin
+    # 1. Slimmed v0.2 root export contract, submodules & ModelOperationMatrix
     rc = BayesianMGMFRM._root_api_contract()
-    @test length(rc.stable) == 175
-    @test :StanAdapter ∉ names(BayesianMGMFRM)
-    @test :PortableHandoff ∉ names(BayesianMGMFRM)
-    @test :ModelOperationMatrix ∉ names(BayesianMGMFRM)
+    @test rc.schema == "bayesianmgmfrm.root_api_contract.v2"
+    @test rc.release_line == "0.2.x"
+    @test length(rc.layer1_practitioner) == 41
+    @test setdiff(Set(names(BayesianMGMFRM; all = false, imported = false)), Set([:BayesianMGMFRM])) ==
+        Set(rc.layer1_practitioner)
+    for nonroot in (:GlassBox, :ValidationSuite, :Legacy, :Experimental, :MRCML,
+                    :StanAdapter, :PortableHandoff, :ModelOperationMatrix)
+        @test nonroot ∉ names(BayesianMGMFRM)
+        @test isdefined(BayesianMGMFRM, nonroot)
+    end
+    @test setdiff(Set(names(BayesianMGMFRM.GlassBox)), Set([:GlassBox])) == Set(rc.glass_box)
+    @test setdiff(Set(names(BayesianMGMFRM.ValidationSuite)), Set([:ValidationSuite])) == Set(rc.validation_suite)
+    @test setdiff(Set(names(BayesianMGMFRM.Legacy)), Set([:Legacy])) == Set(rc.legacy)
+    @test isempty(intersect(Set(rc.layer1_practitioner), Set(rc.glass_box)))
+    @test isempty(intersect(Set(rc.layer1_practitioner), Set(rc.validation_suite)))
+    @test isempty(intersect(Set(rc.layer1_practitioner), Set(rc.legacy)))
+    @test !BayesianMGMFRM.ValidationSuite.contract().root_compatibility_preserved
+    @test BayesianMGMFRM.ValidationSuite.contract().release_line == "0.2.x"
 
     mat = BayesianMGMFRM.ModelOperationMatrix.audit()
     @test mat.schema == "bayesianmgmfrm.model_operation_matrix.v1"
-    @test mat.n_routes == 18
+    @test mat.n_routes == length(unique(r.route for r in mat.rows)) == 22
+    @test only(r for r in mat.rows if r.route == :scale_identified_mgmfrm).layer2 == :all_supported
+    @test only(r for r in mat.rows if r.route == :scalar_mrcml_design).layer2 == :scalar_category_design_tam_and_stan
+    @test only(r for r in mat.rows if r.route == :scalar_mrcml_equating).layer2 == :anchor_constraints_and_covariance
+    @test only(r for r in mat.rows if r.route == :scalar_mrcml_population).inference == :grouped_nuts_or_mmle
 
     # 2. Common 1D MFRM + AdditiveFacets finite & explanatory Layer-1/Layer-2 alignment
     tbl = (
@@ -26,8 +54,16 @@ using LinearAlgebra
     )
     fd = FacetData((person = tbl.person, rater = tbl.rater, item = tbl.item, score = tbl.score);
         person = :person, rater = :rater, item = :item, score = :score, category_levels = [0, 1, 2])
-    mf = fit(mfrm_spec(fd); chains = 2, warmup = 25, ndraws = 25, seed = 101)
-    q_mf = initial_params(mf.design)
+    mf = ContractReportingFixture.reporting_fit(:mfrm; data=fd, thresholds=mfrm_spec(fd).thresholds)
+    q_mf = initial_params(mf.design) .+ 0.15
+    value, gradient = logdensity_and_gradient(mf, q_mf)
+    @test value ≈ logposterior(mf, q_mf)
+    for j in eachindex(q_mf)
+        step = zeros(length(q_mf))
+        step[j] = 1e-5
+        numerical = (logposterior(mf, q_mf + step) - logposterior(mf, q_mf - step)) / (2e-5)
+        @test gradient[j] ≈ numerical atol=1e-7
+    end
     @test validate_design(mf).passed == true
     @test design_summary(mf).n_observations == 24
     @test logprior(mf, q_mf) + loglikelihood(mf, q_mf) ≈ logposterior(mf, q_mf) atol = 1e-12
@@ -66,9 +102,19 @@ using LinearAlgebra
     @test_throws ArgumentError psis_loo(ex_fit)
     @test isfinite(criteria(ex_fit; unit = :performance, integrate = :perf).elpd)
 
-    # 3. FrequentistMFRM deterministic Bayesian-verb refusals
-    freq_spec = mfrm_spec((person = tbl.person, rater = tbl.rater, item = tbl.item, score = tbl.score);
+    # 3. Explicit paradigm required on mfrm_spec + MRCMLTarget `:nuts`/`:mmle`/`:jmle` orthogonality + Layer-1 group `contrast`
+    @test_throws ArgumentError mfrm_spec((person = tbl.person, rater = tbl.rater, item = tbl.item, score = tbl.score);
         person = :person, score = :score, facets = (rater = :rater, item = :item), steps = :global, category_levels = 0:2)
+    @test_throws ArgumentError mfrm_spec((person = tbl.person, rater = tbl.rater, item = tbl.item, score = tbl.score);
+        person = :person, score = :score, facets = (rater = :rater, item = :item), steps = :global,
+        interactions = ((:rater, :item),), category_levels = 0:2)
+    @test_throws ArgumentError mfrm_spec((person = tbl.person, rater = tbl.rater, item = tbl.item, score = tbl.score);
+        person = :person, score = :score, facets = (rater = :rater, item = :item), steps = :global, category_levels = 0:2,
+        prior = :none, prior_sd = (person = 1.0, facets = (rater = 1.0, item = 1.0), step = 1.0))
+
+    freq_spec = mfrm_spec((person = tbl.person, rater = tbl.rater, item = tbl.item, score = tbl.score);
+        person = :person, score = :score, facets = (rater = :rater, item = :item), steps = :global, category_levels = 0:2,
+        prior = :none)
     @test_throws ArgumentError stan_data(freq_spec)
     freq_fit = fit(freq_spec; method = :jmle)
     for fn in (posterior_summary, posterior_mcse, waic, psis_loo, ranking,
@@ -77,6 +123,38 @@ using LinearAlgebra
     end
     @test_throws ArgumentError classification(freq_fit; cutoff = 0.0)
     @test_throws ArgumentError prior_sensitivity(freq_fit, :alt)
+
+    # MRCMLTarget `:nuts`/`:mmle`/`:jmle` orthogonality & grouped Layer-1 `contrast(pv/fit; group, reference)`
+    mr_noprior = mfrm_spec((person = tbl.person, rater = tbl.rater, item = tbl.item, score = tbl.score);
+        person = :person, score = :score, facets = (rater = :rater, item = :item), steps = :global,
+        interactions = ((:rater, :item),), category_levels = 0:2, prior = :none)
+    mr_target = mfrm_spec((person = tbl.person, rater = tbl.rater, item = tbl.item, score = tbl.score);
+        person = :person, score = :score, facets = (rater = :rater, item = :item), steps = :global,
+        interactions = ((:rater, :item),), category_levels = 0:2,
+        prior_sd = (person = 1.0, facets = (rater = 0.7, item = 0.7), step = 0.6, interactions = (rater_item = 0.4,)))
+    mr_mmle_np = fit(mr_noprior; method = :mmle)
+    mr_mmle_tg = fit(mr_target; method = :mmle)
+    mr_jmle_np = fit(mr_noprior; method = :jmle, extreme_adjustment = 0.3)
+    mr_jmle_tg = fit(mr_target; method = :jmle, extreme_adjustment = 0.3)
+    mr_nuts_tg = fit(mr_target; method = :nuts, chains = 2, warmup = 15, ndraws = 15, seed = 202)
+    @test abs(loglikelihood(mr_mmle_tg) - loglikelihood(mr_mmle_np)) <= 1e-12
+    @test abs(loglikelihood(mr_jmle_tg) - loglikelihood(mr_jmle_np)) <= 1e-12
+    @test mr_nuts_tg isa BayesianMGMFRM.AdditiveFacets.Fit
+
+    grp_roster = (person = ["P1", "P2", "P3", "P4"], study = ["reference", "reference", "receiving", "receiving"])
+    grp_target = mfrm_spec((person = tbl.person, rater = tbl.rater, item = tbl.item, score = tbl.score);
+        person = :person, score = :score, facets = (rater = :rater, item = :item), steps = :global, category_levels = 0:2,
+        fixed_calibration = (facets = (item = Dict("I1" => -0.3),),),
+        prior_sd = (facets = (rater = 0.6, item = 0.8), step = 0.6),
+        population = (roster = grp_roster, person = :person, group = :study, reference = "reference",
+                      coefficient_prior = Normal(0.0, 1.0), sd_prior = LogNormal(0.0, 0.4)))
+    grp_fit = fit(grp_target; method = :nuts, chains = 2, warmup = 20, ndraws = 20, seed = 303)
+    grp_pv = plausible_values(grp_fit)
+    c_pv = contrast(grp_pv; group = "receiving", reference = "reference")
+    c_fit = contrast(grp_fit; group = "receiving", reference = "reference")
+    @test c_pv == BayesianMGMFRM.PortableHandoff.group_contrast(grp_pv; group = "receiving", reference = "reference")
+    @test c_fit == c_pv
+    @test_throws ArgumentError contrast(af_fit; group = "receiving", reference = "reference")
 
     # 4. JointRatings & OrdinalAssociation Layer-2 decomposition
     jr_rows = [
@@ -191,4 +269,17 @@ using LinearAlgebra
     @test val_rd ≈ logposterior(rd_t, q_rd) atol = 1e-12
     @test grad_rd ≈ ForwardDiff.gradient(z -> logposterior(rd_t, z), q_rd) atol = 1e-8
     @test stan_data(rd_t).N == 4
+
+    # 6. ScaleIdentifiedMGMFRM Layer-1 & Layer-2 contract
+    sim_sp = mfrm_spec(fd; family = :mgmfrm, dimensions = 1, thresholds = :partial_credit, q_matrix = trues(2, 1))
+    sim_t = BayesianMGMFRM.Experimental.scale_identified_target(sim_sp; log_loading_sd = 0.25)
+    q_sim = initial_params(sim_t) .+ 0.1
+    @test validate_design(sim_t).passed && validate_design(sim_t).identified
+    @test contract(sim_t).loading_scope === :ability_only
+    @test logprior(sim_t, q_sim) + loglikelihood(sim_t, q_sim) ≈ logposterior(sim_t, q_sim) atol = 1e-12
+    @test sum(pointwise_loglikelihood(sim_t, q_sim)) ≈ loglikelihood(sim_t, q_sim) atol = 1e-12
+    v_sim, g_sim = logdensity_and_gradient(sim_t, q_sim)
+    @test abs(v_sim - logposterior(sim_t, q_sim)) <= 1e-12
+    @test maximum(abs.(g_sim .- ForwardDiff.gradient(z -> logposterior(sim_t, z), q_sim))) <= 1e-12
+    @test stan_data(sim_t)["N"] == 24
 end

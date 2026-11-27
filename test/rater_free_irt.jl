@@ -1,5 +1,7 @@
 module RaterFreeIRTChecks
 using Test, BayesianMGMFRM, ForwardDiff, LogDensityProblems, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include(joinpath(@__DIR__, "..", "examples", "first_irt_analysis.jl"))
 

@@ -1,4 +1,5 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 """
     matched_slope_workflow(spec; prior, output_dir, ndraws, warmup, chains, seed)

@@ -1,4 +1,5 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 using Test
 using SHA
 
@@ -10,6 +11,100 @@ const _try_read_evidence_command = getfield(
     BayesianMGMFRM,
     :_evidence_try_read,
 )
+
+@testset "package metadata reads resolved manifests without loading Pkg" begin
+    B = BayesianMGMFRM
+    original = Base.active_project()
+    for format in (1, 2)
+        mktempdir() do dir
+            project = joinpath(dir, "Project.toml")
+            write(project, "[deps]\nLocalDep = \"00000000-0000-0000-0000-000000000001\"\n")
+            prefix = format == 2 ? "manifest_format = \"2.0\"\n" : ""
+            section = format == 2 ? "deps." : ""
+            write(joinpath(dir, "Manifest.toml"), prefix * """
+            [[$(section)LocalDep]]
+            uuid = "00000000-0000-0000-0000-000000000001"
+            version = "2.3.4"
+            path = "../local-dependency"
+            [[$(section)IndirectDep]]
+            uuid = "00000000-0000-0000-0000-000000000002"
+            path = "../indirect-dependency"
+            """)
+            try
+                Base.set_active_project(project)
+                public = B._evidence_package_status()
+                @test Set(keys(public)) == Set(["LocalDep"])
+                @test public["LocalDep"]["version"] == "2.3.4"
+                @test public["LocalDep"]["source"] === nothing
+                @test public["LocalDep"]["source_basename"] == "local-dependency"
+                private = B._evidence_package_status(;direct_only=false,include_paths=true)
+                @test length(private) == 2
+                @test private["LocalDep"]["source"] == normpath(joinpath(dir,"../local-dependency"))
+                @test private["LocalDep"]["is_tracking_path"]
+                @test !private["IndirectDep"]["is_direct_dep"]
+                @test private["IndirectDep"]["version"] === nothing
+                write(joinpath(dir,"Manifest.toml"), prefix)
+                @test_throws ArgumentError B._evidence_package_status()
+                rm(joinpath(dir,"Manifest.toml"))
+                @test_throws ArgumentError B._evidence_package_status()
+            finally
+                Base.set_active_project(original)
+            end
+        end
+    end
+end
+
+@testset "homonymous dependencies retain UUID identity" begin
+    mktempdir() do dir
+        project = joinpath(dir,"Project.toml")
+        write(project,"[deps]\nTwin = \"00000000-0000-0000-0000-000000000001\"\n")
+        for direct_first in (true,false), format in (1,2)
+            prefix = format == 2 ? "manifest_format = \"2.0\"\n" : ""
+            section = format == 2 ? "deps." : ""
+            records = ["""
+                [[$(section)Twin]]
+                uuid = "00000000-0000-0000-0000-00000000000$i"
+                version = "$i.0.0"
+                path = "../twin-$i"
+                """ for i in (direct_first ? (1,2) : (2,1))]
+            write(joinpath(dir,"Manifest.toml"),prefix*join(records))
+            status = BayesianMGMFRM._evidence_package_status(;project,direct_only=false)
+            @test length(status) == 2
+            @test status["Twin"]["uuid"] == "00000000-0000-0000-0000-000000000001"
+            @test status["Twin"]["is_direct_dep"]
+            @test status["Twin@00000000-0000-0000-0000-000000000002"]["version"] == "2.0.0"
+            @test length(BayesianMGMFRM._evidence_package_status(;project)) == 1
+        end
+    end
+end
+
+@testset "LOAD_PATH package and active environment are distinct" begin
+    original = Base.active_project()
+    previous_load_path = copy(LOAD_PATH)
+    mktempdir() do dir
+        project = joinpath(dir,"Project.toml")
+        write(project,"[deps]\n")
+        write(joinpath(dir,"Manifest.toml"),"manifest_format = \"2.0\"\n")
+        try
+            Base.set_active_project(project)
+            root = dirname(dirname(pathof(BayesianMGMFRM)))
+            pushfirst!(LOAD_PATH,root)
+            @test isempty(BayesianMGMFRM._evidence_package_status())
+            env = BayesianMGMFRM._evidence_package_environment(;include_paths=true)
+            @test env["project"] == joinpath(root,"Project.toml")
+            @test haskey(env["packages"],"Distributions")
+            @test env["project_sha256"] == bytes2hex(sha256(read(env["project"])))
+            @test env["manifest_sha256"] == bytes2hex(sha256(read(env["manifest"])))
+            public = BayesianMGMFRM._evidence_package_environment()
+            @test public["project"] === nothing
+            @test public["manifest"] === nothing
+            @test all(d["source"] === nothing for d in values(public["packages"]))
+        finally
+            Base.set_active_project(original)
+            empty!(LOAD_PATH); append!(LOAD_PATH,previous_load_path)
+        end
+    end
+end
 
 @testset "evidence metadata remains usable after optional probe failure" begin
     issues = Any[]

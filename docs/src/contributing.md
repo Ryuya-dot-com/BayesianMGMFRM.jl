@@ -50,6 +50,18 @@ locally. You do not need to post a complete study to report a software failure.
 For an unclear explanation, identify the page or `?function_name` and the point
 where you could not decide what to do.
 
+## Read the implementation
+
+The source checkout's
+[`src/README.md`](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/blob/main/src/README.md)
+traces the standard ordinal MFRM analysis from `mfrm_spec` through estimation,
+diagnostics and persistence. It identifies the relevant methods, distinguishes
+sampler/raw/model coordinates, and points to other model routes and tests.
+Read it in the same checkout as the code being inspected; the online source
+may correspond to a different revision. Julia's `@which fit(spec)` and
+`@which posterior_summary(fitted)` (after `using InteractiveUtils`) locate the
+methods selected for your objects without running them.
+
 ## Choose checks for the change
 
 Preserve existing model assumptions, parameter constraints and saved-result

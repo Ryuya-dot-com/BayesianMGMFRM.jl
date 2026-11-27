@@ -20,7 +20,20 @@ function _additive_warning_caption(rep)
     join([remaining;summary]," ")
 end
 
+function _additive_model_title_prefix(rep)
+    if hasproperty(rep, :api) && rep.api !== nothing
+        fam = hasproperty(rep.api, :family) ? string(rep.api.family) : ""
+        fam == "mixed_outcome_joint_explanatory" && return "Mixed-outcome joint model"
+        fam == "gmfrm" && return "GMFRM"
+        fam in ("mgmfrm", "scale_identified_mgmfrm") && return "Scale-identified MGMFRM"
+        hasproperty(rep.api, :status) && string(rep.api.status) == "supported" &&
+            return "1D MFRM"
+    end
+    return "Scalar rating model"
+end
+
 function plot_additive_report(rep;kind,size=nothing,annotation_io=stdout,style=nothing)
+    rep.schema==B.AdditiveFacets.FAIR_REFERENCE_SCHEMA && return plot_fair_reference(rep;size,annotation_io)
     rep.schema in (B.AdditiveFacets.MIXED_PPC_SCHEMA,B.AdditiveFacets.MIXED_PREDICTION_SCHEMA) && return plot_mixed_report(rep;kind,size,annotation_io)
     rep.schema in (B.AdditiveFacets.BOUNDED_PPC_SCHEMA,B.AdditiveFacets.BOUNDED_PREDICTION_SCHEMA) && return plot_bounded_report(rep;kind,size,annotation_io)
     rep.schema in (B.AdditiveFacets.COUNT_PPC_SCHEMA,B.AdditiveFacets.COUNT_PREDICTION_SCHEMA) && return plot_count_report(rep;kind,size,annotation_io)
@@ -57,7 +70,7 @@ function plot_additive_report(rep;kind,size=nothing,annotation_io=stdout,style=n
             (hasproperty(rep.api,:family) && string(rep.api.family)=="mixed_outcome_joint_explanatory" ? "Positive person effects raise proficiency; positive facet effects raise severity; outcomes with direction=:higher_is_less flip the location sign on that link. " : hasproperty(rep.api,:family) && string(rep.api.family)=="scalar_explanatory_count" ? "Positive person/response coefficients increase success log odds; positive facet coefficients decrease them. A listener effect need not represent rating severity. " : "Positive person/response coefficients raise ratings; positive facet coefficients raise severity and lower ratings. ") *
             "Whole-fit numerical qualification: $qualified. " *
             _additive_warning_caption(rep)
-        fig_title = hasproperty(rep.api,:family) && string(rep.api.family)=="mixed_outcome_joint_explanatory" ? "Mixed-outcome joint model · posterior intervals" : "Experimental scalar model · posterior intervals"
+        fig_title = "$(_additive_model_title_prefix(rep)) · posterior intervals"
         return _figure_text!(fig,fig_title,note;annotation_io,bottom_row=2+offset+(style!==nothing))
     end
     kind===:predictive || throw(ArgumentError("additive reports support :posterior and :predictive"))
@@ -79,7 +92,33 @@ function plot_additive_report(rep;kind,size=nothing,annotation_io=stdout,style=n
         "$(rep.ndraws) replicate datasets share one posterior parameter draw per dataset; known owners and observed design retained. " *
         (hasproperty(rep,:grouping_by_support) && rep.grouping_by_support ? "Category counts and raw-score means are separated by step owner; raw means across different supports are not commensurable. " : "") *
         "Whole-fit numerical qualification: $qualified. " * _additive_warning_caption(rep)
-    _figure_text!(fig,"Experimental scalar model · posterior predictive check",note;annotation_io,bottom_row=3+offset,columns=2)
+    _figure_text!(fig,"$(_additive_model_title_prefix(rep)) · posterior predictive check",note;annotation_io,bottom_row=3+offset,columns=2)
+end
+
+function plot_fair_reference(rep;size=nothing,annotation_io=stdout)
+    rows=rep.rows; offset=_annotation_offset(annotation_io); n=length(rows)
+    target=string(rep.interval_target)
+    label=target=="wald_expected_score" ? "Estimate / Wald CI" : target=="conditional_posterior_expected_score" ? "Conditional mean / CrI" : "Posterior mean / CrI"
+    endpoint(x)=x===nothing || ismissing(x) ? NaN : Float64(x)
+    title="Common-plan Fair Average"*(string(rep.conditioning)=="marginal_new" ? ": New events" : string(rep.conditioning)=="zero" ? ": Zero shared effects" : "")
+    mode=get(rep,:interaction_effects,nothing)
+    mode===nothing || (title*=string(mode)=="fitted" ? "\nFitted interactions" : "\nZero interaction reference")
+    fig=Figure(;size=something(size,(900,180+32n+100offset)),fontsize=14)
+    ax=Axis(fig[1+offset,1];yticks=(1:n,[r.person_label for r in rows]),
+        yreversed=true,ygridvisible=false,xlabel="Score",ylabel="Person")
+    annotation_io===nothing || (ax.title=title)
+    rangebars!(ax,1:n,[endpoint(r.lower) for r in rows],[endpoint(r.upper) for r in rows];direction=:x,
+        color=:steelblue4,linewidth=2,whiskerwidth=8)
+    scatter!(ax,[r.mean for r in rows],1:n;color=:steelblue4,label="$label ($(round(100rep.interval;digits=1))%)")
+    ix=findall(r->r.observed_average!==nothing && !ismissing(r.observed_average),rows)
+    scatter!(ax,[rows[j].observed_average for j in ix],ix;color=:black,marker=:diamond,label="Observed average")
+    ylims!(ax,n+.6,.4)
+    Legend(fig[2+offset,1],ax;orientation=:horizontal,framevisible=false)
+    note="$(round(100rep.interval;digits=1))% intervals for expected scores under the same $(length(rep.reference_plan))-cell reference plan. " *
+        (target=="posterior_expected_score" ? "All retained joint draws propagate calibration and person uncertainty. " : "") *
+        "Conditioning: $(rep.conditioning). These are not future-rating prediction intervals. " *
+        "Whole-fit numerical qualification: $(rep.qualification.qualified). " * join(rep.warnings," ")
+    _figure_text!(fig,title,note;annotation_io,bottom_row=3+offset)
 end
 
 function plot_additive_prior(rep;size,annotation_io)
@@ -96,7 +135,7 @@ function plot_additive_prior(rep;size,annotation_io)
     note="PRIOR predictive check: medians and $(round(100rep.interval;digits=1))% pointwise intervals for replicated category counts, " *
         "$(rep.ndraws) replicas. Parameters are drawn from the declared prior, not a fitted posterior; observed scores are not used to condition predictions. " *
         "Source: $(rep.source). No convergence qualification applies to a prior simulation. " * join(rep.warnings," ")
-    _figure_text!(fig,"Experimental scalar model · prior predictive check",note;annotation_io,bottom_row=2+offset)
+    _figure_text!(fig,"$(_additive_model_title_prefix(rep)) · prior predictive check",note;annotation_io,bottom_row=2+offset)
 end
 
 function plot_additive_trace(rep;size,annotation_io)
@@ -117,7 +156,7 @@ function plot_additive_trace(rep;size,annotation_io)
         "The original chain/iteration ordering is retained without thinning. Visually overlapping traces do not prove convergence. " *
         "Read R-hat, bulk/tail ESS, divergences, tree depth, E-BFMI and focal MCSE alongside these panels. " *
         "Whole-fit numerical qualification: $(rep.qualification.qualified). " * _additive_warning_caption(rep)
-    trace_title = hasproperty(rep.api,:family) && string(rep.api.family)=="mixed_outcome_joint_explanatory" ? "Mixed-outcome joint model · retained-chain traces" : "Experimental scalar model · retained-chain traces"
+    trace_title = "$(_additive_model_title_prefix(rep)) · retained-chain traces"
     _figure_text!(fig,trace_title,note;annotation_io,bottom_row=nr+2+offset,columns=cols)
 end
 
@@ -141,6 +180,6 @@ function plot_additive_prediction(rep;size,annotation_io)
         (is_new ? "NEW-OWNER prediction (mode=:new_owners, new_owners=$(collect(rep.new_owners)), seed=$(rep.seed)): fresh latent owner effects were drawn from fitted population priors at each posterior draw; zero-effect substitution was NOT used. " : "Conditioning: $(rep.conditioning); these are not new-owner or causal predictor effects. ") *
         "Row attributes and probability MCSE are retained in the report. " *
         "Whole-fit numerical qualification: $(rep.qualification.qualified). " * _additive_warning_caption(rep)
-    pred_title=is_new ? "Experimental scalar model · new-owner population-integrated probabilities" : "Experimental scalar model · conditional category probabilities"
+    pred_title=is_new ? "$(_additive_model_title_prefix(rep)) · new-owner population-integrated probabilities" : "$(_additive_model_title_prefix(rep)) · conditional category probabilities"
     _figure_text!(fig,pred_title,note;annotation_io,bottom_row=nr+1+offset,columns=cols)
 end

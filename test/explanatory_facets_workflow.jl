@@ -1,4 +1,6 @@
 using Test, BayesianMGMFRM, Statistics
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 
 # Run against an actual saved pilot, not manufactured posterior/telemetry.
 function explanatory_fitted_checks(f,out)

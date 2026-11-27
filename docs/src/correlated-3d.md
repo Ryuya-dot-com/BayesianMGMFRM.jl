@@ -9,12 +9,12 @@ Use `BayesianMGMFRM.Experimental.Correlated3D` when item content specifies three
 traits and the question concerns their population correlations. This opt-in
 workflow estimates item discriminations and rater consistencies, reports named
 marginal and partial correlations, and preserves joint posterior draws.
-It is Experimental. A successful fit does not establish construct validity,
+A successful fit does not establish construct validity,
 adequate fit, calibrated uncertainty or the need for three dimensions.
 
 ## Model and input
 
-Supply a `FacetSpec` with exactly three named dimensions and a fixed pure Q
+Supply a `BayesianMGMFRM.Legacy.FacetSpec` with exactly three named dimensions and a fixed pure Q
 matrix: one active dimension per item, at least two items per dimension, every
 person observed in every dimension, at least two raters and at least three
 declared categories. The first domain uses item-owned partial-credit steps;

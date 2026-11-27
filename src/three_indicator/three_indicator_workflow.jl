@@ -22,13 +22,13 @@ function check_hash(x)
 end
 function context()
     project=Base.active_project();require(project!==nothing,"explicit environment required")
-    manifest=joinpath(dirname(project),"Manifest.toml");require(isfile(manifest),"retained Manifest required")
+    manifest=Base.project_file_manifest_path(project);require(manifest!==nothing && isfile(manifest),"retained Manifest required")
     root=dirname(dirname(pathof(B)))
     sources=sort([joinpath(d,f) for branch in ("src","ext") for (d,_,fs) in walkdir(joinpath(root,branch)) for f in fs if endswith(f,".jl")])
     (;julia=string(VERSION),kernel=string(Sys.KERNEL),arch=string(Sys.ARCH),
       threads=Threads.nthreads(),blas_threads=BLAS.get_num_threads(),
       project=digest(project),manifest=digest(manifest),
-      package=B._cache_hash([(;path=relpath(f,root),sha256=digest(f)) for f in sources]),
+      package=B._cache_hash([(;path=replace(relpath(f,root),'\\'=>'/'),sha256=digest(f)) for f in sources]),
       sources=[(;path=f,sha256=digest(joinpath(@__DIR__,f))) for f in
         ("three_indicator_observation.jl","mgmfrm_lkj_cholesky_candidate.jl","three_indicator_workflow.jl")])
 end

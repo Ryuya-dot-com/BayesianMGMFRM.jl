@@ -1,5 +1,6 @@
 module MGMFRMGradientSelectionChecks
 using Test, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
 const B=BayesianMGMFRM
 const E=B.Experimental
 

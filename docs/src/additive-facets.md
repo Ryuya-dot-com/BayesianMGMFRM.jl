@@ -10,7 +10,7 @@ For person/response predictors, rater-experience regressions and estimated
 population severity SDs, use [Explain ratings and rater severity](explanatory-ratings.md).
 The finite sum-zero specification below remains available with its original priors.
 
-!!! warning "Experimental scalar additive workflow"
+!!! note "Scalar additive model"
     This route fits a scalar additive model with any number of user-named facets.
     Shared workflow verbs provide joint summaries, MCSE, known-level probabilities
     and save/reload. Numerical success does not establish scientific suitability
@@ -30,6 +30,8 @@ effect as step owner, or `:global` for shared rating-scale steps. No `criterion`
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 
 # Artificial complete allocation; these scores are placeholders, not evidence.
 rows = collect(Iterators.product(1:3, 1:2, 1:2, 1:2, 1:2, 1:2, 1:2))[:]
@@ -224,7 +226,7 @@ is a static contrast, not learner growth or rater drift.
 `predictive_probabilities(spec, q)` conditions on fixed `q` and original rows.
 The fitted-result overload described above instead averages the joint posterior;
 neither overload generates replicated scores. New-level prediction, interactions, mixed supports,
-hard-anchor equating, multidimensional loadings and free slopes are not supported
+multidimensional loadings and free slopes are not supported
 by this compiler. Scientific recovery/calibration and practical model adoption
 remain open. Model comparison and new-level prediction are not supplied by this
 bounded fitted workflow. `predictive_check(result; seed, ndraws=500, groupby=nothing)`
@@ -233,6 +235,8 @@ select a declared facet or `:person` to group. These are pointwise replicated-da
 intervals with no endpoint-MCSE qualification, not parameter credible intervals.
 `plot(fit_report(result); kind=:posterior)` and `plot(ppc; kind=:predictive)` use
 CairoMakie; saved computed reports can be redrawn without sampling.
+
+For scalar fixed recording and step transfers, use the [named calibration example](frequentist-mfrm.md#Transfer-recording-locations-and-category-steps-to-a-second-panel).
 
 ### Outcome warnings and interval colors
 

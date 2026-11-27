@@ -18,7 +18,7 @@ end
 
 function Base.show(io::IO, spec::CorrelatedMFRMSpec)
     print(io, "Correlated MFRM (", join(spec.base_spec.dimension_labels, ", "),
-        "; fixed Q coefficients; LKJ eta = ", spec.lkj_eta, "; experimental)")
+        "; fixed Q coefficients; LKJ eta = ", spec.lkj_eta, " )")
 end
 
 function _mfrm_correlated_2d_fit(spec::CorrelatedMFRMSpec;
@@ -263,7 +263,7 @@ end
 function Base.show(io::IO, fit::_CorrelatedMFRMFit)
     metadata = fit_metadata(fit)
     print(io, metadata.model_label, " (", metadata.n_draws, " retained draws, ",
-        metadata.backend_label, "; unit-logit locations; estimated rho; experimental)")
+        metadata.backend_label, "; unit-logit locations; estimated rho)")
 end
 
 function posterior_summary(fit::_CorrelatedMFRMFit;

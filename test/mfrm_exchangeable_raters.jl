@@ -1,6 +1,8 @@
 module MFRMExchangeableRaterChecks
 
 using Test, BayesianMGMFRM, LinearAlgebra, ForwardDiff, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 const LD = B.LogDensityProblems
 const SCALES = (; person_sd=0.7, rater_kernel_sd=0.4, item_sd=0.6, step_sd=0.5)

@@ -1,5 +1,6 @@
 module MGMFRMFoundationOracle
 using BayesianMGMFRM, JSON3, LinearAlgebra, Statistics, SHA, Test
+using BayesianMGMFRM.GlassBox
 const B = BayesianMGMFRM
 include("mgmfrm_core_recovery_review.jl")
 include("mgmfrm_core_interval_review.jl")

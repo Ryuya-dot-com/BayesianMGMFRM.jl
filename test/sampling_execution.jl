@@ -82,4 +82,39 @@ end
     @test B.progress_snapshot(p).status===:sampling_complete
     @test B.progress_snapshot(p).percent==100
 end
+
+@testset "Auto chain execution and concurrent kernel scratch safety" begin
+    @test_throws ArgumentError B._check_chain_execution(:auto, 1)
+    @test B._check_chain_execution(:auto, 1, :advancedhmc; allow_auto=true) === nothing
+    @test B._resolve_chain_execution(:auto, 1, 4, :advancedhmc) === :serial
+    @test B._resolve_chain_execution(:auto, 4, 1, :advancedhmc) === :serial
+    @test B._resolve_chain_execution(:auto, 4, 4, :turing) === :serial
+    expected_auto = Threads.nthreads(:default) > 1 ? :threads : :serial
+    @test B._resolve_chain_execution(:auto, 4, 4, :advancedhmc) === expected_auto
+    sched_1 = B._sampling_chain_schedule(MersenneTwister(19), 1, :auto, 4)
+    @test sched_1.mode === :serial && isempty(sched_1.metadata)
+
+    # Verify concurrent task-local scratch isolation and worker-count draw invariance
+    ratings = include(joinpath(@__DIR__, "..", "examples", "first_analysis_ratings.jl"))
+    spec = mfrm_spec(ratings; person=:person, score=:score,
+        facets=(item=:item, rater=:rater), steps=:item, category_levels=0:3, prior=:default)
+    rng = MersenneTwister(20261125)
+    qs = [0.3 .* randn(rng, B.LogDensityProblems.dimension(spec)) for _ in 1:4]
+    refs = [B.LogDensityProblems.logdensity_and_gradient(spec, q) for q in qs]
+    bad = Threads.Atomic{Int}(0)
+    @sync for t_id in 1:4
+        Threads.@spawn begin
+            for it in 1:50
+                k = mod1(t_id + it, 4)
+                lp, g = B.LogDensityProblems.logdensity_and_gradient(spec, qs[k])
+                (lp == refs[k][1] && g == refs[k][2]) || Threads.atomic_add!(bad, 1)
+            end
+        end
+    end
+    @test bad[] == 0
+
+    f_w1 = fit(spec; chains=2, warmup=25, ndraws=25, seed=314, chain_execution=:threads, max_parallel_chains=1)
+    f_w2 = fit(spec; chains=2, warmup=25, ndraws=25, seed=314, chain_execution=:threads, max_parallel_chains=2)
+    @test f_w1.record.run.draws == f_w2.record.run.draws
+end
 end

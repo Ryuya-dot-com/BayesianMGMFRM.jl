@@ -1,5 +1,8 @@
 module CommonRecoveryEvaluationChecks
 using BayesianMGMFRM, Test, Statistics, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
+using BayesianMGMFRM.ValidationSuite: parameter_recovery
 import ..CommonPredictionRefitChecks, ..CommonPredictionKfoldChecks
 const B=BayesianMGMFRM
 const R=CommonPredictionRefitChecks

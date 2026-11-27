@@ -1,6 +1,8 @@
 module CalibrationPlotDataChecks
 
 using BayesianMGMFRM, Test, JSON3
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 
 const METADATA = (:n_observations, :n_draws, :predicted_median,
     :interval_probability, :lower_probability, :upper_probability)

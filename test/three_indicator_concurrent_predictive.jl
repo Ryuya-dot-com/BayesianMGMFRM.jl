@@ -1,5 +1,6 @@
 module ThreeIndicatorConcurrentPredictiveChecks
 using BayesianMGMFRM, Test, Random, Statistics, JSON3
+using BayesianMGMFRM.GlassBox
 import ..ThreeIndicatorConcurrentChecks as Fixtures
 const B=BayesianMGMFRM
 const T=B.Experimental.ThreeIndicator

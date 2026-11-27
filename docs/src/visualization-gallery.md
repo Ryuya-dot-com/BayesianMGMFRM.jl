@@ -43,7 +43,7 @@ load `CairoMakie` before rendering; ordinary tables and summaries do not need it
 
 | Input | Available route | Computation and limits |
 | --- | --- | --- |
-| Scalar `MFRMFit` | `:wright`, `:pathway`; ridge via `plot_wright(fit; kind=:ridge)` | Reuses joint draws; RSM/PCM and fixed references are supported. No fitting or predictive replication. GMFRM and multidimensional fits cannot use this single-axis renderer. |
+| Scalar `BayesianMGMFRM.Legacy.MFRMFit` | `:wright`, `:pathway`; ridge via `plot_wright(fit; kind=:ridge)` | Reuses joint draws; RSM/PCM and fixed references are supported. No fitting or predictive replication. GMFRM and multidimensional fits cannot use this single-axis renderer. |
 | Frequentist 1D `FrequentistMFRM.Fit` and its saved JSON reports | `:posterior`, `:wright`, `:pathway`, `:comparison` | Plots JMLE/MMLE point estimates and 95% asymptotic Wald intervals (explicitly labelled non-Bayesian), multi-facet Wright maps, Pathway maps, or MMLE `ΔAIC`/`ΔBIC` comparisons without recomputation; see [frequentist 1D JMLE & MMLE](frequentist-mfrm.md). |
 | `StanAdapter.Fit`, `PortableHandoff.Handoff`, and saved `StanAdapter` JSON reports | `:posterior`, `:diagnostics`, `:wright`, `:comparison`, `:prior_sensitivity` | Plots posterior intervals, per-chain traces (`include_draws=true` for saved JSON), shared-logit block maps, `ΔELPD ± 2 SE` comparisons, and PSIS importance-reweighted prior sensitivity; see [Custom Stan Adapter and Portable Handoffs](stan-adapter.md). |
 | Additive/explanatory fits and their computed reports | `:posterior`, `:diagnostics`, `:prediction`, `:predictive` | Select parameters for traces. Prediction gives known-owner category probabilities. Prior/PPC reports use distinct labels; plotting computed reports starts no generation. See the [diagnostic walkthrough](explanatory-diagnostics.md). |
@@ -62,7 +62,7 @@ requires a renderer for that report's schema, not merely a `.json` extension.
 
 The Wright, ridge and Pathway illustrations below use **deterministic artificial draws**, not
 fitted posteriors. They demonstrate the output and its reading conventions, not
-uncertainty calibrated by a study. The original MGMFRM figures reuse a saved experimental fit
+uncertainty calibrated by a study. The original MGMFRM figures reuse a saved fit
 to simulated ratings; the new category-panel illustrations explicitly use artificial
 display fixtures. None of these pictures establishes a recommended model.
 Select a figure to inspect it at full resolution. Titles and notes now appear
@@ -113,6 +113,7 @@ Wright axis does not summarize all abilities of MGMFRM.
 
 ```julia
 using BayesianMGMFRM, CairoMakie
+using BayesianMGMFRM.Legacy
 fit_result = load_fit_cache("analysis-fit.jls")
 figure = BayesianMGMFRM.plot_wright(fit_result; interval = 0.95)
 save("wright-map.svg", figure)
@@ -238,6 +239,7 @@ numerical rows and their flags.
 
 ```julia
 using BayesianMGMFRM, CairoMakie
+using BayesianMGMFRM.Legacy
 fit_result = load_fit("analysis-fit.jls")
 figure = BayesianMGMFRM.plot(fit_result; kind = :pathway,
     metric = :infit, interval = 0.95)
@@ -268,11 +270,11 @@ for the exact method and conditioning choices.
 
 [![MGMFRM category response surfaces for item I1 and rater R1, with two ability axes and category probability as height; four heatmaps show pointwise interval widths.](assets/visual-guide/mgmfrm-response-surface.png)](assets/visual-guide/mgmfrm-response-surface.svg)
 
-*Note.* Item I1 and rater R1, using all 16,000 saved joint draws from one experimental fit to simulated ratings. Height shows posterior mean category probability; the companion heatmaps show 90% pointwise interval widths. Q excludes the second ability for this item, so the surfaces are flat in that direction. There are no additional fixed ability dimensions. The saved fit had no warnings under its recorded MCMC thresholds. These intervals concern conditional probabilities, not future individual ratings; display ranges do not establish data support.
+*Note.* Item I1 and rater R1, using all 16,000 saved joint draws from one fit to simulated ratings. Height shows posterior mean category probability; the companion heatmaps show 90% pointwise interval widths. Q excludes the second ability for this item, so the surfaces are flat in that direction. There are no additional fixed ability dimensions. The saved fit had no warnings under its recorded MCMC thresholds. These intervals concern conditional probabilities, not future individual ratings; display ranges do not establish data support.
 
 [PDF](assets/visual-guide/mgmfrm-response-surface.pdf) · [SVG](assets/visual-guide/mgmfrm-response-surface.svg) · [Full text note](assets/visual-guide/mgmfrm-response-surface-note.txt)
 
-This figure reuses **16,000 retained joint draws** from one saved experimental
+This figure reuses **16,000 retained joint draws** from one saved
 MGMFRM fit to simulated ratings. Its four colors identify ratings 1–4. Moving
 along the first ability changes those probabilities: the lowest category loses
 probability, the highest gains probability, and intermediate categories can
@@ -291,6 +293,7 @@ sampling was performed to produce this gallery.
 
 ```julia
 using BayesianMGMFRM, CairoMakie
+using BayesianMGMFRM.Legacy
 restored = load_fit_cache("mgmfrm-fit.jls")
 figure = BayesianMGMFRM.plot_response_surface(restored;
     item = "I1", rater = "R1", dimensions = (1, 2),
@@ -305,7 +308,7 @@ surface function requires values for every undisplayed ability and shows a
 conditional slice. A three-ability person scatterplot would instead require
 three latent axes, uncertainty displays and identifiable dimension meanings.
 It would not establish support for estimating a free correlation matrix with
-three or more dimensions. Separate experimental correlated 2D/3D fitting routes
+three or more dimensions. Separate correlated 2D/3D fitting routes
 exist, but are not inputs to this surface method; see [correlated traits](correlated-3d.md).
 
 This is a static figure. The current CairoMakie interface can change the viewing
@@ -338,7 +341,7 @@ or select another category to inspect the others.
 
 [![Five category-4 probability surfaces for items I1 through I5 with rater R1 fixed. I1 and I2 depend on the first ability; I3, I4 and I5 depend on the second.](assets/visual-guide/mgmfrm-item-comparison.png)](assets/visual-guide/mgmfrm-item-comparison.svg)
 
-*Note.* All five items from the same experimental fit to simulated ratings; rater R1 is fixed. Each surface averages category-4 probabilities across all 16,000 retained joint draws. Height and color share the 0–1 probability scale. Active dimensions are prescribed by Q: I1–I2 use θ₁, and I3–I5 use θ₂. The other axis is flat by construction. These images show posterior means only; the downloadable data retain 90% pointwise credible intervals. No additional ability dimensions are fixed. Display ranges do not establish data support.
+*Note.* All five items from the same fit to simulated ratings; rater R1 is fixed. Each surface averages category-4 probabilities across all 16,000 retained joint draws. Height and color share the 0–1 probability scale. Active dimensions are prescribed by Q: I1–I2 use θ₁, and I3–I5 use θ₂. The other axis is flat by construction. These images show posterior means only; the downloadable data retain 90% pointwise credible intervals. No additional ability dimensions are fixed. Display ranges do not establish data support.
 
 [PDF](assets/visual-guide/mgmfrm-item-comparison.pdf) · [SVG](assets/visual-guide/mgmfrm-item-comparison.svg) · [Full text note](assets/visual-guide/mgmfrm-item-comparison-note.txt) · [Numerical data](assets/visual-guide/mgmfrm-item-comparison.json)
 
@@ -357,7 +360,7 @@ in this range; that is different from excluding an ability through Q.
 
 [![Five category-4 probability surfaces for raters R1 through R5 with item I1 fixed, all using the first ability and the same 0–1 probability scale.](assets/visual-guide/mgmfrm-rater-comparison.png)](assets/visual-guide/mgmfrm-rater-comparison.svg)
 
-*Note.* All five raters from the same experimental fit to simulated ratings; item I1 is fixed. Each surface averages category-4 probabilities across all 16,000 retained joint draws. The ability grid, viewing angle and 0–1 probability scale match Figure 5. Item I1 excludes θ₂, so every panel is flat along that axis. These images show posterior means only; the downloadable data retain 90% pointwise credible intervals. Rater differences include severity and consistency. They do not establish bias or rater quality.
+*Note.* All five raters from the same fit to simulated ratings; item I1 is fixed. Each surface averages category-4 probabilities across all 16,000 retained joint draws. The ability grid, viewing angle and 0–1 probability scale match Figure 5. Item I1 excludes θ₂, so every panel is flat along that axis. These images show posterior means only; the downloadable data retain 90% pointwise credible intervals. Rater differences include severity and consistency. They do not establish bias or rater quality.
 
 [PDF](assets/visual-guide/mgmfrm-rater-comparison.pdf) · [SVG](assets/visual-guide/mgmfrm-rater-comparison.svg) · [Full text note](assets/visual-guide/mgmfrm-rater-comparison-note.txt) · [Numerical data](assets/visual-guide/mgmfrm-rater-comparison.json)
 
@@ -388,6 +391,7 @@ sets the panel order. Titles and notes remain outside the images by default.
 
 ```julia
 using BayesianMGMFRM, CairoMakie
+using BayesianMGMFRM.Legacy
 include("response_surface_variants.jl")
 restored = load_fit_cache("mgmfrm-fit.jls")
 comparison = response_surface_variants(restored;
@@ -435,6 +439,7 @@ For a saved stable unidimensional MFRM fit:
 
 ```julia
 using BayesianMGMFRM, CairoMakie
+using BayesianMGMFRM.Legacy
 open("ridge-note.txt", "w") do note
     fig = BayesianMGMFRM.plot_wright(fit_result;
         kind = :ridge, interval = 0.95, annotation_io = note)

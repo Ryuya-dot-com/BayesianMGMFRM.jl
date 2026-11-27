@@ -1,4 +1,6 @@
 using Test, BayesianMGMFRM, JSON3, LinearAlgebra, SHA
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 
 # The preceding bridge test supplies deterministic table/result-file helpers.
 # These complete bundles are artificial; the parameter/design bytes are retained

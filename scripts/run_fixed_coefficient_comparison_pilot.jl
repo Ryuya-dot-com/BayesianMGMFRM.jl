@@ -2,6 +2,7 @@
 # One C2 pilot dataset, two primary fits; no evaluation grid or automatic retry.
 # Run prepare, advancedhmc, cmdstan, compare as separate bounded processes.
 using BayesianMGMFRM, Random, Serialization, SHA, Statistics, Dates
+using BayesianMGMFRM.Legacy
 include(joinpath(@__DIR__, "mfrm_validation_preparation.jl"))
 const B = BayesianMGMFRM
 const E = B.Experimental

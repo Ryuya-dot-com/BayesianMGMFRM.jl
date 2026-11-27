@@ -1,5 +1,5 @@
 function location_model(table;person::Symbol,score::Symbol,facets::NamedTuple,population::NamedTuple,
-        predictors::NamedTuple=(;),intercept,levels=nothing,performance=nothing,assessment=nothing,decompose=nothing,allow_slopes=false)
+        predictors::NamedTuple=(;),intercept,levels=nothing,performance=nothing,assessment=nothing,decompose=nothing,allow_slopes=false,missing_audit=nothing)
     reserved=(:person,:response,:steps,:global,:score,:performance,:assessment)
     all(k->!(k in reserved),keys(facets)) || throw(ArgumentError("reserved facet name"))
     all(x->x isa Symbol,values(facets)) || throw(ArgumentError("facet mappings must name columns"))
@@ -27,7 +27,9 @@ function location_model(table;person::Symbol,score::Symbol,facets::NamedTuple,po
         ix,lev=_labels(raw[c],name,levels===nothing ? nothing : levels.facets[name])
         push!(blocks,Block(name,c,lev,ix,0.,0.,1:0))
     end
-    columns=(;person,score,facets,performance,assessment)
+    columns=missing_audit===nothing ?
+        (;person,score,facets,performance,assessment) :
+        (;person,score,facets,performance,assessment,missing_audit=deepcopy(missing_audit))
     groups=_groups(raw,columns,p,blocks)
     identity=(;table=raw,columns,person=p,people=ps,facets=blocks)
     derived,dec=decompose===nothing ? (Dict{Symbol,Vector}(),nothing) : decompose_predictors(identity,table,decompose)

@@ -1,6 +1,8 @@
 using Test
 using Random
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import Serialization
 
 @testset "Float64 prior and initial-value boundaries (no fitting)" begin
@@ -385,6 +387,8 @@ end
 # Own-type fault injection exercises the real adapters without production hooks.
 module FittingExceptionChecks
 using Test, Random, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import LogDensityProblems, JSON3
 const B = BayesianMGMFRM
 capture(operation) = try operation() catch err; err end

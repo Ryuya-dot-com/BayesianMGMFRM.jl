@@ -3,7 +3,7 @@
 Does a judge distinguish the criteria, or use the same criterion profile across
 all of them? `Experimental.CriterionCollapse` fits one specific explanation for
 halo-like ratings: a **constant latent class for each rater** that replaces
-criterion-specific steps with their average. It is an experimental scalar model,
+criterion-specific steps with their average. It is a scalar model,
 not an automatic detector or a rule for excluding judges.
 
 The mechanism follows the mixture Rasch facets work of
@@ -31,6 +31,8 @@ missing ratings and actual zero scores.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 C = BayesianMGMFRM.Experimental.CriterionCollapse
 # ratings contains one row per performance/criterion/rater combination.
 data = FacetData(ratings; person=:person, item=:criterion, rater=:rater,

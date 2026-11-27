@@ -1,6 +1,8 @@
 using LogDensityProblems
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 
 function _free_correlation_test_data()
     people = String[]

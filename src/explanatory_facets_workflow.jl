@@ -18,7 +18,7 @@ function model_draws(t::ExplanatoryTarget,raw)
     union!(fixed,["steps[$(repr(t.group_levels[g])),1]" for g in eachindex(t.steps) if _step_count(t,g)==1])
     (;names=labels,values,fixed)
 end
-summary_unit(t::ExplanatoryTarget,scale)=scale===:raw ? :white_standard_normal : :parameter_specific_unit_logits_and_predictor_units
+summary_unit(t::ExplanatoryTarget,scale)=scale===:raw ? (_explanatory_logscale(t) ? :white_normal_and_log_scale : :white_standard_normal) : :parameter_specific_unit_logits_and_predictor_units
 allocation_error(t::ExplanatoryTarget)=join(t.allocation.reasons," ") * " Inspect design_summary(spec)."
 prediction_conditioning(t::ExplanatoryTarget)=:known_owners_and_stored_owner_attributes
 function contrast_unit(t::ExplanatoryTarget,left,right)

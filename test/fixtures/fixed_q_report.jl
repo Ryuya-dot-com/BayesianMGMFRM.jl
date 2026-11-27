@@ -1,3 +1,4 @@
+using BayesianMGMFRM.Legacy
 # Accept real saved fits as well as deterministic fixtures; never start a sampler.
 function check_fixed_q_report(fit; directory = nothing)
     directory === nothing && return mktempdir(d -> check_fixed_q_report(fit; directory = d))

@@ -1,6 +1,7 @@
 module JointDrawHandoff
 
 using BayesianMGMFRM, SHA
+using BayesianMGMFRM.Legacy
 using BayesianMGMFRM: JSON3
 
 """

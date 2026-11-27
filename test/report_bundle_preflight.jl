@@ -1,5 +1,6 @@
 module ReportBundlePreflightChecks
 using BayesianMGMFRM, Test, SHA
+using BayesianMGMFRM.Legacy
 
 fixture() = (; schema="bayesianmgmfrm.fit_report.v1", object=:fit_report,
     created_at="2026-10-15T00:00:00", family=:mfrm, thresholds=:partial_credit,

@@ -1,5 +1,7 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.ValidationSuite
 using JSON3
 
 module FreeCorrelationStudyUnitRunnerForTest

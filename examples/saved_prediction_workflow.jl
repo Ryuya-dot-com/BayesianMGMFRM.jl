@@ -1,4 +1,5 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 """
     saved_prediction_workflow(caches::Pair...; directory, dataset_id,

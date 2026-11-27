@@ -1,5 +1,7 @@
 module UnifiedAPIReviewFixChecks
 using BayesianMGMFRM, Test, Random
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 const E = B.Experimental
 const SA = E.StarAssociation

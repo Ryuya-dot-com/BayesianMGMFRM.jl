@@ -1,5 +1,6 @@
 module CommonPSISChecks
 using BayesianMGMFRM, Test, JSON3, Serialization
+using BayesianMGMFRM.Legacy
 const B=BayesianMGMFRM
 include("common_prediction_fixtures.jl")
 vec(x) = x isa AbstractVector ? collect(x) : [x]

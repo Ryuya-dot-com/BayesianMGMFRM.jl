@@ -2,7 +2,7 @@
     ConcurrentPrior(preset::Symbol; kwargs...)
 
 Override numerical settings of `:reference`, `:steps` or `:combined` for the
-experimental concurrent 9/9/2 model. Pass this object as `prior` to `getdesign`.
+concurrent 9/9/2 model. Pass this object as `prior` to `getdesign`.
 Families and identification stay fixed: Gaussian effects, half-normal population
 SDs and LKJ correlations. The preliminary-only model does not accept this type.
 

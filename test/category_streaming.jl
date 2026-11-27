@@ -1,5 +1,6 @@
 module CategoryStreamingChecks
 using BayesianMGMFRM, Test, Statistics, Random
+using BayesianMGMFRM.GlassBox
 import ..CommonPredictionRefitChecks, ..CommonPredictionKfoldChecks
 const B=BayesianMGMFRM
 const R=CommonPredictionRefitChecks

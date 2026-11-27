@@ -1,5 +1,6 @@
 module IntraclassCorrelationChecks
 using BayesianMGMFRM, Test
+using BayesianMGMFRM.Legacy
 const B=BayesianMGMFRM
 include("fixtures/reporting_fit.jl")
 published()=[9 2 5 8;6 1 3 2;8 4 6 8;7 1 2 6;10 5 6 9;6 2 4 7]

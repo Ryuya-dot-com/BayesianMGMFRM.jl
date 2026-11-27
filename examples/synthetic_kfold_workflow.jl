@@ -1,4 +1,5 @@
 using BayesianMGMFRM, Serialization
+using BayesianMGMFRM.Legacy
 
 """
     synthetic_kfold_workflow(directory; sampler, seed=261011)

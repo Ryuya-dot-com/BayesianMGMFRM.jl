@@ -1,9 +1,8 @@
 """
     BayesianMGMFRM.Experimental
 
-Namespace for multidimensional MFRM and generalized models available in limited,
-experimental configurations but are not part of the stable MFRM fitting
-contract.
+Compatibility namespace for multidimensional MFRM and generalized models.
+Each constructor declares its supported model structure and operations.
 
 Use [`BayesianMGMFRM.Experimental.preview`](@ref),
 [`BayesianMGMFRM.Experimental.prior_predictive_check`](@ref),
@@ -31,26 +30,26 @@ const _PACKAGE = parentmodule(@__MODULE__)
 const _FacetSpec = getfield(_PACKAGE, :FacetSpec)
 
 """
-Result of experimental scalar GMFRM fitting. Inspect estimates with
+Result of scalar GMFRM fitting. Inspect estimates with
 `posterior_summary` and sampling quality with `diagnostics`.
 """
 const GMFRMFit = getfield(_PACKAGE, :GMFRMFit)
 
 """
-Result of experimental fixed-Q MGMFRM fitting. Inspect estimates with
+Result of fixed-Q MGMFRM fitting. Inspect estimates with
 `posterior_summary` and sampling quality with `diagnostics`.
 """
 const MGMFRMFit = getfield(_PACKAGE, :MGMFRMFit)
 
 """
-Result of experimental fixed-coefficient multidimensional MFRM fitting.
+Result of fixed-coefficient multidimensional MFRM fitting.
 Use `Experimental.fit(spec)` to estimate and `save_fit_cache`/`load_fit_cache`
 to save and reopen a result.
 """
 const MultidimensionalMFRMFit = getfield(_PACKAGE, :MultidimensionalMFRMFit)
 
 """
-Experimental prior-scale type for GMFRM and MGMFRM fits. Its six
+prior-scale type for GMFRM and MGMFRM fits. Its six
 standard deviations apply to independent normal priors on raw unconstrained
 coordinates, not directly to transformed model parameters.
 For an explicit correlated MGMFRM specification, ability pairs are conditionally
@@ -103,7 +102,7 @@ Use `prior_predictive_check` to examine the joint prior before fitting.
 Supports Julia raw-coordinate `fit`, prior prediction, summaries, reports,
 existing-level K-fold refit planning and manual fit caches. Automatic caching,
 CmdStan fitting, free slopes, correlated/multidimensional models and learned
-profile hyperparameters are unavailable. This is experimental engineering
+profile hyperparameters are unavailable. This is engineering
 support, not recovery/SBC or scientific acceptance of any application prior.
 """
 const MeanProfilePrior = getfield(_PACKAGE, :_MGMFRMMeanProfilePrior)
@@ -116,6 +115,76 @@ caches, reports and optional figures. Its saved prior retains distribution,
 kernel scales and the source rater identity. Scientific acceptance is separate.
 """
 const NormalizedMGMFRMFit = getfield(_PACKAGE, :_NormalizedMGMFRMFit)
+
+"""
+    BayesianMGMFRM.Experimental.ScaleIdentifiedMGMFRM
+
+Module implementing multiplicative scale-identified fixed-Q MGMFRM targets,
+priors, exact analytical reverse-mode gradients, and matched Stan source/data
+dictionaries.
+"""
+const ScaleIdentifiedMGMFRM = getfield(_PACKAGE, :ScaleIdentifiedMGMFRM)
+
+"""
+    ScaleIdentifiedMGMFRMPrior(; scale_identification = :geometric_mean_one,
+        location_identification = :zero_mean_population, logit_scale = 1.7,
+        rater_consistency = :estimated_positive, anchor_items = nothing,
+        ability_logsd_prior = Normal(0.0, 1.0), ability_mean_sd = 1.5,
+        log_loading_sd = 0.5, item_sd = 1.0, rater_sd = 1.0,
+        log_consistency_sd = 0.5, step_sd = 1.0)
+
+Explicit prior and identification specification for multiplicative scale-identified
+1D and multidimensional fixed-Q MGMFRM:
+
+- `scale_identification = :geometric_mean_one` (default, label-permutation-invariant):
+  constrains pure-item structural log-loadings within each dimension to sum to zero
+  via an orthonormal Helmert basis (geometric mean `1.0`, equal marginal SD
+  `log_loading_sd`) while estimating population ability SD `ability_sd[dim=d]`.
+- `scale_identification = :anchor_item`: fixes one pure reference item loading per
+  dimension (`anchor_items = :first_pure`, a vector, or a dimension dictionary) to
+  `1.0` while estimating remaining active loadings and `ability_sd[dim=d]`.
+- `location_identification`: `:zero_mean_population` (`ability_mean[dim=d] = 0`,
+  free item difficulties) or `:centered_items_free_mean` (isometric zero-sum pure
+  item difficulties per dimension with free `ability_mean[dim=d]`).
+- `logit_scale`: `1.7` (published Uto 2021 scale) or `1.0` (unit-logit GPCM scale).
+"""
+const ScaleIdentifiedMGMFRMPrior = ScaleIdentifiedMGMFRM.Prior
+
+"""
+Compiled log-density and analytical-gradient target returned by
+[`scale_identified_target`](@ref). Supports `fit`, `prior_draw`, `simulate`,
+`prior_predictive_check`, and all Layer-2 Glass-Box inspection verbs.
+"""
+const ScaleIdentifiedMGMFRMTarget = ScaleIdentifiedMGMFRM.Target
+
+"""
+Fitted posterior result returned by `fit(target)` or
+`Experimental.fit(spec; prior = ScaleIdentifiedMGMFRMPrior(...))`. Exposes
+`person`, `ability_mean`, `ability_sd`, structural `loading`, unit-variance
+population `standardized_loading`, `item`, `rater`, `consistency`, and `step`
+coordinates on `scale = :model`.
+"""
+const ScaleIdentifiedMGMFRMFit = ScaleIdentifiedMGMFRM.Fit
+
+"""
+    scale_identified_target(spec; prior = ScaleIdentifiedMGMFRMPrior(), kwargs...)
+
+Construct a multiplicative scale-identified fixed-Q MGMFRM target from a
+`FacetSpec` (`spec.family == :mgmfrm`). Keyword overrides construct a
+[`ScaleIdentifiedMGMFRMPrior`](@ref) when `prior` is omitted.
+"""
+function scale_identified_target(spec::_FacetSpec;
+        prior::Union{Nothing, ScaleIdentifiedMGMFRMPrior} = nothing,
+        kwargs...)
+    if prior !== nothing
+        isempty(kwargs) || throw(ArgumentError(
+            "supply either `prior = ScaleIdentifiedMGMFRMPrior(...)` or prior keyword arguments, not both"))
+        return ScaleIdentifiedMGMFRM.model(spec; prior)
+    end
+    return ScaleIdentifiedMGMFRM.model(spec; prior = ScaleIdentifiedMGMFRMPrior(; kwargs...))
+end
+scale_identified_target(spec::_FacetSpec, prior::ScaleIdentifiedMGMFRMPrior) =
+    ScaleIdentifiedMGMFRM.model(spec; prior)
 
 """
     slope_restriction(spec; item_slopes, rater_consistency)
@@ -182,7 +251,7 @@ Construct with [`correlated`](@ref).
 const CorrelatedMFRMSpec = getfield(_PACKAGE, :CorrelatedMFRMSpec)
 
 """
-Result of experimental correlated MFRM fitting. `direct_posterior_summary`
+Result of correlated MFRM fitting. `direct_posterior_summary`
 and `plot_posterior(...; block = :latent_correlation)` report rho on its
 correlation scale. Reports default to reader-facing output; diagnostics must
 be checked before interpreting estimates.
@@ -197,7 +266,7 @@ loadings, rater consistency and population correlation. Construct with
 const CorrelatedMGMFRMSpec = getfield(_PACKAGE, :_CorrelatedMGMFRMSpec)
 
 """
-Experimental correlated MGMFRM result. Supports raw/direct summaries, MCSE,
+correlated MGMFRM result. Supports raw/direct summaries, MCSE,
 diagnostics, metadata, full fit artifacts and manual `save_fit_cache`/`load_fit_cache`.
 Direct summaries and default MCSE report rho; raw summaries report Fisher z.
 Supports category probabilities and posterior prediction for existing rating
@@ -502,7 +571,7 @@ end
     surface_contract(correlated_spec)
     surface_contract(slope_spec; prior)
 
-Return the machine-readable stability boundary for the experimental namespace.
+Return the machine-readable stability boundary for the namespace.
 The zero-argument form describes the executable configurations and constraints
 for independent fixed-coefficient MFRM and both generalized families.
 Pass `:mfrm`, `:gmfrm` or `:mgmfrm` for one family contract, or a
@@ -544,6 +613,11 @@ function surface_contract()
             :NormalizedMGMFRMPrior,
             :MeanProfilePrior,
             :NormalizedMGMFRMFit,
+            :ScaleIdentifiedMGMFRM,
+            :ScaleIdentifiedMGMFRMPrior,
+            :ScaleIdentifiedMGMFRMTarget,
+            :ScaleIdentifiedMGMFRMFit,
+            :scale_identified_target,
             :cached_fit,
             :correlated,
             :joint_rating_spec,
@@ -582,7 +656,7 @@ end
 """
     free_latent_correlation_2d_contract()
 
-Return the experimental capability contract for the two-dimensional free
+Return the capability contract for the two-dimensional free
 latent-correlation density. The surface provides diagnostic operations only:
 it has no fit result or cache integration and does not alter the
 identity-correlation MGMFRM fit.
@@ -626,6 +700,11 @@ reproducibility without advancing the global RNG.
 """
 function prior_predict(spec; kwargs...)
     _reject_legacy_keyword(kwargs, "Experimental.prior_predict")
+    if get(kwargs, :prior, nothing) isa ScaleIdentifiedMGMFRMPrior
+        options = Base.structdiff((; kwargs...), (; prior = nothing))
+        tgt = ScaleIdentifiedMGMFRM.model(spec; prior = kwargs[:prior])
+        return ScaleIdentifiedMGMFRM.prior_predictive_check(tgt; options...).replicated_scores
+    end
     if get(kwargs, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior}
         options = Base.structdiff((; kwargs...), (; prior=nothing))
         return getfield(_PACKAGE, :_normalized_mgmfrm_prior_check)(spec, kwargs[:prior]; options...).replicated_scores
@@ -669,6 +748,11 @@ the supplied persons, items, raters and rating rows, not new facet levels.
 """
 function prior_predictive_check(spec; kwargs...)
     _reject_legacy_keyword(kwargs, "Experimental.prior_predictive_check")
+    if get(kwargs, :prior, nothing) isa ScaleIdentifiedMGMFRMPrior
+        options = Base.structdiff((; kwargs...), (; prior = nothing))
+        tgt = ScaleIdentifiedMGMFRM.model(spec; prior = kwargs[:prior])
+        return ScaleIdentifiedMGMFRM.prior_predictive_check(tgt; options...)
+    end
     if get(kwargs, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior}
         options = Base.structdiff((; kwargs...), (; prior=nothing))
         return getfield(_PACKAGE, :_normalized_mgmfrm_prior_check)(spec, kwargs[:prior]; options...)
@@ -727,7 +811,7 @@ end
 
 Compare automatic and central-difference gradients and verify that introducing
 the correlation coordinate leaves the fixed-Q MGMFRM response likelihood
-unchanged. The returned reader-facing projection describes the experimental
+unchanged. The returned reader-facing projection describes the
 density evaluation, gradient checks, and likelihood-consistency check. The
 function is diagnostic only and does not run MCMC.
 """
@@ -829,7 +913,7 @@ end
 """
     free_latent_correlation_2d_known_truth_fixture(; kwargs...)
 
-Generate a validated response-level known-truth dataset for the experimental 2D
+Generate a validated response-level known-truth dataset for the 2D
 free-correlation density. The result describes the data-generating process; it
 is not recovery evidence.
 """
@@ -843,7 +927,7 @@ end
 """
     free_latent_correlation_2d_recovery_pilot(fixture; kwargs...)
 
-Run the experimental density against one known-truth response dataset. This
+Run the density against one known-truth response dataset. This
 single-dataset result does not verify replicated recovery or change the stable
 MGMFRM fitting surface.
 """
@@ -1012,7 +1096,7 @@ end
 """
     fit(spec; kwargs...)
 
-Fit a supported multidimensional MFRM or generalized specification experimentally.
+Fit a supported multidimensional MFRM or generalized specification.
 Callers should not pass an `experimental` keyword. Family-specific structural
 constraints are validated before numerical execution. Pass `correlated(spec)`
 to estimate population correlation for two between-item MFRM dimensions; both
@@ -1092,8 +1176,11 @@ summary, report, plotting and manual cache operations.
 function fit(spec; kwargs...)
     norm_kw = getfield(_PACKAGE, :_normalize_stan_nuts_kwargs)(kwargs; caller = "Experimental.fit")
     mode = get(norm_kw, :chain_execution, :serial)
-    getfield(_PACKAGE, :_check_chain_execution)(mode, get(norm_kw, :max_parallel_chains, 1), get(norm_kw, :backend, :advancedhmc))
-    if mode === :threads && (spec isa CorrelatedMGMFRMSpec || spec isa CorrelatedMFRMSpec ||
+    bk_sym = get(norm_kw, :backend, :advancedhmc)
+    max_par = get(norm_kw, :max_parallel_chains, get(norm_kw, :chains, 4))
+    getfield(_PACKAGE, :_check_chain_execution)(mode, max_par, bk_sym; allow_auto = true)
+    eff_mode = getfield(_PACKAGE, :_resolve_chain_execution)(mode, get(norm_kw, :chains, 4), max_par, bk_sym)
+    if eff_mode === :threads && (spec isa CorrelatedMGMFRMSpec || spec isa CorrelatedMFRMSpec ||
             (spec isa _FacetSpec && getfield(_PACKAGE, :_is_mfrm_fixed_q)(spec)))
         throw(ArgumentError("threaded chains currently support scalar MFRM and shared independent generalized AdvancedHMC routes"))
     end
@@ -1101,6 +1188,14 @@ function fit(spec; kwargs...)
     _reject_legacy_keyword(norm_kw, "Experimental.fit")
     spec isa getfield(_PACKAGE, :_SlopeRestrictedSpec) && !(get(norm_kw, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior}) &&
         throw(ArgumentError("slope_restriction requires an explicit NormalizedMGMFRMPrior"))
+    if spec isa ScaleIdentifiedMGMFRMTarget
+        return ScaleIdentifiedMGMFRM.fit(spec; norm_kw...)
+    end
+    if get(norm_kw, :prior, nothing) isa ScaleIdentifiedMGMFRMPrior
+        options = Base.structdiff(norm_kw, (; prior = nothing))
+        tgt = ScaleIdentifiedMGMFRM.model(spec; prior = norm_kw[:prior])
+        return ScaleIdentifiedMGMFRM.fit(tgt; options...)
+    end
     if get(norm_kw, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior}
         options = Base.structdiff(norm_kw, (; prior=nothing))
         return getfield(_PACKAGE, :_normalized_mgmfrm_fit)(spec, norm_kw[:prior]; options...)
@@ -1126,14 +1221,16 @@ end
 """
     fit_cache_key(spec; backend = :advancedhmc, kwargs...)
 
-Return the deterministic cache key for an experimental generalized fit request.
-The namespace records the experimental identity and selects the generalized
+Return the deterministic cache key for a generalized fit request.
+The namespace records the identity and selects the generalized
 backend unless the backend is overridden explicitly.
 """
 function fit_cache_key(spec; backend::Symbol = :advancedhmc, kwargs...)
     norm_kw = getfield(_PACKAGE, :_normalize_stan_nuts_kwargs)(kwargs; caller = "Experimental.fit_cache_key", emit_info = false)
     get(norm_kw, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior} && throw(ArgumentError(
         "normalized MGMFRM requires fit followed by save_fit_cache/load_fit_cache; automatic request caching is unavailable"))
+    get(norm_kw, :prior, nothing) isa ScaleIdentifiedMGMFRMPrior && throw(ArgumentError(
+        "scale-identified MGMFRM requires fit followed by save_fit/load_fit; automatic request caching is unavailable"))
     checked = _require_generalized_spec(spec, "Experimental.fit_cache_key")
     _reject_legacy_keyword(norm_kw, "Experimental.fit_cache_key")
     return getfield(_PACKAGE, :fit_cache_key)(
@@ -1147,14 +1244,16 @@ end
 """
     cached_fit(spec; backend = :advancedhmc, kwargs...)
 
-Run or load an experimental generalized fit through the package cache while
-keeping its experimental identity explicit in the cache contract. The
+Run or load a generalized fit through the package cache while
+keeping its model identity explicit in the cache contract. The
 generalized backend is selected by default.
 """
 function cached_fit(spec; backend::Symbol = :advancedhmc, kwargs...)
     norm_kw = getfield(_PACKAGE, :_normalize_stan_nuts_kwargs)(kwargs; caller = "Experimental.cached_fit")
     get(norm_kw, :prior, nothing) isa Union{NormalizedMGMFRMPrior,MeanProfilePrior} && throw(ArgumentError(
         "normalized MGMFRM requires fit followed by save_fit_cache/load_fit_cache; automatic request caching is unavailable"))
+    get(norm_kw, :prior, nothing) isa ScaleIdentifiedMGMFRMPrior && throw(ArgumentError(
+        "scale-identified MGMFRM requires fit followed by save_fit/load_fit; automatic request caching is unavailable"))
     checked = _require_generalized_spec(spec, "Experimental.cached_fit")
     _reject_legacy_keyword(norm_kw, "Experimental.cached_fit")
     return getfield(_PACKAGE, :cached_fit)(
@@ -1180,7 +1279,7 @@ include("correlated_3d.jl")
         root_criterion = nothing, parameterization = nothing,
         predictor_columns = Symbol[])
 
-Construct an experimental multi-criterion rating-event model specification
+Construct a multi-criterion rating-event model specification
 from long-format event rows, explicit `criteria` metadata, and an explicit
 `prior`.
 
@@ -1198,7 +1297,7 @@ and density functions. Among these routes, shared `prior_draw`, `simulate`, and
 `prior_predictive_check` are available only for `association=:star`; they are
 not implemented for the shared-response (`:none`) or uniform-association
 (`:uniform`) targets. Check the selected model's contract for prediction,
-reporting, and persistence boundaries. Availability is experimental and does
+reporting, and persistence boundaries. Availability does
 not imply scientific acceptance.
 """
 function joint_rating_spec(
@@ -1261,6 +1360,9 @@ function joint_rating_spec(
 end
 
 surface_contract(t::Correlated3D.Target) = Correlated3D.contract(t)
+surface_contract(t::ScaleIdentifiedMGMFRMTarget) = ScaleIdentifiedMGMFRM.contract(t)
+surface_contract(spec::_FacetSpec; prior::ScaleIdentifiedMGMFRMPrior) =
+    ScaleIdentifiedMGMFRM.contract(ScaleIdentifiedMGMFRM.model(spec; prior))
 surface_contract(::StarAssociation.StarModel) = StarAssociation.contract()
 
 fit(m::StarAssociation.StarModel; kwargs...) = StarAssociation.fit(m; kwargs...)

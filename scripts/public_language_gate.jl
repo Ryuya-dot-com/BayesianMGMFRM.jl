@@ -35,10 +35,13 @@ const PUBLIC_DOCUMENTATION_PAGES = (
     "fitting.md",
     "stan-adapter.md",
     "frequentist-mfrm.md",
+    "equating-and-populations.md",
+    "design-matrix-mrcml.md",
     "experimental.md",
     "joint-ratings.md",
     "additive-facets.md",
     "explanatory-ratings.md",
+    "multivariate-generalizability.md",
     "bounded-scores.md", "count-scores.md", "random-slopes.md", "distributional-scores.md", "mixed-outcomes.md",
     "repeated-performances.md",
     "person-testlet.md",
@@ -83,8 +86,13 @@ const DEVELOPER_DOCUMENTATION_PAGES = (
 const PUBLIC_ROOT_FILES = (
     "README.md",
     "NEWS.md",
-    "ROADMAP.md",
 )
+
+function _is_internal_root_roadmap(path::AbstractString)
+    isfile(path) || return false
+    first_line = open(io -> eof(io) ? "" : readline(io), path)
+    return startswith(strip(first_line), "# BayesianMGMFRM.jl — Internal Roadmap")
+end
 
 const ABSOLUTE_LOCAL_PATH_PATTERN =
     r"(?:file://|(?<![A-Za-z0-9:/])/(?:Users|home|tmp|private/(?:tmp|var/folders)|var/(?:folders|tmp)|workspace|workspaces|Volumes|mnt)(?:/|\b)|(?<![A-Za-z0-9])[A-Za-z]:[\\/]+|\\\\[^\\/\s]+[\\/]+[^\\/\s]+)"
@@ -98,7 +106,7 @@ const MAINTENANCE_TOKEN_PATTERN =
 const LANGUAGE_RULES = (
     (;
         id = :study_process_wording,
-        pattern = r"(?i)\b(?:Stage[ -]+A|LD1[ab][0-9]*|MS[1-6]|MP1|frozen cohorts|execution-protocol authorization|attempt-complete evaluation-runner blocker|independent threshold review)\b",
+        pattern = r"(?i)\b(?:Stage[ -]+A|LD1[ab][0-9]*|MS[1-6]|MP1|P[123][-_][0-9]+|CR[1-8]|U4|frozen cohorts|execution-protocol authorization|attempt-complete evaluation-runner blocker|independent threshold review|recovery and coverage gates)\b",
         guidance = "explain available operations and statistical limits; keep study scheduling and approval language outside user documentation",
     ),
     (;
@@ -118,7 +126,7 @@ const LANGUAGE_RULES = (
     ),
     (;
         id = :developer_artifact_path,
-        pattern = r"(?:test/fixtures/|scripts/generate_|artifacts/(?:uto_style|publication_grade))[^\s<]*",
+        pattern = r"(?:docs/internal/|results/workflows/|test/fixtures/|scripts/generate_|artifacts/(?:uto_style|publication_grade))[^\s<]*",
         guidance = "describe the public evidence or workflow without its developer path",
     ),
     (;
@@ -309,6 +317,10 @@ function public_surface_paths(root::AbstractString)
     normalized_root = abspath(normpath(root))
     paths = String[]
     append!(paths, joinpath.(Ref(normalized_root), PUBLIC_ROOT_FILES))
+    root_roadmap = joinpath(normalized_root, "ROADMAP.md")
+    if isfile(root_roadmap) && !_is_internal_root_roadmap(root_roadmap)
+        push!(paths, root_roadmap)
+    end
     examples_root = joinpath(normalized_root, "examples")
     isdir(examples_root) || error("public examples directory does not exist")
     example_paths = String[]
@@ -321,6 +333,13 @@ function public_surface_paths(root::AbstractString)
     append!(paths, example_paths)
     append!(paths, [joinpath(normalized_root, "docs", "src", page)
                     for page in PUBLIC_DOCUMENTATION_PAGES])
+    r_root = joinpath(normalized_root, "interfaces", "R", "BayesianMGMFRM")
+    if isdir(r_root)
+        push!(paths, joinpath(r_root, "README.md"))
+        for (directory, _, files) in walkdir(joinpath(r_root, "man")), file in sort(files)
+            endswith(file, ".Rd") && push!(paths, joinpath(directory, file))
+        end
+    end
     missing = filter(!isfile, paths)
     isempty(missing) || error(
         "public language policy references missing file(s): " *

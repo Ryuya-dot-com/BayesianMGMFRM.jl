@@ -28,10 +28,10 @@ simulate_responses
 
 Methodological validation protocols, known-truth calibration pilots, and
 cross-engine benchmark harnesses are organized under
-`BayesianMGMFRM.ValidationSuite`. The individual bindings below also remain
-package-root exports for `0.1.x` source compatibility; they are not part of the
-primary practitioner workflow, and their presence is not validation of GMFRM,
-MGMFRM, or local-dependence claims.
+`BayesianMGMFRM.ValidationSuite`. Load them via `using BayesianMGMFRM.ValidationSuite`
+(or access them as qualified `BayesianMGMFRM.<name>` bindings); they are not
+part of the primary practitioner root workflow, and their presence is not
+validation of GMFRM, MGMFRM, or local-dependence claims.
 
 ```@docs
 BayesianMGMFRM.ValidationSuite

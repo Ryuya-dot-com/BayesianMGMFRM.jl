@@ -10,7 +10,7 @@ const PRIOR_KEYS=(:task_sd,:rater_sd,:step_sd,:response_log_sd_mean,
 """
     contract()
 
-Experimental two-criterion ordinal association model. Unit coefficients;
+two-criterion ordinal association model. Unit coefficients;
 estimated person SDs, explicit criterion means, centered task effects and
 correlated response effects. Lambda is a uniform adjacent log odds ratio,
 not a Pearson correlation or a psychological halo. No predictors, new-level
@@ -93,11 +93,11 @@ end
 function source_signature()
     root=pkgdir(B);files=Dict{String,String}()
     for (directory,_,names) in walkdir(joinpath(root,"src")), name in sort(names)
-        p=joinpath(directory,name);files[relpath(p,root)]=bytes2hex(sha256(read(p)))
+        p=joinpath(directory,name);files[replace(relpath(p,root),'\\'=>'/')]=bytes2hex(sha256(read(p)))
     end
     files["Project.toml"]=bytes2hex(sha256(read(joinpath(root,"Project.toml"))))
     project=Base.active_project()
-    manifest=project===nothing ? nothing : joinpath(dirname(project),"Manifest.toml")
+    manifest=project===nothing ? nothing : Base.project_file_manifest_path(project)
     (;source_hash=B._cache_hash(files),julia=string(VERSION),platform=Sys.MACHINE,
         project=project===nothing ? nothing : bytes2hex(sha256(read(project))),
         manifest=manifest!==nothing && isfile(manifest) ? bytes2hex(sha256(read(manifest))) : nothing)
@@ -188,7 +188,7 @@ function fit(target::Target;ndraws::Int,warmup::Int,chains::Int,seed,reconstruct
         ad_backend=:analytic,progress,record_warmup=true)
     locations=randn(MersenneTwister(reconstruction_seed),run.total_draws,2)
     result=_record(t,run,locations;provenance=(;operation=:fit,seed,reconstruction_seed),
-        warnings=["Experimental model; scientific prior choice, fit and sensitivity require assessment."])
+        warnings=["Assess prior choice, model fit and sensitivity for the intended analysis."])
     restore(result)
     result
 end

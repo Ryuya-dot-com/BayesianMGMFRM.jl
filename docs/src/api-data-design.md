@@ -5,12 +5,14 @@
     This manual describes a development snapshot, not an accepted stable release.
     Model support and scientific acceptance remain as stated on each page.
 
-For a first analysis, use `FacetData`, `validate_design`, `mfrm_spec` and
-`design_summary`; then consult individual references below as needed.
+For a first analysis, use `mfrm_spec(ratings; ..., prior = :default)`,
+`validate_design` and `design_summary`; then consult individual references below
+as needed. The returned specification is an `AbstractMFRMSpec`. If using
+`FacetData` for input, pass `mfrm_spec(data; prior = :default)` explicitly.
 `view=:public` changes presentation, not confidentiality: user-supplied identifiers
 may remain. It is not an anonymization operation.
 
-Enter `spec` at the Julia prompt to read a `FacetSpec`'s slopes, category-step
+For legacy `BayesianMGMFRM.Legacy.FacetSpec` objects, enter `spec` at the Julia prompt to read slopes, category-step
 owner, fitting entry and warning counts. In a script, use
 `show(stdout, MIME"text/plain"(), spec)`. `println(spec)` retains the compact
 one-line representation. See [option meanings](learning-guide.md#Check-what-this-package-can-currently-fit)
@@ -38,11 +40,12 @@ claim that every represented generalized configuration can be fitted.
 
 ```@docs
 BayesianMGMFRM
+AbstractMFRMSpec
 FacetData
 ValidationIssue
 ValidationReport
-FacetSpec
-FacetDesign
+BayesianMGMFRM.FacetSpec
+BayesianMGMFRM.FacetDesign
 validate_design
 validation_suggestions
 ordinal_response_pattern_audit
@@ -116,12 +119,14 @@ simulate
 
 ## Glass-Box Researcher Transparency Surface
 
-These functions expose exact mathematical contracts, parameter charts, facet
-bases, coordinate bijections, triangular change-of-variables Jacobians,
-analytical or forward-mode gradients, CmdStan data dictionaries, and sampler
-settings across package targets.
+Load `using BayesianMGMFRM.GlassBox` to bring these Layer-2 inspection functions
+and submodules into scope. They expose exact mathematical contracts, parameter
+charts, facet bases, coordinate bijections, triangular change-of-variables
+Jacobians, analytical or forward-mode gradients, CmdStan data dictionaries, and
+sampler settings across package targets.
 
 ```@docs
+BayesianMGMFRM.GlassBox
 contract
 parameter_names
 facet_basis
@@ -138,13 +143,15 @@ sampler_controls
 
 ## Compatibility diagnostic names
 
-`rating_design_audit`, `model_surface_audit`, and `testlet_design_audit` are
-retained at package root for source compatibility in the `0.1.x` line. New
-reader-facing workflows should use `rating_design_check`,
-`model_surface_check`, and `testlet_design_check`. Retention does not make the
-detailed audit payloads a new stable extension surface.
+`BayesianMGMFRM.Legacy` (`using BayesianMGMFRM.Legacy`) re-exports earlier `0.1.x`
+compatibility bindings such as `rating_design_audit`, `model_surface_audit`, and
+`testlet_design_audit`. New reader-facing workflows should use
+`rating_design_check`, `model_surface_check`, and `testlet_design_check`.
+Retention in `Legacy` does not make detailed audit payloads a new stable
+extension surface.
 
 ```@docs
+BayesianMGMFRM.Legacy
 rating_design_audit
 model_surface_audit
 testlet_design_audit

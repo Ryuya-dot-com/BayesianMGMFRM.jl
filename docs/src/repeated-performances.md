@@ -2,7 +2,7 @@
 
 Does a faster speaker tend to receive higher ratings? Does a speaker receive higher
 ratings when speaking faster than their own observed average? These are different
-questions. This experimental scalar model estimates both associations, together
+questions. This scalar model estimates both associations, together
 with variation among people, performances and raters.
 
 ## Declare what belongs to a performance
@@ -13,6 +13,7 @@ uses each distinct observed talk once, even if some talks have more ratings.
 
 ```julia
 using BayesianMGMFRM, JSON3
+using BayesianMGMFRM.Legacy
 using Distributions: Normal, LogNormal
 
 input = JSON3.read(read(joinpath(pkgdir(BayesianMGMFRM),

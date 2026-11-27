@@ -2,6 +2,8 @@ isdefined(@__MODULE__, :MFRMExchangeableSampleChecks) || include("mfrm_exchangea
 
 module MFRMValidationPreparationChecks
 using Test, Random, Statistics, LinearAlgebra, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy: MFRMPrior
 using ..MFRMExchangeableSampleChecks: synthetic_record
 include(joinpath(@__DIR__, "..", "scripts", "mfrm_validation_preparation.jl"))
 const V = MFRMValidationPreparation

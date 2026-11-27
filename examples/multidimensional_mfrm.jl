@@ -1,4 +1,6 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using Random
 
 all(arg -> arg in ("--plots", "--cmdstan", "--correlated", "--prior-only", "--exchangeable"), ARGS) ||

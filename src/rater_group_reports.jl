@@ -42,7 +42,7 @@ function report(result;reference_group,practical_threshold,interval=.95)
         diagnostics=RI._diagnostics(t,run,m),
         labels=(;person=copy(d.person_levels),item=copy(d.item_levels),rater=copy(d.rater_levels),group=copy(d.optional_levels[:group])),
         parameter_summary=[(;r.parameter,r.mean,r.sd,r.median,r.intervals,r.n_draws) for r in parameter_rows],
-        warning="Experimental relative panel effects. Check whole-fit diagnostics AND focal MCSE; item/step invariance and prior sensitivity remain assumptions to assess. No automatic bias, fairness or multiplicity decision.")
+        warning="relative panel effects. Check whole-fit diagnostics AND focal MCSE; item/step invariance and prior sensitivity remain assumptions to assess. No automatic bias, fairness or multiplicity decision.")
 end
 
 """

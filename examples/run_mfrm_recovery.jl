@@ -1,6 +1,7 @@
 module MFRMRecoveryRun
 
 using BayesianMGMFRM, Random, Serialization
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 const P = B.Experimental.RecoveryPlanning
 const STAGES = (:generation, :fit, :recovery)

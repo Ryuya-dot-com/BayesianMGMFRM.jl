@@ -1,5 +1,6 @@
 module ReportFigureChecks
 using Test, BayesianMGMFRM, Random, SHA
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("fixtures/reporting_fit.jl")
 const options = (; include_artifact = false, include_loo = false, include_waic = false,

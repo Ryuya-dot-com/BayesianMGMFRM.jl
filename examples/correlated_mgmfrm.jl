@@ -1,4 +1,5 @@
 using BayesianMGMFRM, Random
+using BayesianMGMFRM.Legacy
 
 all(arg -> arg in ("--cmdstan", "--figures"), ARGS) ||
     error("Usage: julia --project=. examples/correlated_mgmfrm.jl [--cmdstan] [--figures]")

@@ -3,6 +3,7 @@
 module LocalDependenceCalibrationPilotJobWorker
 
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 using Dates
 using JSON3
 using Random

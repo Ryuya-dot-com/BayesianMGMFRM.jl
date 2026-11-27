@@ -1,6 +1,7 @@
 # Compare trusted saved fit caches without fitting or generating random draws.
 module PriorSensitivityExample
 using BayesianMGMFRM, SHA
+using BayesianMGMFRM.Legacy
 using BayesianMGMFRM: JSON3
 const B = BayesianMGMFRM
 

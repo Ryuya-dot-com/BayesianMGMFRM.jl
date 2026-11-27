@@ -1,6 +1,8 @@
 module MGMFRMLocationChecks
 
 using Test, Random, Statistics, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 
 function specification(q)

@@ -1,5 +1,6 @@
 module RecoveryStudySummaryChecks
 using BayesianMGMFRM, Test, Serialization
+using BayesianMGMFRM.Legacy: MFRMPrior
 const B = BayesianMGMFRM
 const P = B.Experimental.RecoveryPlanning
 include("../examples/plan_mfrm_recovery.jl")

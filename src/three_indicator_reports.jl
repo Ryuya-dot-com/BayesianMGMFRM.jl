@@ -5,7 +5,7 @@ Inspect labelled input with `inspect_input`, or read and share computed
 three-outcome reports with `load_report`, `report` and `save_report`.
 Prepare and fit the no-state model with explicit priors using `prepare` and `fit`, restore
 its native chains with `load_fit`, and compute a report with `summarize`.
-See `contract()` and the guide for its experimental interpretation limits.
+See `contract()` and the guide for its interpretation limits.
 """
 module ThreeIndicator
 using JSON3, SHA
@@ -40,7 +40,7 @@ _mcse(x) = (_finite(x) && x>=0) || x===nothing || x in ("NaN","Inf","-Inf")
 _diagnostic(d,p) = _positive(d.rank_normalized_rhat) && d.rank_normalized_rhat<=p.rhat_max &&
     _positive(d.bulk_ess) && d.bulk_ess>=p.ess_min && _positive(d.tail_ess) && d.tail_ess>=p.ess_min
 
-"""Return the experimental no-state input, fitting and saved-report scope."""
+"""Return the no-state input, fitting and saved-report scope."""
 contract() = (;status=:experimental,input_inspection=true,report_only=false,fitting=true,native_chain_import=true,historical_native_import=false,
     outcomes=(:accentedness,:comprehension_difficulty,:transcription_error),
     categories=(9,9,2),priors=(:reference,:steps,:combined),latent_state=false,scientific_acceptance=false,
@@ -80,7 +80,7 @@ function _check_source(x)
     provenance=julia ? (:plan_hash,) : (:scope_sha256,:archive_hash)
     _fields(x,provenance)
     _require(x.posterior===true && x.statistical_acceptance===false,
-        "only the declared experimental computed-posterior format is supported")
+        "only the declared computed-posterior format is supported")
     _fields(x.context,(:sources,:julia,:project,:manifest,:package))
     sources=Dict(String(s.path)=>String(s.sha256) for s in x.context.sources)
     producer=(julia ? :julia : :stan, get(sources,"three_indicator_observation.jl",""),

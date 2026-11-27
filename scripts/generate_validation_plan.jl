@@ -5,13 +5,12 @@
 # simulations or fit models; it records the predeclared plan that a later
 # manuscript-scale evidence job must execute.
 
-using Pkg
 using SHA
 
-const ROOT = abspath(normpath(joinpath(@__DIR__, "..")))
-Pkg.activate(ROOT; io = devnull)
+# Honor the caller's --project environment, including an installed package test.
 
 using BayesianMGMFRM
+using BayesianMGMFRM.ValidationSuite: falsification_rule_summary, falsification_rules, simulation_grid, simulation_grid_summary
 
 function usage()
     return """

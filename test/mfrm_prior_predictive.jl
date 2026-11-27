@@ -1,6 +1,8 @@
 isdefined(@__MODULE__, :MFRMCorrelated2DChecks) || include("mfrm_correlated_2d.jl")
 module MFRMPriorPredictiveChecks
 using Test, BayesianMGMFRM, Random, Statistics, LinearAlgebra
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using ..MFRMCorrelated2DChecks: specification, PRIOR
 const B = BayesianMGMFRM
 

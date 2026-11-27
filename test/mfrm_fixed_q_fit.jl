@@ -1,6 +1,8 @@
 module MFRMFixedQFitChecks
 
 using Test, BayesianMGMFRM, Random, Statistics, SHA
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("test_groups.jl")
 include("fixtures/fixed_q_result.jl")

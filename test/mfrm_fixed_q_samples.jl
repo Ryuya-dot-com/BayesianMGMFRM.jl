@@ -1,6 +1,8 @@
 module MFRMFixedQSampleChecks
 
 using Test, BayesianMGMFRM, Serialization, Statistics, Random
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("test_groups.jl")
 include("fixtures/fixed_q_report_bundle.jl")

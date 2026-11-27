@@ -1,5 +1,7 @@
 module RefitMetadataChecks
 using Test, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 
 function panel(; metadata = true)

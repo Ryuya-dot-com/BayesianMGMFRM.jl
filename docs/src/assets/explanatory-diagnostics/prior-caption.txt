@@ -1,3 +1,3 @@
-Experimental scalar model · prior predictive check
+scalar model · prior predictive check
 
 Note. PRIOR predictive check: medians and 95.0% pointwise intervals for replicated category counts, 100 replicas. Parameters are drawn from the declared prior, not a fitted posterior; observed scores are not used to condition predictions. Source: supplied_saved_counts. No convergence qualification applies to a prior simulation. Prior predictive intervals describe replicated category counts before conditioning on scores; they are not posterior intervals. Predictive endpoint MCSE is not assessed; few replicas support only exploratory checks.

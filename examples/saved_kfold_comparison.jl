@@ -1,4 +1,5 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 """
     saved_kfold_comparison(models::Pair...; comparison_axis, baseline=nothing,

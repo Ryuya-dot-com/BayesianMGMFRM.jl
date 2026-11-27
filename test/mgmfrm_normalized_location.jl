@@ -1,5 +1,7 @@
 module MGMFRMNormalizedLocationChecks
 using Test, BayesianMGMFRM, ForwardDiff, LinearAlgebra, Statistics, Random
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 include(joinpath(@__DIR__,"..","scripts","mgmfrm_normalized_location.jl"))
 const N = MGMFRMNormalizedLocation
 const B = BayesianMGMFRM

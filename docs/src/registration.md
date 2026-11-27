@@ -4,14 +4,14 @@ A package version and a development source revision identify different things.
 Several development revisions can retain the same package version. Record the
 exact source revision, Julia version and complete dependency environment with
 an analysis. The [supported scope](scope.md) describes model/prior/backend
-combinations; an experimental interface remains experimental after publication.
+combinations; publication does not extend those combinations.
 
-The source archive and manual in this distribution share snapshot name
-`20261119-distribution-ci-freeze`; the package remains `0.1.2 (unreleased)`. Preserve the
-archive and its separate SHA-256 receipt. The archive includes the supplied
-computed result and figures, but excludes the developer's `Manifest.toml` and
-private working results. Your own analysis project records its resolved
-dependencies; it does not inherit the original native-fit environment.
+This manual matches the accompanying **`0.2.0-DEV (unreleased)`** development
+source tree rather than the earlier `0.1.2` snapshot
+(`20261119-distribution-ci-freeze`). Preserve the exact Git commit (or source
+archive and its separate SHA-256 receipt) together with your analysis project's
+`Project.toml` and `Manifest.toml`. Your own analysis project records its
+resolved dependencies; it does not inherit the original native-fit environment.
 
 ## Pin an analysis environment
 
@@ -30,7 +30,7 @@ draws or a refittable model.
 ## Cite the source used
 
 Use the `CITATION.cff` supplied with the source you actually used. The current
-development version is `0.1.2 (unreleased)`; no release date or version DOI is
+development version is `0.2.0-DEV (unreleased)`; no release date or version DOI is
 assigned to it. Record the exact Git revision or an archived source snapshot
 alongside the version. A package version alone cannot distinguish development
 revisions. Keep the source archive with the analysis when a revision cannot
@@ -56,8 +56,9 @@ Then:
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 # The legacy MFRM category section also generates replicated ratings.
-legacy_options = fit_result isa MFRMFit ?
+legacy_options = fit_result isa BayesianMGMFRM.Legacy.MFRMFit ?
     (; include_category_functioning=false, include_rater_homogeneity=false) : (;)
 report = fit_report(fit_result; legacy_options...,
     include_prior_predictive=false,
