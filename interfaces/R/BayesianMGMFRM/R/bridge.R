@@ -13,7 +13,7 @@
 }
 
 setup_mgmfrm <- function(project = file.path(tools::R_user_dir("BayesianMGMFRM", "cache"),
-                                              "julia-dcc3c844"),
+                                              "julia-0cea3251"),
                          source_dir = NULL, julia = Sys.which("julia")) {
   if (!nzchar(julia)) stop("Install Julia 1.10.8 or later, or supply its executable path.")
   julia <- normalizePath(julia, mustWork = TRUE)
