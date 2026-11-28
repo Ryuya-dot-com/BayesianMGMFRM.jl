@@ -1,5 +1,6 @@
 module ResponseSurfaceChecks
 using Test, Statistics, BayesianMGMFRM, LinearAlgebra
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("fixtures/reporting_fit.jl")
 

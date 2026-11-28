@@ -1,5 +1,6 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.ValidationSuite: mgmfrm_decision_stability_score, mgmfrm_predictive_recovery_score
 
 @testset "Predictive recovery from normalized log probabilities" begin
     score = mgmfrm_predictive_recovery_score

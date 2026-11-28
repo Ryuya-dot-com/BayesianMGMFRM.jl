@@ -113,7 +113,7 @@ function record(t,run)
     m=model_draws(t,run.draws)
     body=(;schema=SAMPLE_SCHEMA,spec=deepcopy(t.independent.base.design.spec),target=contract(t),
         source=source_signature(),run,model_effects_hash=B._cache_hash((;m.names,m.values)),
-        warnings=["Experimental 3D model; numerical diagnostics do not establish scientific adequacy or calibration."])
+        warnings=["Numerical diagnostics do not establish scientific adequacy or calibration."])
     merge(body,(;content_hash=B._cache_hash(body)))
 end
 function restore(r)

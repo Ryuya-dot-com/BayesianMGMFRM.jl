@@ -1,4 +1,4 @@
-"""Experimental scalar PCM with jointly fitted, partially pooled rater-by-item effects."""
+"""scalar PCM with jointly fitted, partially pooled rater-by-item effects."""
 module RaterItemInteractions
 import BayesianMGMFRM as B
 import LogDensityProblems as L
@@ -82,7 +82,7 @@ end
 """
     model(data::FacetData; prior::Prior)
 
-Prepare an experimental unit-slope scalar item-step PCM. This first route requires
+Prepare a unit-slope scalar item-step PCM. This first route requires
 every rater-by-item cell observed and a connected person--cell allocation. Missing
 individual ratings and unequal cell counts are allowed; no missing score is filled.
 Other facet columns, slopes, Q matrices and group DIF are outside this model.
@@ -158,7 +158,7 @@ end
 const SCHEMA="bayesianmgmfrm.rater_item_interaction_samples.v1"
 const SCOPE=(;family=:scalar_unit_slope_item_step_pcm,interaction=:rater_item,
     reference=:equal_weight_full_grid,acceptance=:experimental_engineering_only)
-"""Machine-readable scope of the experimental fitted-interaction workflow."""
+"""Machine-readable scope of the fitted-interaction workflow."""
 contract()=(;SCOPE...,backend=:advancedhmc,
     allocation=:complete_cells_connected_person_cell_graph,prior=:explicit,
     operations=(:model,:design,:target_identity,:fit,:report,:contrast,:save_result,:load_result,:save_report),
@@ -282,7 +282,7 @@ function report(result;practical_threshold,interval=.95)
         diagnostics=_diagnostics(t,run,m),
         labels=(;person=copy(d.person_levels),item=copy(d.item_levels),rater=copy(d.rater_levels)),
         parameter_summary=[(;r.parameter,r.mean,r.sd,r.median,r.intervals,r.n_draws) for r in parameter_rows],
-        warning="Experimental model. Check whole-fit diagnostics AND focal MCSE. No automatic bias, fairness, equivalence or multiplicity decision.")
+        warning="Check whole-fit diagnostics and focal MCSE. No automatic bias, fairness, equivalence or multiplicity decision.")
 end
 
 """

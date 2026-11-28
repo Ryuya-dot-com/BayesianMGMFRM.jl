@@ -1,6 +1,8 @@
 module MGMFRMPriorMeasureChecks
 
 using Test, BayesianMGMFRM, ForwardDiff, LinearAlgebra, Statistics
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import JSON3
 const B = BayesianMGMFRM
 include("test_groups.jl")

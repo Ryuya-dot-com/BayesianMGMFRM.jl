@@ -281,6 +281,10 @@ facet_basis(spec::FacetSpec, facet::Symbol = :person) =
     facet_basis(getdesign(spec), facet)
 facet_basis(fit::MFRMFit, facet::Symbol = :person) =
     facet_basis(fit.design, facet)
+facet_basis(t::ScaleIdentifiedMGMFRM.Target, facet::Symbol = :item) =
+    ScaleIdentifiedMGMFRM.facet_basis(t, facet)
+facet_basis(f::ScaleIdentifiedMGMFRM.Fit, facet::Symbol = :item) =
+    ScaleIdentifiedMGMFRM.facet_basis(f, facet)
 
 """
     coordinates(model_or_design, q)
@@ -532,7 +536,7 @@ storage estimates, seeds, effective adaptation windows and warnings. Short warmu
 can leave an identity metric despite a diagonal request. `sampler_controls(result)`
 also retains observed metric-change iterations and the final inverse mass. Initial jitter does not guarantee mode exploration.
 
-`parameterization=:pair_132` is an experimental, prior-preserving sampler chart
+`parameterization=:pair_132` is a prior-preserving sampler chart
 for `interaction=:full`. Supply `initial` in native model coordinates. Stored draws,
 raw summaries (`pair_q_132`), jitter and metric remain in sampler coordinates;
 model summaries and probabilities convert each joint draw back to native coordinates.

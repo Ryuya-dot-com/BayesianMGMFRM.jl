@@ -1,6 +1,7 @@
 using Test
 using Statistics
 using BayesianMGMFRM
+using BayesianMGMFRM.ValidationSuite: mgmfrm_response_stress_plan, mgmfrm_response_stress_preflight, mgmfrm_validation_execution_design_contract, mgmfrm_validation_primary_resource_plan, mgmfrm_validation_resource_probe, mgmfrm_validation_scaled_resource_plan, mgmfrm_validation_short_nuts_resource_probe, simulate_mgmfrm_validation_primary_candidate
 
 function _fake_mgmfrm_resource_measurement(case, repetitions, policy)
     dimension = length(case.raw_truth)

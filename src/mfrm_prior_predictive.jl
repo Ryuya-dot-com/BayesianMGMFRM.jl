@@ -173,7 +173,7 @@ function _prior_caption(data)
         "$(length(data.rows)) of $(data.total) coordinates shown.\n" *
         "$(data.n_draws) independent joint prior draws; no posterior fitting.\n" *
         "Diamonds: fixed coefficients or baseline steps. Derived intervals use reconstructed draws.\n" *
-        "Model support: experimental. Prior plausibility does not establish identification or recovery."
+        "Prior plausibility does not establish identification or recovery."
 end
 
 function _render_fixed_q_prior(extension, data; size = nothing, annotation_io = stdout)

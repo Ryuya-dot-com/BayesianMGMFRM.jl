@@ -1,5 +1,6 @@
 # Run after CommonRecoveryEvaluationChecks.checks(directory), in a fresh process.
 using BayesianMGMFRM, Test, Serialization
+using BayesianMGMFRM.Legacy
 include("../examples/saved_recovery_evaluation.jl")
 directory=only(ARGS)
 @testset "Fresh-process named recovery evaluation" begin

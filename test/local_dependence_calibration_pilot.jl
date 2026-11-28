@@ -1,5 +1,7 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.ValidationSuite: local_dependence_calibration_contract, local_dependence_calibration_pilot_check, local_dependence_calibration_pilot_contract, local_dependence_calibration_pilot_preflight, local_dependence_simulation_grid, simulate_local_dependence
 using LogDensityProblems
 
 function _ld1b1_test_plan(;

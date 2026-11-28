@@ -1,4 +1,5 @@
 using BayesianMGMFRM,Test,TOML
+using BayesianMGMFRM.Legacy
 const B=BayesianMGMFRM
 previous,output=ARGS;mkpath(output)
 started=time()

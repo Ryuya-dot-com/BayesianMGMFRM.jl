@@ -5,9 +5,11 @@ Manifest.toml
 *.dylib
 *.dll
 .DS_Store
+/.Rhistory
 __pycache__/
 *.py[cod]
 results/
 artifacts/
+data/
 docs/build/
 test/fixtures/local/

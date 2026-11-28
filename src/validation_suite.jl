@@ -7,8 +7,7 @@ cross-engine benchmark, and evidence-manifest utilities.
 Separating these validation harnesses from the primary practitioner workflow
 keeps everyday measurement analysis concise while preserving transparent,
 programmatic access to every methodological verification protocol in the
-package. Compatibility bindings from the 0.1.x release line remain available at
-the package root.
+package via `using BayesianMGMFRM.ValidationSuite`.
 """
 module ValidationSuite
 
@@ -94,6 +93,23 @@ for _sym in _CORRELATION_2D_STUDY_NAMES
     @eval export $(_sym)
 end
 
+include("exchange_schema_v1.jl")
+
+const _EXCHANGE_SCHEMA_NAMES = (
+    :EXCHANGE_SCHEMA_VERSION,
+    :load_exchange_manifest,
+    :load_exchange_case,
+    :write_exchange_run,
+    :read_exchange_run,
+    :validate_exchange_run,
+    :compare_exchange_runs,
+    :evaluate_exchange_case,
+)
+
+for _sym in _EXCHANGE_SCHEMA_NAMES
+    @eval export $(_sym)
+end
+
 export RecoveryPlanning, contract
 
 """
@@ -105,8 +121,9 @@ bindings grouped by methodological domain.
 function contract()
     return (;
         schema = "bayesianmgmfrm.validation_suite.v1",
+        release_line = "0.2.x",
         status = :research_and_validation_protocol,
-        root_compatibility_preserved = true,
+        root_compatibility_preserved = false,
         groups = (;
             recovery_and_simulation = (
                 :RecoveryPlanning,
@@ -157,6 +174,7 @@ function contract()
                 :falsification_rules,
                 :stan_validation_row,
                 :stan_validation_summary,
+                _EXCHANGE_SCHEMA_NAMES...,
             ),
             evidence_and_scope_manifests = (
                 :case_study_provenance_manifest,

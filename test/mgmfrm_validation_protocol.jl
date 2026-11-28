@@ -1,5 +1,6 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.ValidationSuite: mgmfrm_validation_protocol
 
 @testset "Stage-A MGMFRM validation protocol" begin
     protocol = mgmfrm_validation_protocol()

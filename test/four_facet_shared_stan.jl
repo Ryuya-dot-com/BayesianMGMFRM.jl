@@ -1,6 +1,7 @@
 # Explicit native check: julia --project=. test/four_facet_shared_stan.jl [fresh-output-directory]
 module FourFacetSharedStanChecks
 using Test, BayesianMGMFRM, ForwardDiff, JSON3, SHA
+using BayesianMGMFRM.GlassBox
 import LogDensityProblems as L
 const B = BayesianMGMFRM
 include("../scripts/four_facet_shared_target.jl")

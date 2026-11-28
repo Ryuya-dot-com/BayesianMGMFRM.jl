@@ -27,6 +27,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
 end
 
 using BayesianMGMFRM, SHA
+using BayesianMGMFRM.Legacy
 using BayesianMGMFRM.PredictionObservationAdapter
 
 function main(args=ARGS; io=stdout)

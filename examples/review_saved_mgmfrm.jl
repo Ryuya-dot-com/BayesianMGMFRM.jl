@@ -7,6 +7,7 @@ end
 length(ARGS) == 3 || error("Supply FIT.jls, NEW_DIRECTORY and DIMENSION_LABEL; use --help for usage.")
 
 using BayesianMGMFRM, CairoMakie, SHA
+using BayesianMGMFRM.Legacy
 using BayesianMGMFRM: JSON3
 
 function review_saved_mgmfrm(cache_path, output_dir, dimension)

@@ -157,7 +157,7 @@ function _mgmfrm_correlated_2d_posterior_mcse(result;
     return [merge(row, (; parameter_space = space)) for (row, space) in zip(rows, input.spaces)]
 end
 
-# Explicit experimental wrappers; the base FacetSpec and MGMFRMFit still mean
+# Explicit wrappers; the base FacetSpec and MGMFRMFit still mean
 # independent ability dimensions. The prior is required at the fitting boundary.
 struct _CorrelatedMGMFRMSpec
     base_spec::FacetSpec
@@ -168,7 +168,7 @@ struct _CorrelatedMGMFRMSpec
     end
 end
 
-struct _CorrelatedMGMFRMFit
+struct _CorrelatedMGMFRMFit <: AbstractMFRMFit
     record::NamedTuple
     function _CorrelatedMGMFRMFit(record::NamedTuple; expected_identity::AbstractString)
         snapshot = deepcopy(record)
@@ -187,7 +187,7 @@ _recorded_mgmfrm_schemas(::_CorrelatedMGMFRMFit) = (;
 
 function Base.show(io::IO, spec::_CorrelatedMGMFRMSpec)
     print(io, "Correlated MGMFRM (", join(spec.base_spec.dimension_labels, ", "),
-        "; estimated loadings and consistency; LKJ eta = ", spec.lkj_eta, "; experimental)")
+        "; estimated loadings and consistency; LKJ eta = ", spec.lkj_eta, " )")
 end
 
 function _mgmfrm_correlated_2d_target(spec::_CorrelatedMGMFRMSpec, prior)
@@ -265,7 +265,7 @@ end
 function Base.show(io::IO, fit::_CorrelatedMGMFRMFit)
     metadata = fit_metadata(fit)
     print(io, metadata.model_label, " (", metadata.n_draws, " retained draws; ",
-        metadata.backend, "; estimated rho; experimental)")
+        metadata.backend, "; estimated rho)")
 end
 
 function posterior_summary(fit::_RecordedMGMFRMFit;

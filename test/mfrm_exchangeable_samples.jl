@@ -1,6 +1,8 @@
 isdefined(@__MODULE__, :MFRMExchangeableRaterChecks) || include("mfrm_exchangeable_raters.jl")
 module MFRMExchangeableSampleChecks
 using Test, BayesianMGMFRM, Serialization, Statistics, SHA, Random
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using ..MFRMExchangeableRaterChecks: specification, target, reference, SCALES
 const B = BayesianMGMFRM
 include("test_groups.jl")

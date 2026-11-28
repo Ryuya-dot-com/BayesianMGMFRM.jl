@@ -174,7 +174,7 @@ the algebraic dimension aggregator, distinguishes between-item, within-item,
 and mixed fixed-Q structures, names the PCM/GPCM-form category kernel and step
 owner, and records whether each branch is stable, guarded, specified-only, or
 blocked. It describes implementation scope; it does not fit a model, validate
-scientific performance, or promote an experimental branch.
+scientific performance, or promote a branch.
 """
 function model_family_contract()
     return (;
@@ -383,7 +383,7 @@ function model_family_contract(spec::FacetSpec)
             :additive_weighted_sum : :single_dimension,
         operational_compensation_status = fixed_coefficients ?
             :additive_compensation_where_cross_loaded : family === :mgmfrm && spec.dimensions > 1 ?
-            :not_adjudicated : :not_applicable,
+            :additive_compensation_where_cross_loaded : :not_applicable,
         conditional_ability_integral = false,
         ability_representation = :explicit_person_posterior_parameters,
         current_loading_policy = fixed_coefficients ? :fixed_q_coefficients : family === :mgmfrm ?
@@ -398,15 +398,28 @@ function model_family_contract(spec::FacetSpec)
         nonadditive_aggregator_supported = false,
     )
     latent_correlation = multidimensional ? :identity_fixed : :not_applicable
+    category = _model_family_category_contract(spec)
+    steps = _model_family_step_contract(spec)
+    loading_scope = family === :mgmfrm ? :ability_only :
+        family === :gmfrm ? :entire_linear_predictor :
+        fixed_coefficients ? :fixed_q_ability_only : :unit_slope
+    available_scale_identifications = family === :mgmfrm ?
+        (:geometric_mean_one, :anchor_item, :prior_only) :
+        family === :gmfrm ? (:prior_only,) :
+        fixed_coefficients ? (:fixed_q_coefficients,) : (:unit_slope,)
     return (;
         schema = "bayesianmgmfrm.model_family_contract.v1",
         object = :model_family_contract,
         branch = _model_family_exact_branch(spec, item_structure),
         family,
         scope = equation.scope,
-        category = _model_family_category_contract(spec),
+        logit_scale = category.implementation_scale_constant,
+        step_owner = steps.owner,
+        loading_scope,
+        available_scale_identifications,
+        category,
         dimensionality,
-        steps = _model_family_step_contract(spec),
+        steps,
         facets = (;
             fitted = (:person, :item, :rater),
             person_role = :latent_ability,
@@ -421,6 +434,7 @@ function model_family_contract(spec::FacetSpec)
         ),
         identification = (;
             equation = equation.identification,
+            available_scale_identifications,
             q_validation_status = q_validation === nothing ?
                 :not_applicable : q_identification === nothing ?
                     :unavailable : q_identification.status,

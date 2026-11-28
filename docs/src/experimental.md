@@ -1,4 +1,4 @@
-# Experimental Models
+# [Model Extensions](@id Experimental-Models)
 
 !!! note "Development manual"
     Use the [matching source and installation instructions](installation.md).
@@ -12,17 +12,18 @@ and [star association](star-association.md) for mixed-support event association.
 [Scope](scope.md) lists the admitted combinations. The sections below are separate
 recipes: their specifications, priors and saved results are not interchangeable.
 
-`BayesianMGMFRM.Experimental` contains multidimensional MFRM and generalized models executable
-only in the limited configurations documented below. They are not part of the
-stable MFRM fitting contract, and their availability does not imply broader
-GMFRM or MGMFRM support.
+`BayesianMGMFRM.Experimental` is the module name used by the specialized
+interfaces below. Standard GMFRM and scale-identified MGMFRM specifications also
+use the unified `mfrm_spec` and `fit` entry points described in
+[Bayesian Fitting](fitting.md). Choose a model by its response structure, priors
+and available operations; the module name alone does not describe those choices.
 
 For user-named additive scalar facets (such as prompt, occasion, or rating session),
 see [User-Named Additive Facets](additive-facets.md).
 
 For simultaneous multi-criterion ratings of the same produced response or rating
 event, `Experimental.joint_rating_spec(...; association = :none | :uniform | :star)`
-and `Experimental.fit` connect three bounded experimental routes:
+and `Experimental.fit` connect three bounded routes:
 [Shared-response Joint Ratings](joint-ratings.md) (`Experimental.JointRatings`),
 [Paired Ordinal Association](ordinal-association.md) (`Experimental.JointRatings.OrdinalAssociation`),
 and [Star-Factorized Multi-Criterion Association](star-association.md) (`Experimental.StarAssociation`).
@@ -82,7 +83,7 @@ CmdStan support from the unwrapped family. Use the wrapper-specific
 `surface_contract(model; prior)` and inspect the saved `fit_metadata`.
 
 The compatibility selector `discrimination = :none` on MGMFRM means that no
-broader generic discrimination family is selected. The experimental kernel still
+broader generic discrimination family is selected. The kernel still
 estimates positive item-by-dimension discriminations at the active cells of
 the fixed Q-matrix.
 
@@ -95,10 +96,12 @@ direct parameter scale. With `K` categories, the first step is fixed to zero,
 remaining steps sum to zero. The effective response-scale spacing also depends
 on the item-by-rater discrimination product.
 
-Inspect the executable contract before building an experimental workflow:
+Inspect the executable contract before building a workflow:
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using Random
 
 contract = BayesianMGMFRM.Experimental.surface_contract()
@@ -219,7 +222,7 @@ Explicit prediction calls continue to return the requested observation and
 category arrays; those outputs can still be large. This memory change does not
 alter the model, prior, sampling accuracy, cache format or precision criteria.
 
-**Experimental option:** `Experimental.MeanProfilePrior` adds explicit fixed means
+**Fixed-mean option:** `Experimental.MeanProfilePrior` adds explicit fixed means
 on the independent D1, item-owned PCM route with item slopes and rater
 consistency both fixed at one. This snapshot includes the option. Other models retain their
 existing priors; this is neither a scalar MFRM prior replacement nor a learned
@@ -333,7 +336,7 @@ an additive, compensatory within-item sum. Q is fixed, not estimated. Review
 dimensions with no single-loading indicators; an admitted Q is not evidence
 of statistical identification or recovery.
 
-`MFRMPrior` sets independent zero-centered normal priors on the free unit-logit
+`BayesianMGMFRM.Legacy.MFRMPrior` sets independent zero-centered normal priors on the free unit-logit
 coordinates. Person and item locations are prior-anchored; rater severities sum
 to zero. Active Q coefficients and rater consistency are one; latent correlation
 is identity. Item steps have a first zero step, `K - 2` free steps and a final
@@ -342,7 +345,7 @@ density needs no Jacobian adjustment and has no 1.7/1.702 multiplier.
 
 ### Prior scales, facet labels and locations
 
-With the default `MFRMPrior`, `rater_sd` and `step_sd` describe the **free-coordinate** standard deviations.
+With the default `BayesianMGMFRM.Legacy.MFRMPrior`, `rater_sd` and `step_sd` describe the **free-coordinate** standard deviations.
 They are not common marginal standard deviations of all reconstructed effects.
 With `R` raters, the first `R-1` severities have prior variance `rater_sd^2`,
 while the last has variance `(R-1)*rater_sd^2`. For three raters, their prior
@@ -429,7 +432,7 @@ zero-sum severity vector has covariance `rater_kernel_sd^2 * (I - 11'/R)`.
 Every rater's marginal SD is `rater_kernel_sd * sqrt((R-1)/R)`; any pairwise
 contrast has SD `sqrt(2) * rater_kernel_sd`. Thus with three raters and kernel
 SD 0.4, each marginal SD is about 0.327 and contrast SD about 0.566. Kernel SD
-is required and is **not** `MFRMPrior.rater_sd`; copying that value selects a
+is required and is **not** `BayesianMGMFRM.Legacy.MFRMPrior.rater_sd`; copying that value selects a
 different prior, rather than matching the old marginal or contrast variances.
 
 The free severities are dependent under this normalized joint prior. No extra
@@ -446,7 +449,7 @@ fit. Scalar MFRM, GMFRM and MGMFRM do not accept it.
 
 ### Fitting and saved results
 
-With `MFRMPrior`, both backends return `Experimental.MultidimensionalMFRMFit`. Warmup telemetry is
+With `BayesianMGMFRM.Legacy.MFRMPrior`, both backends return `Experimental.MultidimensionalMFRMFit`. Warmup telemetry is
 recorded by default; set `record_warmup = false` to omit it. The common default
 is 100 warmup and 100 retained draws per chain, with two chains. These are
 computational defaults, not evidence of adequate MCMC precision.
@@ -488,7 +491,7 @@ explicitly. Starting from a two-dimensional MFRM `spec` as above:
 model = BayesianMGMFRM.Experimental.correlated(spec; lkj_eta = 2)
 BayesianMGMFRM.Experimental.surface_contract(model)
 result = BayesianMGMFRM.Experimental.fit(model;
-    backend = :advancedhmc, prior = MFRMPrior(), seed = 42)
+    backend = :advancedhmc, prior = BayesianMGMFRM.Legacy.MFRMPrior(), seed = 42)
 diagnostics(result) # Review R-hat, ESS and sampler warnings before interpretation.
 BayesianMGMFRM.direct_posterior_summary(result)
 save_fit_cache("correlated-fit.jls", result)
@@ -498,7 +501,7 @@ save_fit_report_bundle("correlated-report", restored)
 # BayesianMGMFRM.plot_posterior(restored; block = :latent_correlation)
 ```
 
-Choose `backend = :cmdstan` for the same model on CmdStan. With `MFRMPrior`, both routes return
+Choose `backend = :cmdstan` for the same model on CmdStan. With `BayesianMGMFRM.Legacy.MFRMPrior`, both routes return
 `Experimental.CorrelatedMFRMFit`. The original `spec` still denotes independent
 abilities. This model requires between-item Q, at least two pure items per
 dimension, and observations in both dimensions for every person. These checks
@@ -522,12 +525,12 @@ reshaping. Automatic request caching is unavailable.
 
 ### Inspect priors before fitting
 
-Use the same `MFRMPrior` for prior inspection and subsequent fitting. Both the
+Use the same `BayesianMGMFRM.Legacy.MFRMPrior` for prior inspection and subsequent fitting. Both the
 independent `spec` and the correlated `model` above are supported:
 
 ```julia
 using Random
-prior = MFRMPrior(person_sd = 0.7, rater_sd = 0.4, item_sd = 0.6, step_sd = 0.5)
+prior = BayesianMGMFRM.Legacy.MFRMPrior(person_sd = 0.7, rater_sd = 0.4, item_sd = 0.6, step_sd = 0.5)
 prior_check = BayesianMGMFRM.Experimental.prior_predictive_check(model;
     prior, ndraws = 1000, rng = MersenneTwister(42))
 prior_check.parameter_summary  # model-scale medians and central 95% prior intervals
@@ -657,9 +660,74 @@ within-item at test level. These labels do not establish non-compensation or
 identify the model by themselves.
 
 The contract's `source_classification` preserves the author's wording;
-`algebraic_aggregation` records the weighted sum. Its unresolved
-`operational_compensation_status` is not evidence against the conditional
-identity above or a certification of a practical decision rule.
+`algebraic_aggregation` records the weighted sum, and
+`operational_compensation_status` records `:additive_compensation_where_cross_loaded`
+for additive kernels.
+
+### Choosing an ordinal aggregation rule for multi-skill rubrics
+
+When a single rubric criterion requires multiple skills (such as reading
+comprehension and writing quality in source-based writing), distinguish three
+ordinal hypotheses before fitting:
+
+1. **Additive compensatory aggregation (`aggregation = :additive`):** Weighted
+   sum ``u_{pi} = \sum_{d \in D(i)} a_{id}\theta_{pd}`` (or dimension
+   average with `cross_loading_average = true`). Stronger writing can offset
+   weaker comprehension on the cross-loaded criterion.
+2. **Partially noncompensatory graded products ([Chalmers, 2020](https://doi.org/10.1177/0146621620909898)):**
+   Multiplying dimension-specific cumulative boundary probabilities limits
+   trade-offs, but squaring probabilities below one also lowers expected scores
+   along balanced profiles ``(\theta, \theta)`` as active dimension count increases
+   (for example, dropping expected `0..4` score at `(0, 0)` from `2.000` to
+   `1.164`), confounding item dimensionality with item difficulty unless
+   recentered.
+3. **Smooth bottleneck noncompensatory aggregation (`aggregation = :softmin`):**
+   Available on cross-loaded `mfrm_spec(...; q_matrix = Q, aggregation = :softmin, prior = :default)`
+   specifications:
+   ```math
+   u_{pi}(\kappa) = -\frac{1}{\kappa}\log\left(\frac{1}{|D(i)|}\sum_{d \in D(i)} \exp(-\kappa a_{id}\theta_{pd})\right), \qquad \kappa > 0.
+   ```
+   For balanced skill profiles (``a_{id}\theta_{pd} = \eta_0``), ``u_{pi}(\kappa) = \eta_0``
+   identically for every ``\kappa > 0`` and any ``|D(i)|``; as ``\kappa \to 0^+``
+   it recovers compensatory averaging, and as ``\kappa \to \infty`` the weakest
+   required skill ``\min_{d \in D(i)} a_{id}\theta_{pd}`` governs category
+   thresholds. When a rubric instead specifies a binary prerequisite gate
+   followed by analytic scoring, model a two-part hurdle rather than a smooth
+   ordinal bottleneck.
+
+Separating compensatory and bottleneck rules empirically requires pure items
+anchoring each dimension, at least one cross-loaded item, and examinees with
+uneven skill profiles (``|\theta_{p1} - \theta_{p2}|`` large). In controlled
+two-dimensional checks (`720` ratings, four pure items plus two cross-loaded
+items), `:softmin` with estimated ``\kappa \sim \operatorname{LogNormal}(0, 1)``
+cleanly separated from additive compensation at moderate correlation
+(``\rho = 0.35``, ``\Delta\mathrm{ELPD} = +26.1 \pm 5.6``, avoiding
+`+0.38` to `+0.43` logit upward difficulty bias on cross-loaded items) and shrank
+``\kappa`` toward zero under compensatory truth, whereas at high trait correlation
+(``\rho = 0.80``) scarce uneven profiles left the two models statistically
+indistinguishable (``\Delta\mathrm{ELPD} = +0.05 \pm 1.28``). Shared
+passage comprehension effects ([person-by-testlet dependence](person-testlet.md))
+can also induce correlated low scores across items and require repeated tasks to
+separate from item-level bottlenecks.
+
+### Dense 2D reproduction, axis orientation, and external-software boundaries
+
+In [Uto (2021)](https://doi.org/10.1007/s41237-021-00144-w), fixed-input
+category probabilities agree to machine precision across Julia, Stan, and ACER
+ConQuest. On a 600-rating Table 1 sample with all eight loadings free and
+positive, research targets in Julia and Stan sample the Appendix 1 posterior
+under fixed identity ability covariance, whereas the public `mfrm_spec` fixed-Q
+constructor intentionally rejects dense Q matrices lacking pure items because
+unmasked positive loading matrices permit axis permutation and local orthogonal
+rotations ``(H a_i, H \theta_p)`` that leave ``u_{pi}`` and
+``\mathcal{N}(0, I_D)`` invariant. Always state how axes are anchored
+(such as pure reference items per dimension) before reporting dimension-specific
+ability or loading RMSE; Uto Section 7.1 used distinguishing generating items
+(`1.5` vs. `0.2`) and post-hoc axis reordering across 30 replications. Native
+ACER ConQuest `patz` runs on the same 2D design required fixed item loadings
+(and, when estimating rater slopes, independent item-by-rater cell intercepts),
+so common-posterior claims apply strictly to matched Julia and Stan targets,
+while three-way rater slope ratios across specifications remain descriptive.
 
 ## Workflow
 
@@ -716,7 +784,7 @@ sensitivity_fit = BayesianMGMFRM.Experimental.fit(spec;
 )
 ```
 
-The same resolved scale values enter experimental fit-cache keys. This
+The same resolved scale values enter fit-cache keys. This
 `GeneralizedPrior` route does not accept arbitrary direct-scale priors; those
 would require an explicit transform and change-of-variables policy. The separate
 normalized/profile priors retain their own documented measure. The prior-predictive result
@@ -749,7 +817,7 @@ positive coordinate `a = exp(z)`, `log p_a(a) = log p_z(log(a)) - log(a)`.
 This distinction follows the
 [Stan change-of-variables rule](https://mc-stan.org/docs/stan-users-guide/reparameterization.html#changes-of-variables).
 
-With CairoMakie, generalized fits support experimental posterior intervals,
+With CairoMakie, generalized fits support posterior intervals,
 chain diagnostics and conditional predictive plots for the original rating rows.
 See the [plotting guide](fitting.md#Posterior-interval-figures) for coordinate
 scales, dimension labels, editing and PDF/SVG export. `BayesianMGMFRM.plot_wright`
@@ -785,7 +853,7 @@ scale settings:
 
 | Prior | Rater/step structure | Role |
 | --- | --- | --- |
-| Raw `GeneralizedPrior` | Independent free normals, with the last coordinate reconstructed | Public experimental MGMFRM workflow and the existing computational reference; retain IDs and the declared prior. |
+| Raw `GeneralizedPrior` | Independent free normals, with the last coordinate reconstructed | Public MGMFRM workflow and the existing computational reference; retain IDs and the declared prior. |
 | Normalized exchangeable reference | Symmetric zero-sum severity, log-consistency and item-step blocks | Explicit `NormalizedMGMFRMPrior(prior_model=:exchangeable, ...)`; candidate when rater IDs carry no prior scientific distinction. |
 | Normalized source reference | Same severity/step blocks; log-consistency additionally distinguishes an explicit rater | Explicit `NormalizedMGMFRMPrior(prior_model=:source, source_rater=..., ...)`; comparison against a declared source target. |
 
@@ -902,7 +970,7 @@ samples the same raw-coordinate prior, applies the Julia identification
 transform, and checks Stan's generated pointwise log likelihood against Julia
 at every retained draw. An unwrapped MGMFRM specification retains fixed Q and
 identity correlation; the explicit correlated workflow below has a separate result type.
-Experimental `cached_fit` remains AdvancedHMC-only for unwrapped specifications
+`cached_fit` remains AdvancedHMC-only for unwrapped specifications
 with `GeneralizedPrior`; normalized priors and slope/mean-profile wrappers
 require manual `save_fit_cache`/`load_fit_cache`.
 CmdStan is an optional external runtime; inspect it with
@@ -1177,7 +1245,7 @@ location diagnostic view or Wright map is provided for this model.
 
 ## Two-dimensional correlation density
 
-The experimental namespace also provides a density for an exactly
+The namespace also provides a density for an exactly
 two-dimensional simple-structure Q design with at least two
 pure items per dimension and observations on both dimensions for every person.
 It appends one raw coordinate `zρ` to the existing parameter vector and sets
@@ -1220,9 +1288,9 @@ convergence or response-level recovery.
 
 ## Stability and evidence limits
 
-Experimental types, arguments, parameterizations, and report details may
-change in a minor release. A successful run demonstrates only that exact
-configuration. It does not establish broader source-equation coverage,
+The `BayesianMGMFRM.Experimental` interfaces may change in a minor release;
+pin the package version when using these interfaces. A successful run demonstrates
+only that exact configuration. It does not establish broader source-equation coverage,
 identification robustness, known-truth recovery, predictive validity,
 sensitivity robustness, external-software agreement, construct validity, or
 real-data validation.
@@ -1267,7 +1335,7 @@ authenticity, or external validation.
 <a id="BayesianMGMFRM.Experimental.cached_fit"></a>
 ```
 
-The [experimental API reference](api-experimental.md) documents the model types,
+The [API reference](api-experimental.md) documents the model types,
 priors and callable functions. The model explanations and examples remain above.
 
 ## Correlations among three traits

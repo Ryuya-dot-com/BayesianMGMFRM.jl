@@ -1,12 +1,23 @@
 module CommonPredictionKfoldChecks
 using BayesianMGMFRM, Test, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import ..CommonPredictionRefitChecks
 const B=BayesianMGMFRM
 const R=CommonPredictionRefitChecks
 include("../examples/saved_kfold_comparison.jl")
 
 # Deterministic reporting draws test plumbing; none are convergence evidence.
+const saved_cases = Ref{Vector{Any}}()
 function fixture_cases()
+    if !isassigned(saved_cases)
+        saved_cases[] = build_fixture_cases()
+    end
+    # Some callers exercise tampering and restoration. Isolate their mutable arrays.
+    return deepcopy(saved_cases[])
+end
+
+function build_fixture_cases()
     original=R.reporting_fit(:mfrm).design.spec.data
     data=FacetData(facet_response_table(original);person=:person,rater=:rater,item=:item,score=:score,
         category_levels=original.category_levels)

@@ -1,6 +1,7 @@
 module MGMFRMCoreLocationSection
 
 using BayesianMGMFRM, LinearAlgebra, Statistics, ForwardDiff
+using BayesianMGMFRM.GlassBox
 const B = BayesianMGMFRM
 const HMC = B.AdvancedHMC
 const LDP = B.LogDensityProblems

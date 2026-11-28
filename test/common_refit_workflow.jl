@@ -1,6 +1,7 @@
 # Opt-in actual-fit integration: julia --project=. test/common_refit_workflow.jl OUTPUT
 # OUTPUT must be new. This is not a scientific replication or a precision check.
 using BayesianMGMFRM, Test, Serialization, TOML, SHA
+using BayesianMGMFRM.Legacy
 include("../examples/synthetic_kfold_workflow.jl")
 
 function check_saved_workflow(directory)
@@ -77,7 +78,7 @@ checks = @testset "Actual public refit, cache and heldout workflow" begin
     if !replay
         before = Dict(name => bytes2hex(sha256(read(joinpath(directory, name))))
             for name in readdir(directory))
-        project = dirname(@__DIR__)
+        project = dirname(Base.active_project())
         log = directory * "-replay.log"
         GC.gc()
         open(log, "w") do io

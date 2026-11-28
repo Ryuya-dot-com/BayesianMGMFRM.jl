@@ -1,5 +1,7 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using LogDensityProblems
 
 function _model_contract_fixture(; thresholds = :partial_credit)

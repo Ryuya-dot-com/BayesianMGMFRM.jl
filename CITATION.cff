@@ -5,7 +5,7 @@ title: "BayesianMGMFRM.jl: Bayesian many-facet Rasch measurement in Julia"
 authors:
   - family-names: "Komuro"
     given-names: "Ryuya"
-version: "0.1.2"
+version: "0.2.0-DEV"
 license: "MIT"
 repository-code: "https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl"
 url: "https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl"

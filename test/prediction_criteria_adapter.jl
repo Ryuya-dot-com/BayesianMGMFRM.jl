@@ -2,6 +2,7 @@
 include("prediction_observation_adapter.jl")
 module PredictionCriteriaAdapterChecks
 using Test, BayesianMGMFRM, Statistics, Serialization
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 using ..PredictionObservationAdapterChecks: reporting_fit, normalized_fixture, F, bytes
 using ..PredictionObservationAdapterChecks.PredictionObservationAdapter

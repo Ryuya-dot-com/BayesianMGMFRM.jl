@@ -1,6 +1,6 @@
 # Analyze bounded scores with endpoints
 
-Use this **Experimental** route for a single bounded rating such as a 0–100
+Use this route for a single bounded rating such as a 0–100
 comprehensibility slider. It retains exact endpoint observations. It is a
 zero-one-inflated beta (ZOIB) model with explanatory population effects, not
 an ordinal PCM or a guarantee of Rasch measurement properties. For correct words
@@ -20,6 +20,7 @@ use a session/response-owned predictor when it changes across sessions.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 using Distributions: Normal, LogNormal
 
 spec = mfrm_spec(ratings;

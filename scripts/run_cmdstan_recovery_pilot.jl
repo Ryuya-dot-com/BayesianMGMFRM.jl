@@ -6,6 +6,7 @@ module CmdStanRecoveryPilot
 using Statistics
 
 using BayesianMGMFRM
+using BayesianMGMFRM.ValidationSuite: parameter_recovery, parameter_recovery_summary
 
 const Validation = getfield(parentmodule(@__MODULE__), :CmdStanBackendValidation)
 

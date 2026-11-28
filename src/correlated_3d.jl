@@ -1,4 +1,4 @@
-"""Experimental fixed-Q three-dimensional correlated MGMFRM workflow."""
+"""fixed-Q three-dimensional correlated MGMFRM workflow."""
 module Correlated3D
 using BayesianMGMFRM, LinearAlgebra
 import LogDensityProblems as L

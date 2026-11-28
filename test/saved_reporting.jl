@@ -1,5 +1,6 @@
 module SavedReportingChecks
 using BayesianMGMFRM,Test,Serialization,Random
+using BayesianMGMFRM.Legacy
 import ..CommonPredictionRefitChecks, ..CommonPredictionKfoldChecks
 const B=BayesianMGMFRM
 const R=CommonPredictionRefitChecks

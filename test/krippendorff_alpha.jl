@@ -1,5 +1,6 @@
 module KrippendorffAlphaChecks
 using BayesianMGMFRM, Test, Random
+using BayesianMGMFRM.Legacy
 const B=BayesianMGMFRM
 
 function data_from_matrix(x;levels=1:5)

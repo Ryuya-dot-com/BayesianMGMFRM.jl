@@ -1,4 +1,4 @@
-# Public experimental adapters over the existing normalized target and v1/v2 records.
+# Public adapters over the existing normalized target and v1/v2 records.
 function _normalized_mgmfrm_target(spec, prior::_NormalizedMGMFRMPrior)
     spec isa FacetSpec && spec.family === :mgmfrm || throw(ArgumentError(
         "NormalizedMGMFRMPrior requires an independent fixed-Q MGMFRM specification"))
@@ -95,7 +95,7 @@ _normalized_mgmfrm_label(t::_MGMFRMSlopeLogDensity) =
 
 function Base.show(io::IO, fit::_NormalizedMGMFRMFit)
     print(io, "NormalizedMGMFRMFit (", fit.record.prior.prior_model, "; ",
-        fit.record.run.total_draws, " retained draws; ", fit.record.run.backend, "; experimental)")
+        fit.record.run.total_draws, " retained draws; ", fit.record.run.backend, " )")
 end
 
 function _mgmfrm_correlated_2d_prediction_bundle(fit::_NormalizedMGMFRMFit, ndraws, draw_indices, rng)

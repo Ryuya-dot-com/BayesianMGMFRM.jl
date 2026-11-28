@@ -1,5 +1,6 @@
 module CorrelatedGradientTests
 using Test, BayesianMGMFRM, LinearAlgebra
+using BayesianMGMFRM.GlassBox
 import LogDensityProblems as L
 const B=BayesianMGMFRM
 const E=B.Experimental

@@ -1,5 +1,7 @@
 module PathwayPlotChecks
 using BayesianMGMFRM, Test, Random, Statistics
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("fixtures/reporting_fit.jl")
 const anchors = [(; block = :rater, level = 2, value = 0.75, type = :hard),

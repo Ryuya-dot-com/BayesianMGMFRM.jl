@@ -1,5 +1,7 @@
 module ReferencePriorReportingChecks
 using Test, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 const CODE = :reference_zero_prior_coordinate_dependence
 

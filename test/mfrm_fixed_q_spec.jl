@@ -1,6 +1,8 @@
 module MFRMFixedQSpecChecks
 
 using BayesianMGMFRM, Test, ForwardDiff, LogDensityProblems
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 
 function fixture(dimensions, categories; mixed = false)

@@ -1,4 +1,6 @@
 using BayesianMGMFRM, Test, Statistics, Serialization, SHA, TOML
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("common_prediction_fixtures.jl")
 include("../examples/saved_model_comparison.jl")

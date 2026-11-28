@@ -15,7 +15,7 @@ without discarding sampling. `progress_snapshot(monitor)` remains available.
 `interval` throttles output in seconds; phase changes and termination are
 always emitted. Terminals update one line; redirected output uses plain lines.
 Boolean `progress=true/false` retains the backend's original behavior. JointRatings
-Julia fits also accept this monitor. Other backends and experimental modules
+Julia fits also accept this monitor. Other backends and modules
 without an explicit progress keyword do not promise this API.
 """
 mutable struct SamplingProgress

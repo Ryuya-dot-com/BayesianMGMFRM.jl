@@ -1,6 +1,7 @@
 isdefined(@__MODULE__, :MGMFRMArtifactReuseChecks) || include("mgmfrm_artifact_reuse.jl")
 module MGMFRMReportReuseChecks
 using Test, BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 using ..MGMFRMArtifactReuseChecks: fixtures
 const B=BayesianMGMFRM
 

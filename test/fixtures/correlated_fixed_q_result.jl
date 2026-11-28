@@ -1,3 +1,4 @@
+using BayesianMGMFRM.Legacy
 # Reuse synthetic or previously saved samples; never start a sampler here.
 include("fixed_q_locations.jl")
 function check_correlated_fixed_q_result(result, directory; render = false)
@@ -20,7 +21,7 @@ function check_correlated_fixed_q_result(result, directory; render = false)
     @test metadata.correlation == Base.structdiff(record.prior.correlation, (; fitting_available = nothing, cache_available = nothing))
     @test metadata.target_identity == record.target_identity
     @test metadata.public_fit && metadata.fitting_available && metadata.cache_available
-    @test occursin("estimated rho; experimental", sprint(show, fit))
+    @test occursin("estimated rho)", sprint(show, fit))
     @test fit_metadata(fit; view = :public).latent_correlation === :free_2d
     @test_throws ArgumentError B.MultidimensionalMFRMFit(record; expected_identity = record.target_identity)
     @test_throws ArgumentError B._CorrelatedMFRMFit(record; expected_identity = "independent")

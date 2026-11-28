@@ -18,7 +18,7 @@ struct _NormalizedMGMFRMPrior
     end
 end
 
-struct _NormalizedMGMFRMFit
+struct _NormalizedMGMFRMFit <: AbstractMFRMFit
     record::NamedTuple
     function _NormalizedMGMFRMFit(record::NamedTuple; expected_identity::AbstractString)
         snapshot = deepcopy(record)

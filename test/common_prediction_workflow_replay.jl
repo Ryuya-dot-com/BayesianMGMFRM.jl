@@ -1,4 +1,5 @@
 using BayesianMGMFRM, Serialization, Test, TOML, SHA
+using BayesianMGMFRM.Legacy
 include("../examples/saved_prediction_workflow.jl")
 input,output=ARGS
 config=TOML.parsefile(joinpath(input,"inputs.toml"))

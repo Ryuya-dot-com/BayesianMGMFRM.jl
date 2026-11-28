@@ -1,4 +1,5 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 """
     saved_posterior_reliability(cache_path; parameters, target, weights=nothing)

@@ -1,6 +1,8 @@
 isdefined(@__MODULE__, :MGMFRMCorrelated2DSampleChecks) || include("mgmfrm_correlated_2d_samples.jl")
 module MGMFRMCorrelated2DResultChecks
 using Test, BayesianMGMFRM, Serialization, Statistics
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using ..MGMFRMCorrelated2DSampleChecks: target, synthetic_record, controls
 const B = BayesianMGMFRM
 const E = B.Experimental
@@ -27,7 +29,7 @@ Base.@nospecializeinfer function check_fit(@nospecialize(fit), directory)
     @test rho.lower≈quantile(tanh.(record.run.draws[:,end]),0.1)
     @test isequal(posterior_mcse(fit),B._mgmfrm_correlated_2d_posterior_mcse((;record)))
     @test last(posterior_mcse(fit;parameter_space=:raw_unconstrained)).parameter_space===:fisher_z
-    @test occursin("estimated rho; experimental",sprint(show,fit))
+    @test occursin("estimated rho)",sprint(show,fit))
     @test_throws ArgumentError diagnostics(fit;rhat_threshold=1.5)
     @test_throws ArgumentError diagnostics(fit;split_chains=!record.run.split_chains_requested)
     @test_throws ArgumentError sampler_diagnostics(fit;phase=:all)

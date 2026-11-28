@@ -1,5 +1,7 @@
 module PublicWarmupDiagnosticChecks
 using Test, Random, Serialization, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import Turing
 const B = BayesianMGMFRM
 const TE = Base.get_extension(B, :BayesianMGMFRMTuringExt)

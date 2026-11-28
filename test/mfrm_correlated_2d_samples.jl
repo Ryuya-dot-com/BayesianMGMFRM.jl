@@ -3,6 +3,8 @@ isdefined(@__MODULE__, :MFRMCorrelated2DChecks) || include("mfrm_correlated_2d.j
 module MFRMCorrelated2DSampleChecks
 
 using Test, BayesianMGMFRM, Serialization, Statistics, SHA
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using ..MFRMCorrelated2DChecks: specification, PRIOR
 const B = BayesianMGMFRM
 include("test_groups.jl")

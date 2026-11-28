@@ -1,4 +1,5 @@
 using Test, BayesianMGMFRM, Distributions, ForwardDiff, LinearAlgebra, Statistics, JSON3
+using BayesianMGMFRM.GlassBox
 const RS=BayesianMGMFRM.AdditiveFacets
 function slope_fixture(;P=8,R=6,random=true,correlation=LKJ(2,2.))
     ix=[(p,u,r) for p in 1:P for u in 1:2 for r in 1:R if mod(p+u+r,3)!=0]

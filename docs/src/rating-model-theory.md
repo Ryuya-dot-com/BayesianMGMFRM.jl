@@ -246,7 +246,7 @@ SD for a positive loading. A supplied ability prior SD is not an estimated
 population SD or a person's posterior standard error. The original generalized
 free-coordinate prior and the explicit normalized-prior alternatives can imply
 different distributions after constraints, including different treatment of
-raters. See [Experimental Models](experimental.md) before selecting their scales.
+raters. See [Model Extensions](experimental.md) before selecting their scales.
 
 For example, the default scalar MFRM fixes the first item and rater locations
 to zero. The fixed-Q routes instead center rater severities and keep item

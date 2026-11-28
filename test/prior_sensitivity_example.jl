@@ -1,5 +1,6 @@
 module PriorSensitivityExampleChecks
 using Test, BayesianMGMFRM, SHA
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("common_prediction_fixtures.jl")
 include("../examples/prior_sensitivity.jl")

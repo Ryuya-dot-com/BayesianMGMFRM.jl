@@ -1,3 +1,4 @@
+using BayesianMGMFRM.Legacy
 # Saved/synthetic results only: this check never starts a sampler or loads a renderer.
 function check_fixed_q_cache(fit; directory = nothing)
     directory === nothing && return mktempdir(d -> check_fixed_q_cache(fit; directory = d))

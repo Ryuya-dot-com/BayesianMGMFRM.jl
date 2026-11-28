@@ -1,3 +1,4 @@
+using BayesianMGMFRM.GlassBox
 # Artificial display inputs; never fitted posterior or recovery evidence.
 function wright_histogram_fit(; npeople = 80, thresholds = :rating_scale,
         categories = 0:3, anchors = nothing)

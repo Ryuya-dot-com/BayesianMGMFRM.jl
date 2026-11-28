@@ -1,4 +1,5 @@
 using Test, BayesianMGMFRM, Distributions
+using BayesianMGMFRM.GlassBox
 const AP=BayesianMGMFRM.AdditiveFacets
 function pattern_fixture(;mixed=false,rename=:rubric)
     rows=[(p,r,c) for p in 1:4 for r in 1:3 for c in ("A","B")]

@@ -1,6 +1,8 @@
 using Test
 using Random
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using LinearAlgebra
 using ForwardDiff
 

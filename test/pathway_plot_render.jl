@@ -1,5 +1,6 @@
 module PathwayPlotRenderChecks
 using BayesianMGMFRM, CairoMakie, Test
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 const P = parentmodule(@__MODULE__).PathwayPlotChecks
 axes(fig) = filter(x -> x isa Axis, fig.content)

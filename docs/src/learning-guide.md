@@ -54,7 +54,7 @@ The public rating workflow uses `person`, `item` and `rater` as model roles.
 Metadata such as `task` or `occasion` preserve information but do **not** add
 task difficulty, change over time or shared-response dependence to the likelihood.
 Likewise, joining task and criterion labels into an item ID does not separately
-estimate their two effects. The experimental [additive-facets workflow](additive-facets.md)
+estimate their two effects. The [additive-facets workflow](additive-facets.md)
 can estimate user-named scalar main effects, including more than five facets.
 It does not combine arbitrary interactions, multidimensionality and time processes;
 check [the support boundary](scope.md#Current-Support) for the chosen model.
@@ -114,11 +114,12 @@ See [Data Validation](data-validation.md) for coverage, linking and missingness 
 
 ## [Choose a reference or fix an external calibration](@id references-and-anchors)
 
-**You do not need external anchor values to run the first analysis.** In that
-example, R1 is set to zero so that R2's severity means the difference from R1.
-Zero is a reference point, not evidence that R1 is perfectly accurate or unbiased.
-The one-dimensional MFRM also sets the first item to zero and centers the category
-steps. Check the actual reference labels in `model_manifest(getdesign(spec))`.
+**You do not need external anchor values to run the first analysis.** Its standard
+model uses sum-to-zero facet and step constraints, with estimated population
+location and person SD. Neither R1 nor I1 is fixed to zero. The difference
+between R2 and R1 is calculated from their joint posterior draws. Explicit
+reference coding is a separate option; a zero reference does not mean that a
+rater is perfectly accurate or unbiased.
 
 An external calibration asks a different question: *can new ratings be analyzed
 while retaining a previously established rater or item value?* A **hard anchor**
@@ -127,10 +128,11 @@ value as exact is appropriate for the analysis and its scale and meaning match.
 
 | Setting | Meaning in this package |
 | --- | --- |
-| Default reference | Choose zero for the first rater and first item. These coordinates are not estimated. |
-| Hard anchor | Fix a named rater severity or item difficulty at a supplied logit value. It replaces the default reference in that facet. |
+| Standard centered specification | Sum-to-zero facets/steps with estimated population location and person spread; no individual rater or item is pinned to zero. |
+| Explicit reference coding | Set the chosen reference rater/item to zero. These coordinates are not estimated. |
+| Hard anchor | Fix a named rater severity or item difficulty at a supplied logit value. Other levels in that facet remain free unless explicitly constrained. |
 | Starting value (`init`) | Choose where sampling begins; the free parameter can move during estimation. |
-| Soft anchor | Express external calibration uncertainty through an informative prior. This is not implemented by the current anchor-fitting route. |
+| Uncertain external calibration | Propagate a supplied calibration covariance through the documented calibration-prior route; this differs from a hard anchor. |
 
 Some multidimensional design records use the term `prior_anchor` for an ability
 prior that defines the scale. That is a distributional assumption, not a fixed
@@ -138,70 +140,44 @@ external calibration or support for the `anchors` option in that model.
 
 ### Inspect an anchor before fitting
 
-The following code uses the supplied first-analysis data and performs no fitting.
-The value `0.25` is hypothetical; it is not an estimate or an externally validated
-calibration for these artificial raters.
+The following code uses the standard 1D specification and performs no fitting.
+The value `0.25` is hypothetical, not an externally validated calibration for
+these artificial raters.
 
 ```julia
 using BayesianMGMFRM
-include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_analysis.jl"))
-data = FirstMFRMAnalysis.inputs().data
-
-anchored_spec = mfrm_spec(data;
-    thresholds = :partial_credit,
-    anchors = [(block = :rater, level = "R2", value = 0.25, type = :hard)],
+ratings = include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_analysis_ratings.jl"))
+anchored_spec = mfrm_spec(ratings;
+    person = :person, score = :score,
+    facets = (item = :item, rater = :rater), steps = :item,
+    category_levels = 0:3, prior = :default,
+    fixed_calibration = (facets = (rater = Dict("R2" => 0.25),),),
 )
-plan = anchor_refit_plan(anchored_spec; require_provenance = false)
-plan.numerical_fit_supported   # true: this declaration has a fitting route
-anchored_design = getdesign(anchored_spec)
-model_manifest(anchored_design; view = :public).design.fixed_coordinates
-# R2: 0.25, hard_anchor; I1: 0.0, reference_zero; neither is sampled.
-anchored_design.parameter_names
-# Includes rater[R1] and rater[R3], but not rater[R2].
+validate_design(anchored_spec)
+design_summary(anchored_spec).fixed_calibration
 ```
 
-R1 is now free: declaring R2's anchor does **not** also keep R1 fixed at zero.
-To anchor an item instead, use `block = :item` and its actual level label.
-The same declaration syntax is supported with `thresholds = :rating_scale`. In partial-credit
-models, fixing item difficulty fixes only the item's location; it does not fix
-that item's category-step pattern. Item difficulty alone is therefore not a
-complete imported calibration of a PCM item.
-
-[`anchor_refit_plan`](@ref) checks the declaration; it does not fit the model
-or establish that the calibration is valid. Its optional provenance checks
-inspect recorded source fields, not the original source bytes. See the
-[external-calibration contract](migration-facets-conquest.md#Anchor-constrained-refitting-policy)
-for scale/sign conversion and source records. After choosing the prior and
-sampling settings, the existing [`fit`](@ref) function accepts `anchored_spec`;
-an anchored specification needs its own fit. The first-analysis cache and its
-R2−R1 interpretation cannot be reused for a changed specification.
+The explicit calibration fixes R2's severity. It does not also pin an arbitrary
+first rater to zero. After choosing the prior and sampler controls, pass this
+specification to `fit`. A changed calibration needs its own fit; the unanchored
+first-analysis cache cannot supply an anchored posterior.
 
 ### What the resulting uncertainty means
 
-An anchored value has no estimated SE or credible interval. Reports separate
-fixed coordinates from posterior estimates; an interval with identical endpoints
-in a data table denotes a fixed value, not perfect empirical precision. Uncertainty
-in an external calibration is not propagated to the other estimates. Read the
-[fixed-coordinate report](fitting.md#Fixed-coordinates-and-anchors) alongside the
-posterior summaries.
+A hard anchor has no estimated SE or credible interval. Reports separate fixed
+coordinates from posterior estimates. Identical interval endpoints for a fixed
+value do not demonstrate perfect empirical precision, and a hard anchor does
+not propagate uncertainty in the external calibration.
 
-One anchor in a facet chooses that facet's origin at the likelihood level.
-Two anchors in the **same** facet also fix their difference: fixing R1 at zero
-and R2 at 0.25 imposes a severity difference of 0.25 rather than estimating it.
-More anchors are not automatically better. Calibration drift or incompatible
-anchor values can alter the analysis; assess that assumption against the study's
-purpose and external evidence. The zero-centered priors on free coordinates
-are not shifted automatically when the reference changes, so a change of origin
-that preserves likelihoods need not preserve the posterior.
-
-The fitted anchor route is limited to **one-dimensional MFRM**, with rating-scale
-or partial-credit steps and individual rater/item hard anchors. It does not fit
-person, category-threshold, group-mean or soft anchors, or anchors in GMFRM and
-multidimensional MFRM/MGMFRM. A displayed declaration or a successful
-[`anchor_linking_summary`](@ref) is not evidence that such a model can be fitted.
-For the supported route, unknown or duplicate targets and invalid fixed values
-are rejected before fitting. Anchors also cannot be used to bypass disconnected
-data or insufficient design rank in this implementation.
+When external estimates carry uncertainty, consider the documented
+[calibration and equating modes](equating-and-populations.md#four-equating-modes),
+including covariance-aware calibration priors. A hard anchor, an uncertain
+external calibration and a likelihood identification constraint have different
+meanings; choose from the source of information and the intended comparison.
+Multiple hard anchors also fix their differences. More anchors are not
+automatically better: incompatible values or calibration drift can alter the
+analysis. Validation checks the design and declarations, not the truth of an
+external calibration.
 
 ## Choose assumptions before choosing a model name
 
@@ -259,36 +235,38 @@ before interpreting these labels.
 
 ## Check what this package can currently fit
 
-After constructing a specification, enter `spec` at the Julia prompt. In a
-script or notebook, the following prints the same explanation:
+After constructing the standard specification, inspect its design and prior:
 
 ```julia
-show(stdout, MIME"text/plain"(), spec)
-println()
+design_summary(spec)
+validate_design(spec)
 ```
 
-Read the slope line, the owner of the category steps and the fitting entry.
-The display also keeps design/Q warning counts and any validation-only terms
-visible. It uses the existing specification; it does not estimate parameters
-or select priors. An available fitting entry describes implementation support,
-not evidence that the model is appropriate for your ratings.
+Read the category support, facet/step constraints, population assumptions and
+validation warnings. This uses the existing specification without estimation.
+Available operations describe implementation support, not evidence that the
+model is appropriate for your ratings.
 
-Some existing option names need care:
+For the standard table-based constructor, keep model and estimation choices separate:
 
 | Option or function | Meaning to check |
 | --- | --- |
-| `mfrm_spec(...; family=:mgmfrm)` | The `family` option chooses the model; the constructor retains its original name. |
-| MGMFRM `discrimination=:none` | Positive loadings at active Q cells and rater consistency are still estimated. This compatibility selector does not request unit slopes. |
-| GMFRM `discrimination=:rater` | The model estimates both item discrimination and rater consistency. |
-| `bias=[(:rater, :item)]` | Requests cell/design checks. It does not fit rater-item interactions; those use the separate [joint-interaction workflow](@ref "Jointly fitted rater-by-item effects (experimental)"). |
-| `backend=:julia` | Random-walk Metropolis. Request Julia NUTS with `backend=:advancedhmc`; stable bare `fit(spec)` currently uses one random-walk chain. |
+| `prior=:default` | Builds the standard Bayesian specification; inspect its prior summary before fitting. |
+| `slope=:rater` | Selects the scale-identified GMFRM route; consult its step-owner and slope conventions. |
+| `q_matrix=...` | Declares the MGMFRM item–dimension structure; it does not discover dimensions from data. |
+| `fit(spec; method=:nuts)` | Uses Julia NUTS on the standard Bayesian route. |
+| `prior=:none`, then `fit(spec; method=:mmle)` or `:jmle` | Selects a prior-free specification and an explicit frequentist estimator, subject to its supported identification and design. |
 
-The specification display concerns the base `FacetSpec`. If you subsequently
-apply a correlation or slope-restriction wrapper, inspect that wrapper's
-documented contract; the original specification does not describe those changes.
+The older `BayesianMGMFRM.Legacy.FacetSpec` route has different selectors (`family`, `discrimination`
+and `backend`). Its `backend=:julia` default is random-walk Metropolis;
+`backend=:advancedhmc` selects NUTS there. This is a legacy compatibility
+default, not the standard table-based workflow. See [fitting](fitting.md)
+before adapting an older script. Inspect any correlation or slope-restriction
+wrapper's own contract as well.
 
 The stable fitting workflow covers one-dimensional MFRM with rating-scale or
-partial-credit steps. GMFRM, multidimensional MFRM and MGMFRM are experimental.
+partial-credit steps. GMFRM, multidimensional MFRM and MGMFRM have
+model-specific prior, Q-matrix and backend requirements; see [available models](scope.md).
 Estimated ability correlation is available through the documented two-dimensional
 between-item models and the restricted three-dimensional pure-Q model
 ([Correlations among Three Traits](correlated-3d.md)); broader correlation
@@ -363,6 +341,8 @@ root, start an interactive session with `julia --project=.` and load the package
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 ```
 
 At the beginning of the Julia prompt, press `?`. The prompt becomes `help?>`;

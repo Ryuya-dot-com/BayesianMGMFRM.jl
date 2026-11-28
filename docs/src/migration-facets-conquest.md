@@ -20,7 +20,7 @@ steps. In this minimal migration bridge, arbitrary additional facets, multiple r
 fitted interactions, soft anchors, threshold anchors, and group-mean anchors
 are not silently approximated by the current stable API. Exact individual
 rater/item hard anchors are supported in the minimal MFRM path. For additional
-user-named scalar main effects, see the separate experimental
+user-named scalar main effects, see the separate
 [additive-facets workflow](additive-facets.md); it is not an automatic importer.
 
 ## [At-a-glance comparison with related rating software](@id software-comparison)
@@ -240,7 +240,6 @@ labels rather than replacing them with source-software parameter numbers.
 
 ```julia
 using BayesianMGMFRM
-using Statistics
 
 ratings = (
     person = repeat(["E1", "E2", "E3"], inner = 4),
@@ -249,47 +248,53 @@ ratings = (
     score = repeat([0, 1, 2], inner = 4),
 )
 
-data = FacetData(ratings;
+# Choose steps = :global for FACETS R / ConQuest + step (RSM), or
+# steps = :item for item-specific FACETS # / ConQuest item*step (PCM).
+spec = mfrm_spec(
+    ratings;
     person = :person,
-    rater = :rater,
-    item = :item,
     score = :score,
+    facets = (rater = :rater, item = :item),
+    steps = :global,
+    category_levels = 0:2,
+    prior = :default,
 )
 
-validation = validate_design(data)
+validation = validate_design(spec)
 @assert validation.passed
 
-# Choose :rating_scale for FACETS R / ConQuest + step, or
-# :partial_credit for item-specific FACETS # / ConQuest item*step.
-threshold_regime = :rating_scale
-spec = mfrm_spec(data;
-    thresholds = threshold_regime,
-    validation_report = validation,
-)
-design = getdesign(spec)
+# Inspect design rank, isometric zero-sum constraints, and prior implications before sampling.
+summary_before_fit = design_summary(spec)
 
-# Inspect the constraints and record the model before sampling.
-constraint_rows = constraint_table(design)
-manifest = model_manifest(design; view = :public)
-
-fit_result = fit(design;
-    backend = :advancedhmc,
-    ndraws = 500,
-    warmup = 500,
+fit_result = fit(
+    spec;
     chains = 4,
+    warmup = 500,
+    ndraws = 500,
     seed = 20260721,
 )
 
+qual = qualify(fit_result)
 posterior_rows = posterior_summary(fit_result)
-rater_rows = rater_diagnostics(fit_result)
-bayesian_fit_rows = fit_stats(fit_result; by = :rater)
+rater_rows = facet_summary(fit_result; facet = :rater)
+r2_vs_r1 = contrast(fit_result; facet = :rater, left = "R2", right = "R1")
 
-# This separately labelled table is a posterior-mean plug-in approximation,
-# not a claim of equality to FACETS JMLE output.
-facets_labelled_rows = facets_report(fit_result; by = :rater)
+# Posterior-integrated Infit/Outfit alongside posterior-mean plug-in values
+# (not a claim of equality to FACETS JMLE output).
+fit_stat_rows = diagnostics(fit_result; kind = :fit_statistics, by = :rater)
 
-posterior_mean = vec(mean(fit_result.draws; dims = 1))
-threshold_rows = threshold_map_data(design; params = posterior_mean)
+# For an explicit frequentist 1D comparison on the same design, use prior = :none
+# with method = :mmle (marginal ML) or method = :jmle (joint ML):
+spec_freq = mfrm_spec(
+    ratings;
+    person = :person,
+    score = :score,
+    facets = (rater = :rater, item = :item),
+    steps = :global,
+    category_levels = 0:2,
+    prior = :none,
+)
+mmle_fit = fit(spec_freq; method = :mmle)
 ```
 
 For a substantive analysis, increase sampling effort as needed, predeclare
@@ -328,25 +333,44 @@ denominator. Sparse observed designs remain sparse: the bridge does not create
 missing rating rows, so a sparse design that cannot meet these guards is
 rejected rather than padded with synthetic responses.
 
-On the Mac, compile and save one bundle. Retain the returned `bundle_id`
-separately so the returned directory can be checked against the exact original
-manifest contract, including its input inventory and required-output list:
+On the Mac, build the minimal 3-facet `BayesianMGMFRM.Legacy.FacetSpec` bridge input (`bridge_data`
+and `bridge_spec` — the external v1 bridge targets the minimal 3-facet overlap
+rather than the general `MRCML` specification `spec` above) and compile one
+bundle. Retain the returned `bundle_id` separately so the returned directory
+can be checked against the exact original manifest contract, including its
+input inventory and required-output list:
 
 ```julia
-facets_bundle = facets_bridge_bundle(spec;
+bridge_data = FacetData(
+    ratings;
+    person = :person,
+    item = :item,
+    rater = :rater,
+    score = :score,
+    category_levels = 0:2,
+)
+bridge_validation = validate_design(bridge_data)
+@assert bridge_validation.passed
+bridge_spec = mfrm_spec(
+    bridge_data;
+    thresholds = :rating_scale,
+    validation_report = bridge_validation,
+)
+
+facets_bundle = BayesianMGMFRM.facets_bridge_bundle(bridge_spec;
     title = "Minimal RSM FACETS bridge",
 )
-facets_saved = save_external_bridge_bundle(
+facets_saved = BayesianMGMFRM.save_external_bridge_bundle(
     "facets_minimal_rsm_bridge",
     facets_bundle,
 )
 facets_bundle_id = facets_saved.bundle_id
 facets_host_preflight = facets_saved.host_preflight
 
-conquest_bundle = conquest_bridge_bundle(spec;
+conquest_bundle = BayesianMGMFRM.conquest_bridge_bundle(bridge_spec;
     title = "Minimal RSM ConQuest bridge",
 )
-conquest_saved = save_external_bridge_bundle(
+conquest_saved = BayesianMGMFRM.save_external_bridge_bundle(
     "conquest_minimal_rsm_bridge",
     conquest_bundle,
 )
@@ -450,12 +474,12 @@ operator values from Mac environment variables so a placeholder version,
 digest, or timestamp cannot be mistaken for evidence:
 
 ```julia
-validate_external_bridge_bundle(
+BayesianMGMFRM.validate_external_bridge_bundle(
     "facets_minimal_rsm_bridge";
     expected_bundle_id = facets_bundle_id,
 )
 
-facets_receipt = external_bridge_result_receipt(
+facets_receipt = BayesianMGMFRM.external_bridge_result_receipt(
     "facets_minimal_rsm_bridge";
     expected_bundle_id = facets_bundle_id,
     software_version = ENV["FACETS_REPORTED_VERSION"],
@@ -486,9 +510,9 @@ For the exact ConQuest 5.47.5, three-category RSM/PCM overlap, the complete
 returned bundle can instead be passed through the public semantic layer:
 
 ```julia
-conquest_semantic = load_conquest_semantic_parameters(
+conquest_semantic = BayesianMGMFRM.load_conquest_semantic_parameters(
     "conquest_minimal_rsm_bridge",
-    spec;
+    bridge_spec;
     expected_bundle_id = conquest_bundle_id,
     software_version = ENV["CONQUEST_REPORTED_VERSION"],
     executable_sha256 = ENV["CONQUEST_EXE_SHA256"],
@@ -526,7 +550,7 @@ For the same validated, unanchored three-category bundle, use the qualified
 
 ```julia
 aligned = BayesianMGMFRM.load_conquest_reference_parameters(
-    "conquest_minimal_rsm_bridge", spec;
+    "conquest_minimal_rsm_bridge", bridge_spec;
     expected_bundle_id = conquest_bundle_id,
     software_version = ENV["CONQUEST_REPORTED_VERSION"],
     executable_sha256 = ENV["CONQUEST_EXE_SHA256"],
@@ -648,7 +672,7 @@ reasonable assumptions change the decision. If they do, report the sensitivity
 and the information needed to resolve it. Increasing MCMC length addresses
 computational error; it does not resolve prior ambiguity or missing links.
 The current evidence does not establish scenario-specific false-flag rates or
-a universally preferred prior/software choice. Existing experimental symmetric
+a universally preferred prior/software choice. Existing symmetric
 prior routes have their own support and validation boundaries.
 
 ## Parameter and output crosswalk
@@ -675,23 +699,206 @@ the package rows instead of joining only by row order.
 
 ## Important non-equivalences
 
-| Axis | FACETS | ACER ConQuest | Current destination |
+| Axis | FACETS | ACER ConQuest | `BayesianMGMFRM.jl` `0.2.0-DEV` |
 | --- | --- | --- | --- |
-| Estimator | Primarily JMLE/UCON, with a specialized PMLE path | Marginal maximum likelihood using EM and numerical integration by default; JML and other methods are selectable | Bayesian joint posterior with explicit priors, sampled by the selected package backend |
-| Person treatment | Person is another measured facet | Person/case ability is latent under MML, or jointly estimated under JML | One parameter per observed person with a proper prior in the minimal model |
-| Identification | Centering, non-centering, individual anchors, group anchors, and user scaling are configurable | Constraints follow the generated/imported design; fixed parameter, covariance, regression, score, or case anchors are available | First rater/item fixed to zero by default; exact individual rater/item hard anchors replace that block gauge; threshold steps sum to zero |
-| Threshold sharing | Common, element-specific, or named scale structures | Controlled by `step` interactions | One common RSM structure or item-specific PCM structures per fit |
-| Weights | Model, element, and observation weights multiply as replications | `caseweight` changes item-response-model estimation | Unit-weighted likelihood only; weighted source analyses are not an exact overlap |
-| Interactions | Secondary residual-based bias analysis is available | Interactions can be columns of the main design matrix | DFF/bias output is screening-only; fitted interaction effects are not supported in the stable minimal fit |
-| Facet breadth | Many arbitrary facets and response formats | Generalized items, additive/interacted terms, and imported design matrices | The fitted minimal model has person, rater, and item facets; optional fields are metadata unless explicitly documented otherwise |
-| Uncertainty | Frequentist standard errors and fit summaries | Asymptotic errors, latent estimates, or plausible values depend on method | Posterior intervals and posterior predictive uncertainty |
+| Estimator | Primarily JMLE/UCON, with a specialized PMLE path | Marginal maximum likelihood using EM and numerical integration by default; JML and Monte Carlo integration are selectable | Bayesian NUTS by default (`prior = :default` or explicit `prior_sd`); explicit 1D frequentist `method = :mmle` and `method = :jmle` (`Experimental`) on the same compiled design |
+| Person treatment | Person is another measured facet | Person/case ability is latent under MML, or jointly estimated under JML | Hierarchical person random effects (`population_mean`, `residual_sd[person]`) under default Bayesian 1D MFRM; Gaussian quadrature under `:mmle`; joint ability estimates under `:jmle` |
+| Identification | Centering, non-centering, individual anchors, group anchors, and user scaling are configurable | Constraints follow the generated/imported design; fixed parameter, covariance, regression, score, or case anchors are available | Isometric orthonormal Helmert zero-sum bases by default (`Supported`); explicit `:hard`, `:step`, unweighted `:group_mean` (`fixed_calibration`), and covariance-propagating `:soft` (`calibration`) equating modes on `MRCML`; legacy first-level-zero `BayesianMGMFRM.Legacy.FacetSpec` retained for backward compatibility |
+| Threshold sharing | Common, element-specific, or named scale structures | Controlled by `step` interactions | Common RSM (`steps = :global`), facet-owned PCM (`steps = :item` or `:rater`), and per-criterion `category_levels` dictionaries/lists under 1D isometric `MRCML` |
+| Weights | Model, element, and observation weights multiply as replications | `caseweight` and replicate weights modify estimation | Unit-weighted rating rows only; replication, element, and survey case weights are explicitly out of scope and refused |
+| Interactions and Fair Average | Secondary residual-based Table 14 bias output and Fair-M / Fair-Z expected scores | Interactions can be columns of the main design matrix | `diagnostics(fit; kind = :fair_average)` reports posterior Fair Average Scores (`:sample_mean` and `:zero_origin`) with credible intervals and MCSE; `diagnostics(fit; kind = :pair_bias)` separates `:secondary_residual_screen` from jointly fitted `Experimental` `interactions` (`HalfNormal` / `Half-t(df = 3–4)`) |
+| Facet breadth | Many arbitrary facets and response formats | Generalized items, additive/interacted terms, and imported design matrices | Arbitrary user-named facets (`facets = (item = :item, rater = :rater, task = :task, ...)`) and `MRCML.from_tam` / `MRCML.custom_spec` 1D design matrices |
+| Uncertainty | Frequentist standard errors and fit summaries | Asymptotic errors, latent estimates, or plausible values depend on method | Joint posterior draws, credible intervals, and chain-aware MCSE (or constrained observed-information `vcov` under 1D `:mmle` / `:jmle`) |
 
 FACETS documents the JMLE/PMLE behavior and its finite-sample considerations in
 [Estimation considerations](https://www.winsteps.com/facetman64/estimationconsiderations.htm).
 ConQuest documents its marginal likelihood and EM algorithm in Chapter 3,
 Section 3.1.3, and its selectable estimation methods in Chapter 4,
-Section 4.7.22. An absence of JMLE or MMLE in this package is therefore an
-estimator-scope difference, not a missing component of the Bayesian estimator.
+Section 4.7.22.
+
+### Fair Average Score, Table-14 pair bias, and declared non-goals
+
+For both Bayesian `MRCML` fits and frequentist 1D `:jmle` / `:mmle` fits,
+`diagnostics(fit; kind = :fair_average, by = :rater)` computes marginal expected
+category scores at sample-mean (`baseline = :sample_mean`, analogous to FACETS
+Fair-M) or zero-origin (`baseline = :zero_origin`, analogous to Fair-Z) reference
+baselines. Bayesian fits propagate full posterior uncertainty alongside the
+posterior-mean plug-in value (`plugin_fair_average`), while frequentist fits
+report `fair_m` and `fair_z` both in `facet_summary(fit)` / `diagnostics(fit; kind = :fit_statistics)`
+and with conditional baseline delta-method standard errors in
+`diagnostics(fit; kind = :fair_average, by = :rater)`. Under mixed-category
+rubrics (`category_levels = Dict(...)`), cross-facet Fair Averages require an
+explicit `step_group` so unequal score scales are never averaged together.
+
+For person comparisons under the same concrete assessment conditions, supply
+an explicit **common reference plan**. Every row names known levels of all
+fitted facet roles; optional positive `Weight` values are normalized to sum to
+one. These are reporting weights, not observation or survey weights.
+
+```julia
+plan = (item = ["I1", "I2"], rater = ["R1", "R2"], Weight = [1.0, 2.0])
+fair = diagnostics(fit; kind=:fair_average, reference_plan=plan, level=.95,
+    threshold=2.5,
+    comparisons=[(left="P1", right="P2", margin=.2)])
+fair.rows       # Expected-score intervals, MCSE, R-hat/ESS and P(score >= 2.5)
+fair.contrasts  # Joint-draw differences and P(left - right > .2)
+using CairoMakie
+fig = BayesianMGMFRM.plot(fair; kind=:fair_average)
+receipt = save_report("fair.json", fair; return_receipt=true)
+saved = load_report("fair.json"; expected_sha256=receipt.sha256)
+BayesianMGMFRM.plot(saved; kind=:fair_average)
+```
+
+Each posterior draw averages **cell-specific expected scores**, retaining
+the cell's actual difficulty, severity and threshold profile. It does not
+replace these parameters by their means. Thus this target generally differs
+from Fair-M/Fair-Z and from substituting posterior-mean parameters
+(`plugin_mean`). The plan and original person IDs remain in the report.
+`adjustment_mean` compares the posterior mean with the observed average;
+the observed average is unavailable when its category scale differs from
+the plan. Changing a plan changes the estimand.
+
+Common plans support additive Bayesian MFRM, shared-event MRCML, scale-identified
+GMFRM/MGMFRM and additive 1D JMLE/MMLE. Global or single-facet-owned steps and
+fixed calibration are retained where the fitted model provides them. Cells must
+share a category score scale. Interactions/DFF, LLTM and custom design matrices
+still require their own reference-conditioning definitions. No new item or rater
+levels are inferred from a plan; fixed anchors remain conditional on their values.
+
+For a shared-event MRCML fit, omit shared-event columns from the plan and choose
+`shared_effects=:zero` or `:marginal_new` explicitly. The first sets the event
+effect to zero; the second integrates over a new Gaussian event at each joint
+posterior draw, including uncertainty in its SD. These targets generally differ
+because the response link is nonlinear. Independent additive shared effects are
+combined through their summed variances. This suffices for expected averages;
+it does not give a joint distribution of future ratings. Gaussian quadrature
+uses `quadrature_orders=(61,121)` and refuses results whose maximum expected-score
+difference exceeds `quadrature_tolerance=1e-7`; increase the orders when needed.
+This comparison is a numerical diagnostic, not an error bound.
+
+```julia
+fair = diagnostics(shared_fit; kind=:fair_average, reference_plan=plan,
+    shared_effects=:marginal_new, threshold=2.5)
+```
+
+For structured MRCML interactions, choose `interaction_effects=:fitted` or
+`:zero` explicitly. This covers facet-by-facet severity interactions,
+focal split-level or doubly centered group DFF, and facet-by-step category-use
+interactions. `:fitted` retains these effects in the expected scores; `:zero`
+sets all fitted interaction terms to zero for reporting. Both retain the ability
+estimates and joint uncertainty from the original interaction model. Zeroing
+interactions is not refitting without DFF, equalizing group ability distributions,
+or establishing that a score has been causally corrected for bias.
+
+A group supplied through the population roster is held at each person's observed
+membership. Do not add that group to the common reference plan. The report's
+`held_contexts` records the retained IDs. A facet explicitly included as a main
+rating facet remains part of the reference plan. Contexts that vary within a
+person require a different reporting definition and are rejected.
+
+```julia
+fair = diagnostics(dff_fit; kind=:fair_average, reference_plan=plan,
+    interaction_effects=:fitted)
+reference = diagnostics(dff_fit; kind=:fair_average, reference_plan=plan,
+    interaction_effects=:zero)
+```
+
+Shared-event MRCML can combine these choices with `shared_effects` independently.
+JMLE propagates interaction/person/calibration covariance through the score
+transformation; grouped DFF MMLE retains each person's original conditional
+ability distribution. Grouped population-mean estimation with unrestricted
+person JMLE is not identified and is not added by this reporting operation.
+LLTM and custom design matrices still require a separate reference definition.
+
+For scale-identified GMFRM/MGMFRM, the same call without `shared_effects` uses each
+item's Q/loadings, each person's complete ability vector, rater consistency and
+the fitted threshold/slope convention. The result is a score under the declared
+item mix, rather than a new unidimensional ability scale. A multidimensional
+model and a shared-event model are separate supported combinations here.
+
+| Estimation | Point estimate and interval | Threshold / person-difference probability |
+|:--|:--|:--|
+| Bayesian NUTS | Joint posterior mean and equal-tailed credible interval; person and estimated calibration uncertainty propagated | Joint posterior probability with MCSE |
+| JMLE | Expected score at the joint ML estimate; delta-method Wald interval using the joint person/calibration covariance | No posterior probability; requested comparisons give differences and Wald intervals |
+| MMLE | Expected score averaged over the conditional empirical-Bayes ability distribution; equal-tailed interval with calibration and fitted population parameters held fixed | Conditional empirical-Bayes probability using deterministic quadrature |
+
+JMLE intervals can exceed the score range. Unbounded extreme-person estimates
+have endpoint score limits and unavailable intervals; adjusted extreme-score
+proxies are not handled by this operation. JMLE does not accept `threshold`.
+MMLE reports use the fitted quadrature rule and node count; they do not include
+calibration-estimation uncertainty. They are neither full Bayesian intervals nor
+guarantees of repeated-sample coverage. `plugin_mean` separately evaluates the
+score at the EAP ability, which can differ from the conditional mean score.
+All intervals are for expected scores. Existing whole-fit warnings remain visible.
+
+```julia
+jml_fair = diagnostics(jml_fit; kind=:fair_average, reference_plan=plan,
+    comparisons=[(left="P1", right="P2", margin=.2)])
+mml_fair = diagnostics(mml_fit; kind=:fair_average, reference_plan=plan,
+    threshold=2.5)
+```
+
+Intervals concern an **expected score**, not a future realized rating or
+rating average. Threshold probabilities are posterior probabilities about
+that expectation, and contrast probabilities use paired joint draws.
+Constant event indicators retain unavailable MCSE rather than claiming an
+exact probability of zero or one. R-hat 1.01 and ESS 400 remain warning
+references; whole-fit qualification is retained alongside local precision.
+These intervals are pointwise, not simultaneous person-comparison bands.
+
+In R, Bayesian calculations use saved model-coordinate draws; JMLE/MMLE use
+the saved scoring basis. Both work without Julia:
+
+```r
+plan <- data.frame(item=c("I1", "I2"), rater=c("R1", "R2"), Weight=c(1, 2))
+fair <- diagnostics_mgmfrm(fit, "fair_average", reference_plan=plan,
+  threshold=2.5, comparisons=data.frame(left="P1", right="P2", margin=.2))
+plot(fair)
+rater_fair <- diagnostics_mgmfrm(fit, "fair_average", facet="rater", baseline="sample_mean")
+bias_tbl <- diagnostics_mgmfrm(fit, "pair_bias", pair=c("rater", "item"))
+decisions <- diagnostics_mgmfrm(fit, "classification", cutoff=0.0, pass_probability=0.8)
+ranks <- diagnostics_mgmfrm(fit, "ranking", direction="higher", top_k=3L)
+saveRDS(fit, "fit.rds")
+restored <- readRDS("fit.rds")
+diagnostics_mgmfrm(restored, "fair_average", reference_plan=plan, interval=.90)
+```
+
+R fits produced before reference-basis metadata was added, and handoffs
+missing required draw columns, cannot perform reference-basis calculations. Julia
+computed reports can be reopened and plotted; a new numerical summary in
+Julia requires the native fit. A portable R handoff retains the reference
+and pair-bias bases and joint draws or frequentist covariance/quadrature data through
+`handoff_mgmfrm` / `read_handoff_mgmfrm`, while `classification` and `ranking`
+operate on any Bayesian handoff containing the selected cohort draws. In R, shared models use
+`shared_effects="zero"` or `"marginal_new"`; interaction models require
+`interaction_effects="fitted"` or `"zero"`. Quadrature controls have the same names.
+Interaction scoring uses version 2 reference-basis metadata: update the R wrapper
+before opening these fits in older installations.
+
+Similarly, `diagnostics(fit; kind = :pair_bias, pair = (:rater, :item))` (and
+`BayesianMGMFRM.dff_report(fit; pair = (:rater, :item))`) on both Bayesian `MRCML` and
+frequentist 1D `:jmle` / `:mmle` fits provides an inspectable cell table with
+observed and expected scores, score residuals, information-weighted approximate
+severity-bias logits, and posterior tail probabilities or frequentist Wald Z
+statistics. Check `report.analysis_mode`: `:secondary_residual_screen` evaluates
+post-hoc residuals conditional on an additive main-effects fit (matching the
+screening logic of FACETS Table 14), whereas `:joint_interaction_model` and
+`:focal_dff_model` summarize jointly estimated `interactions` blocks (`HalfNormal`
+or `Half-t(df = 3–4)` scale priors recommended; `Half-Cauchy` and `Laplace` are
+excluded from recommended presets—see [Scope and Releases](scope.md#dff-priors-and-non-goals)).
+
+Three capabilities of FACETS and ACER ConQuest are **explicitly non-goals** of
+`BayesianMGMFRM.jl` `0.2.0-DEV`:
+
+1. **High-dimensional frequentist MML and survey-weighted multidimensional latent regression:**
+   `method = :mmle` and `method = :jmle` are 1D estimators; use ACER ConQuest for
+   PISA/NAEP-scale survey-weighted multidimensional MML.
+2. **Observation, element, and sampling replication weights in standard Bayesian MFRM:**
+   non-unit weights are refused rather than multiplying log-likelihood terms.
+3. **Native FACETS or ConQuest command-file syntax parsers and GUIs:**
+   declare models via `mfrm_spec`, R `fit_mgmfrm`, or `MRCML.from_tam`, and archive
+   results with SHA-256-verified JSON handoff bundles; see
+   [equating modes and non-identifiability boundaries](equating-and-populations.md#four-equating-modes).
 
 ## Unsupported source features must fail visibly
 
@@ -732,7 +939,7 @@ and external artifact metadata are not fitting prerequisites for a distributed
 package:
 
 ```julia
-anchored_spec = mfrm_spec(data;
+anchored_spec = mfrm_spec(bridge_data;
     thresholds = :rating_scale,
     anchors = [(
         block = :rater,
@@ -742,7 +949,7 @@ anchored_spec = mfrm_spec(data;
     )],
 )
 
-plan = anchor_refit_plan(anchored_spec; require_provenance = false)
+plan = BayesianMGMFRM.anchor_refit_plan(anchored_spec; require_provenance = false)
 @assert plan.status == :hard_anchor_candidate_ready
 @assert plan.candidate_supported
 @assert plan.numerical_fit_supported
@@ -927,3 +1134,5 @@ Before describing a source and destination run as an overlap comparison, record:
 Passing this checklist establishes a reproducible comparison of a named
 overlap target. It does not establish estimator equivalence, product parity,
 or superiority of one program over another.
+
+Follow the [linked population example](equating-and-populations.md) to identify shared calibration and estimate a group contrast. Inspect the corresponding [category design rows](design-matrix-mrcml.md) when translating a facet specification.

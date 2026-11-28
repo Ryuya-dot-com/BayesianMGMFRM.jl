@@ -3,6 +3,7 @@ println("Posterior figure checks: Julia ", VERSION); flush(stdout)
 include("posterior_plot.jl")
 println("Loading CairoMakie"); flush(stdout)
 using Test, BayesianMGMFRM, CairoMakie
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 CairoMakie.activate!(; type = "svg")
 

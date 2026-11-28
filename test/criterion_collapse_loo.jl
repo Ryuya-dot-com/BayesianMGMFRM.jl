@@ -1,5 +1,6 @@
 module CriterionCollapseLOOChecks
 using BayesianMGMFRM,Test,Statistics
+using BayesianMGMFRM.GlassBox
 const B=BayesianMGMFRM
 const C=B.Experimental.CriterionCollapse
 include("fixtures/experimental_diagnostic_record.jl")

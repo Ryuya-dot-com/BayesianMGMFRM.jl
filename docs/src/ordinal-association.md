@@ -12,7 +12,7 @@ example, multiple listeners rate a recording for accentedness and
 comprehensibility. A recording is a response; one listener assessing it is an
 event. Repeated listeners do not become additional independent speakers.
 
-This is an opt-in Experimental model with unit coefficients, explicit criterion
+This is an opt-in model with unit coefficients, explicit criterion
 means, estimated person SDs and a common ordinal association parameter. It is
 separate from the [fixed-person-SD JointRatings model](joint-ratings.md).
 No scientific default prior, general construct-validation claim or causal

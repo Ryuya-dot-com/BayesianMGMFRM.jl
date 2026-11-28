@@ -31,7 +31,7 @@ An explicit `vary=:mean_profile` also compares saved independent D1 item-step
 PCM fits using `Experimental.MeanProfilePrior`, with item slopes and rater
 consistency fixed at one. Only item/step means and `item_sd`/`step_sd` may vary.
 Person/rater SDs, category/owner IDs, coefficient policies and all remaining
-prior fields must match. This option does not admit scalar `MFRMPrior`, free
+prior fields must match. This option does not admit scalar `BayesianMGMFRM.Legacy.MFRMPrior`, free
 slopes or a mixture of profile and non-profile prior families.
 
 ## [When does a prior comparison support a decision?](@id prior-sensitivity-decisions)
@@ -83,6 +83,7 @@ this increment does not power an individual owner's steps separately.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 # baseline, saved_wider_fit and observation_ids belong to your saved analysis.
 factors = B.logprior(baseline; components=:factors)
@@ -151,6 +152,7 @@ fits, with explicit quantities of interest and observation IDs.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 
 narrow = load_fit_cache("narrow-fit.jls")

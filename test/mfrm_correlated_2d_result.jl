@@ -1,5 +1,7 @@
 module MFRMCorrelated2DResultChecks
 using Test, BayesianMGMFRM, Random, Statistics
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("fixtures/correlated_fixed_q_result.jl")
 include("fixtures/fixed_q_cache.jl")

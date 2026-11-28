@@ -1,6 +1,7 @@
 # Optional CairoMakie checks; deterministic fixtures, no posterior fitting.
 module FigureAnnotationChecks
 using BayesianMGMFRM, CairoMakie, Test, Random, SHA
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("common_prediction_fixtures.jl")
 labels(fig) = [String(x.text[]) for x in fig.content if x isa Label]

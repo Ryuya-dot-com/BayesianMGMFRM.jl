@@ -1,6 +1,6 @@
 # Explain dispersion and endpoint use
 
-Use this **Experimental** scalar ZOIB extension when a condition or listener
+Use this scalar ZOIB extension when a condition or listener
 attribute may change rating variability or endpoint use, in addition to the
 interior mean. Start with the [bounded-score guide](bounded-scores.md). Keep
 its mean model and replace `observation_prior` with blocks such as:

@@ -1,4 +1,5 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 """
     saved_integrated_report(cache_path, output_directory; reporting, kwargs...)

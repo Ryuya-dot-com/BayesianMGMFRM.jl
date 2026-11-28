@@ -1,6 +1,7 @@
 module MFRMFixedQResultChecks
 
 using Test, BayesianMGMFRM, Random, Statistics
+using BayesianMGMFRM.GlassBox
 const B = BayesianMGMFRM
 include("fixtures/fixed_q_result.jl")
 include("fixtures/fixed_q_cache.jl")

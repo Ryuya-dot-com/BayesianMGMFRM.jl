@@ -2,6 +2,8 @@ module UnifiedAPIAndStarAssociationChecks
 
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using ForwardDiff
 using LinearAlgebra
 using Random
@@ -101,20 +103,26 @@ function _star_mixed_support_fixture()
     return (; rows, criteria, prior)
 end
 
-@testset "Namespace governance, ValidationSuite, and root contract" begin
+@testset "Namespace governance, GlassBox, ValidationSuite, Legacy, and root contract" begin
     @test :Experimental ∉ names(B)
+    @test :GlassBox ∉ names(B)
     @test :ValidationSuite ∉ names(B)
+    @test :Legacy ∉ names(B)
     @test :plot ∉ names(B)
+    @test isdefined(B, :GlassBox)
     @test isdefined(B, :ValidationSuite)
+    @test isdefined(B, :Legacy)
     @test isdefined(B, :plot)
     @test E.StarAssociation === JR.StarAssociation
 
     vs_contract = VS.contract()
     @test vs_contract.schema == "bayesianmgmfrm.validation_suite.v1"
-    @test vs_contract.root_compatibility_preserved
+    @test vs_contract.release_line == "0.2.x"
+    @test !vs_contract.root_compatibility_preserved
     @test VS.RecoveryPlanning === E.RecoveryPlanning
     for sym in B._ROOT_API_RESEARCH_BINDINGS
         @test sym in names(VS)
+        @test sym ∉ names(B)
         @test getfield(VS, sym) === getfield(B, sym)
     end
     for sym in vs_contract.groups.free_latent_correlation_2d_study
@@ -123,19 +131,29 @@ end
     end
 
     root_contract = B._root_api_contract()
+    @test root_contract.schema == "bayesianmgmfrm.root_api_contract.v2"
+    @test root_contract.release_line == "0.2.x"
     for verb in (
         :design_summary, :with_options, :prior_draw, :simulate,
         :prepare_fit, :run_chain_worker, :worker_status, :collect_fit,
-        :qualify, :facet_summary, :category_summary, :contrast,
+        :qualify, :facet_summary, :category_summary, :contrast, :plausible_values,
+        :anchor_linking_summary, :predict,
         :event_probabilities, :reliability, :ranking, :classification,
         :criteria, :predictive_check, :save_fit, :load_fit,
-        :save_report, :load_report, :contract, :parameter_names,
-        :facet_basis, :coordinates, :to_ncp_reference, :from_ncp_reference,
-        :reparameterize_point, :reparameterize_draws, :log_jacobian_to_ncp,
-        :logdensity_and_gradient, :stan_data, :sampler_controls,
+        :save_report, :load_report,
     )
         @test verb in names(B)
-        @test verb in root_contract.stable
+        @test verb in root_contract.layer1_practitioner
+    end
+    for l2_verb in (
+        :contract, :parameter_names, :facet_basis, :coordinates,
+        :to_ncp_reference, :from_ncp_reference, :reparameterize_point,
+        :reparameterize_draws, :log_jacobian_to_ncp, :logdensity_and_gradient,
+        :stan_data, :sampler_controls,
+    )
+        @test l2_verb ∉ names(B)
+        @test l2_verb in names(B.GlassBox)
+        @test l2_verb in root_contract.glass_box
     end
 end
 

@@ -1,5 +1,7 @@
 module MGMFRMAdaptationRecordChecks
 using Test, Random, Logging, LinearAlgebra, JSON3, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 include("../scripts/mgmfrm_adaptation_review.jl")
 const R = MGMFRMAdaptationReview
 const A = R.A

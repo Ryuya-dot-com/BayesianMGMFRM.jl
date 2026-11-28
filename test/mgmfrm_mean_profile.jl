@@ -1,6 +1,8 @@
 isdefined(@__MODULE__, :MGMFRMSlopeRestrictionChecks) || include("mgmfrm_slope_restriction.jl")
 module MGMFRMMeanProfileChecks
 using Test, BayesianMGMFRM, Random, ForwardDiff, LinearAlgebra
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using ..MGMFRMSlopeRestrictionChecks: specification, model, prior, saved_record_fixture
 const B=BayesianMGMFRM; const E=B.Experimental
 function profile(m; units=:raw, item_means=nothing, step_means=nothing, category_levels=m.base_spec.data.category_levels)

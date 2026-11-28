@@ -1,41 +1,40 @@
 # Installation
 
-Use **Julia 1.10.8 or newer** and source snapshot **`20261119-distribution-ci-freeze`**,
-matching this manual. This is package **0.1.2 (unreleased)**, a development
-distribution rather than a registered General release.
+## Install the development snapshot
 
-## Install from GitHub
-
-In a dedicated analysis project, install and pin the matching development snapshot branch:
+Use Julia 1.10.8 or newer. This manual uses Julia package version
+`0.2.0-DEV` at commit `ae61f103b14d8b3af6ba459b37020627dd58a98d`. Install it in a
+dedicated analysis project:
 
 ```julia
 using Pkg
 Pkg.activate("rating-analysis")
 Pkg.add(url="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl",
-    rev="development/20261119-distribution-ci-freeze")
-Pkg.pin("BayesianMGMFRM")
+        rev="ae61f103b14d8b3af6ba459b37020627dd58a98d")
 using BayesianMGMFRM
+pkgversion(BayesianMGMFRM)  # v"0.2.0-DEV"
 ```
 
-## Install from an extracted source archive
+Keep the analysis project's `Project.toml` and `Manifest.toml` to reproduce
+the dependency versions. Analyses made with the original public solver
+snapshot can use `rev="0cea3251a8ef739378c188270a15085aab0777ff"` instead.
 
-Alternatively, extract the matching source archive (`BayesianMGMFRM-20261119-distribution-ci-freeze`),
-start Julia in the directory containing the extracted folder, and run:
+## Install from a local source tree
+
+To work on a checkout or an extracted snapshot, use its package directory
+in a separate project:
 
 ```julia
 using Pkg
-source_dir = abspath("BayesianMGMFRM-20261119-distribution-ci-freeze")
-Pkg.activate("rating-analysis")
-Pkg.develop(path=source_dir)
+Pkg.activate("rating-local")
+Pkg.develop(path=abspath("path/to/BayesianMGMFRM.jl"))
 using BayesianMGMFRM
-pkgdir(BayesianMGMFRM)
+pkgdir(BayesianMGMFRM)  # local source directory
 ```
 
-The final line should show the extracted source folder. `rating-analysis` is
-your separate analysis project; keep both folders. If the source folder is
-elsewhere, replace `source_dir` with its absolute path. If Julia syntax is new,
-the [Julia basics guide](learning-guide.md#julia-for-beginners) explains projects,
-paths and help.
+Keep the local source and its Git revision or archive checksum alongside
+the analysis environment. For an introduction to Julia projects, see the
+[Julia basics guide](learning-guide.md#julia-for-beginners).
 
 **Continue to [Your First Rating Analysis](first-analysis.md).** Its supplied
 figures can also be read without installing or running Julia.
@@ -50,10 +49,9 @@ Pkg.activate("rating-analysis")
 using BayesianMGMFRM
 ```
 
-Keep the source archive/checksum, extracted source, and the analysis project's
-`Project.toml` and `Manifest.toml`. A developed package path is mutable; the
-manifest alone does not preserve the source. Historical native fits need their
-original complete environment: see [saved-result reproduction](api-saved-reporting.md#saved-result-reproduction).
+For a local source installation, activate `rating-local` instead.
+Historical native fits require the original complete environment. See
+[saved-result reproduction](api-saved-reporting.md#saved-result-reproduction).
 
 ## Optional plotting and other backends
 

@@ -9,11 +9,11 @@ function _explanatory_power_definitions(t::AdditiveFacets.ExplanatoryTarget)
         push!(out,merge(common,(;id="residual[$(b.name)]",family=:normal,owner=b.name,
             owner_ids=deepcopy(A._owner_levels(t,b.name)),raw=collect(b.raw),
             free_dimension=length(b.raw),sd=b.sd,hyper=b.hyper,
-            logmean=b.logmean,logsd=b.logsd,
+            logmean=b.logmean,logsd=b.logsd,scale_kind=b.scale_kind,
             measure=b.kind===:iid_population ? :residual_lebesgue : :finite_orthonormal_volume,
             selectable=sel,role=rl)))
         hierarchical || continue
-        push!(out,merge(common,(;id="residual_sd[$(b.name)]",family=:lognormal,owner=b.name,
+        push!(out,merge(common,(;id="residual_sd[$(b.name)]",family=b.scale_kind,owner=b.name,
             raw=[b.hyper],free_dimension=1,logmean=b.logmean,logsd=b.logsd,
             measure=:positive_sd_lebesgue,selectable=true,role=:hyperprior)))
     end
@@ -52,7 +52,12 @@ function _explanatory_factor_value(f,q)
     if f.family===:lognormal
         return normal-log(f.logsd)-(f.logmean+f.logsd*only(z))
     end
-    logscale=f.hyper==0 ? log(f.sd) : f.logmean+f.logsd*q[f.hyper]
+    if f.family in (:half_normal,:half_student_t)
+        D=AdditiveFacets.D
+        prior=f.family===:half_normal ? D.Normal(0,f.logsd) : D.LocationScale(0,f.logsd,D.TDist(f.logmean))
+        return log(2)+D.logpdf(prior,exp(only(z)))
+    end
+    logscale=f.hyper==0 ? log(f.sd) : get(f,:scale_kind,:lognormal)===:lognormal ? f.logmean+f.logsd*q[f.hyper] : q[f.hyper]
     normal-length(z)*logscale
 end
 
@@ -173,7 +178,9 @@ means and plug-in mean/paired-shift MCSE. Quantile/decision precision and PSIS
 tail-fit uncertainty are not assessed. Failed weights cannot establish robustness.
 Use `plot(report; kind=:prior_sensitivity)` and the common save/load verbs.
 """
-function prior_sensitivity(f::AdditiveFacets.Fit;powers,estimands,max_pareto_k=.7,max_mean_mcse=nothing)
+function prior_sensitivity(f::AdditiveFacets.Fit;powers=nothing,estimands=nothing,max_pareto_k=.7,max_mean_mcse=nothing)
+    powers !== nothing && estimands !== nothing ||
+        throw(ArgumentError("prior_sensitivity on AdditiveFacets.Fit requires explicit `powers` and `estimands` keyword arguments"))
     max_pareto_k isa Real && !(max_pareto_k isa Bool) && isfinite(max_pareto_k) &&
         0<max_pareto_k<=.7 || throw(ArgumentError("max_pareto_k must be in (0,.7]"))
     max_mean_mcse===nothing || (max_mean_mcse isa Real && !(max_mean_mcse isa Bool) &&

@@ -1,4 +1,6 @@
 using Test, BayesianMGMFRM, Random, Statistics, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 
 @testset "Named additive workflow boundaries" begin
     @test AF.label_encoding(2).kind==:integer
@@ -112,6 +114,8 @@ end
 
 module AdditiveWorkflowTelemetryFixture
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 include("fixtures/experimental_diagnostic_record.jl")
 end
 

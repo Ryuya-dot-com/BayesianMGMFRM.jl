@@ -10,7 +10,7 @@ Did a judge become harsher when judging the same performances over time?
 rating design, fits RW1 and matched static models, and reviews their saved reports. It preserves the
 reference, prior, uncertainty and numerical warnings of the original analysis.
 
-This experimental entry provides **input checking, four-chain fitting, native
+This entry provides **input checking, four-chain fitting, native
 restoration, computed reports and descriptive static/RW1 comparison**. Changing
 the planned contrasts and prediction are not yet provided. Reading a report does not establish
 coverage, reliable drift detection or a recommended prior. These operations do

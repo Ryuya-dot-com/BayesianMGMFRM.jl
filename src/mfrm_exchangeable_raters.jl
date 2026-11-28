@@ -75,7 +75,7 @@ end
 function Base.show(io::IO, fit::_ExchangeableMFRMFit)
     metadata = fit_metadata(fit)
     print(io, metadata.model_label, " (", metadata.n_draws, " retained draws, ",
-        metadata.backend_label, "; exchangeable rater prior; experimental)")
+        metadata.backend_label, "; exchangeable rater prior )")
 end
 
 struct _MFRMExchangeableRatersLogDensity{T}

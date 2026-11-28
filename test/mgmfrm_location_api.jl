@@ -4,6 +4,8 @@ isdefined(@__MODULE__, :MGMFRMLocationParameterizationChecks) ||
 
 module MGMFRMLocationAPIChecks
 using Test, Random, SHA, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using ..MGMFRMLocationParameterizationChecks: specification
 const B = BayesianMGMFRM
 const E = B.Experimental

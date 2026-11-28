@@ -1,4 +1,6 @@
 using Test, BayesianMGMFRM, ForwardDiff, LinearAlgebra, Random, Statistics
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using Distributions: Normal, LogNormal, logpdf
 const CF=BayesianMGMFRM.AdditiveFacets
 

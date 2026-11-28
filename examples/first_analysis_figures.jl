@@ -1,6 +1,7 @@
 module FirstMFRMFigures
 
 using BayesianMGMFRM, SHA
+using BayesianMGMFRM.Legacy
 using BayesianMGMFRM: JSON3
 
 const BUNDLE = joinpath(pkgdir(BayesianMGMFRM), "docs", "src", "assets", "first-analysis")

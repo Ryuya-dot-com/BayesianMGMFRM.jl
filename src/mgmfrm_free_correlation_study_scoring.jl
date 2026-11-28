@@ -1894,7 +1894,7 @@ The decision is one of `:passed`, `:failed`, or
 `:inconclusive_not_passed`. A structurally valid ledger that is not yet eligible
 for scoring returns `status = :evaluation_scoring_blocked`,
 `decision = :inconclusive_not_passed`, and `evaluated = false`. Passing this
-experimental score never publishes a fit and never sets recovery verification.
+score never publishes a fit and never sets recovery verification.
 """
 function _mgmfrm_free_latent_correlation_2d_study_score(ledger)
     aggregate = _free_correlation_study_evaluation_aggregate(ledger)

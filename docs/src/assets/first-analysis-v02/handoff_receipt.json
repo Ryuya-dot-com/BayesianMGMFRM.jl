@@ -1,0 +1,22 @@
+{
+    "contrast_r2_minus_r1": {
+        "median": 0.1405177775746648,
+        "upper_90": 0.7461269737899929,
+        "lower_90": -0.4986141397974365,
+        "mean": 0.13156633593785647
+    },
+    "source_schema": "bayesianmgmfrm.additive_facet_fit.v1",
+    "draws_per_chain": 1000,
+    "n_parameters": 33,
+    "qualified": true,
+    "n_divergences": 0,
+    "max_rhat": 1.0045268116422728,
+    "min_tail_ess": 1346.8075432861722,
+    "draws_ieee754_sha256": "994c0464f341d31e17f832e1c9537dd36395943505b439031a16c502ade0e752",
+    "handoff_schema": "bayesianmgmfrm.portable_joint_draws_handoff.v1",
+    "schema": "bayesianmgmfrm.first_analysis_v02_receipt.v1",
+    "handoff_bundle_sha256": "cdac95c98eccc2e136d01013661045b8d356b5a02762cf19c7217cba85216e47",
+    "handoff_hash": "25f585ba1ade31772885d101b8507fdc85599f6218da93cb6bd2e7b1909ea743",
+    "n_chains": 4,
+    "min_bulk_ess": 1240.7524999643963
+}

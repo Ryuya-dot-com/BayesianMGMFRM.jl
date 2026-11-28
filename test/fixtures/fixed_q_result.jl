@@ -1,3 +1,4 @@
+using BayesianMGMFRM.Legacy
 # Adapter checks accept an existing result; they never start a sampler.
 include("fixed_q_locations.jl")
 function check_fixed_q_result(result)
@@ -34,7 +35,7 @@ function check_fixed_q_result(result)
     @test metadata.n_draws == metadata.n_chains * metadata.draws_per_chain == size(run.draws, 1)
     @test occursin(metadata.model_label, sprint(show, fit))
     @test occursin(metadata.backend_label, sprint(show, fit))
-    @test occursin(canonical ? "unit logits; experimental" : "unit logits; private result", sprint(show, fit))
+    @test occursin(canonical ? "unit logits)" : "unit logits; private result", sprint(show, fit))
 
     options = (; lower = 0.1, upper = 0.8, intervals = (0.5, 0.8),
         reference = 0.2, rope = (-0.1, 0.3), rope_probability_threshold = 0.7)

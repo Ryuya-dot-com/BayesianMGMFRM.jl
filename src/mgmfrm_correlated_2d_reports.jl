@@ -176,7 +176,7 @@ function fit_report(fit::_RecordedMGMFRMFit; view::Symbol = :public,
             "Prior-anchored model coordinates; response multiplier 1.7; rho on correlation scale",
         source_sample_schema = record.schema, source_sample_content_hash = record.content_hash,
         interpretation = normalized ? _normalized_mgmfrm_label(context.target) * "; latent correlation is fixed to identity. Prior scales and coefficient policies are explicit inputs. Scientific acceptance is not established." :
-            "Experimental correlated MGMFRM: positive loadings, product-one rater consistency and population rho are estimated. Q fixes the zero pattern, not active loading values. Supported operations do not establish scientific acceptance."))
+            "correlated MGMFRM: positive loadings, product-one rater consistency and population rho are estimated. Q fixes the zero pattern, not active loading values. Supported operations do not establish scientific acceptance."))
     posterior = _fit_report_section(policy) do
         rows = _recorded_mgmfrm_posterior_summary(
             _recorded_mgmfrm_summary_input(context.checked, :raw_unconstrained); lower, upper)
@@ -286,7 +286,7 @@ fit_report_public(fit::_RecordedMGMFRMFit; kwargs...) = fit_report_public(fit_re
 function _mgmfrm_correlated_2d_plot_identity(context)
     record = context.checked.record
     context.fit isa _NormalizedMGMFRMFit && return (; model=context.checked.model,
-        model_label="Experimental " * _normalized_mgmfrm_label(context.target),
+        model_label=_normalized_mgmfrm_label(context.target),
         dimension_labels=copy(record.spec.dimension_labels), backend=record.run.backend,
         target_identity=record.target_identity, prior_label=context.checked.prior_metadata.prior_label)
     return (; model = context.checked.model, dimension_labels = copy(record.spec.dimension_labels),
@@ -339,7 +339,7 @@ function _mgmfrm_correlated_2d_predictive_plot_data(context, section; interval)
 end
 
 function _render_mgmfrm_correlated_2d(extension, kind, data; size = nothing, annotation_io = stdout)
-    model = get(data, :model_label, "Experimental correlated MGMFRM (estimated loadings and consistency)")
+    model = get(data, :model_label, "correlated MGMFRM (estimated loadings and consistency)")
     backend = data.backend === :advancedhmc ? "Julia (AdvancedHMC)" : "CmdStan"
     units = Dict(block => "Model coordinate (prior-anchored)" for block in (:person, :item, :rater, :item_steps))
     merge!(units, Dict(:item_dimension_discrimination => "Positive loading", :rater_consistency => "Positive consistency",

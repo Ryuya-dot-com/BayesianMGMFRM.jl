@@ -1,6 +1,7 @@
 # Optional CairoMakie test. Explicit cache paths replay real results; ordinary
 # use generates synthetic records and never depends on research artifacts.
 using BayesianMGMFRM, CairoMakie, Test, Random, Serialization
+using BayesianMGMFRM.Legacy
 isdefined(@__MODULE__, :MGMFRMCorrelated2DFixtures) || include("mgmfrm_correlated_2d_fixtures.jl")
 const B = BayesianMGMFRM
 

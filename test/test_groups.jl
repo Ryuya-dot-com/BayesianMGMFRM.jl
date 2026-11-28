@@ -26,9 +26,9 @@ function selected_test_group(value::AbstractString = get(
         "BAYESIANMGMFRM_TEST_GROUP must be all or one of " *
         "$(join(TEST_GROUPS, ", ")); got $(repr(value))",
     ))
-    research_evidence && group !== :all && throw(ArgumentError(
-        "BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true requires " *
-        "BAYESIANMGMFRM_TEST_GROUP=all",
+    research_evidence && group !== :all && !(group in TEST_SHARDS) && throw(ArgumentError(
+        "Research evidence requires all or a concrete test shard: " *
+        join(TEST_SHARDS, ", "),
     ))
     return group
 end

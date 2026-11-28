@@ -1,6 +1,7 @@
 # Include this file, load an existing cache, then call saved_mgmfrm_contrast.
 # These helpers summarize joint draws; they never fit, resample or change a cache.
 using BayesianMGMFRM, Statistics
+using BayesianMGMFRM.GlassBox
 using BayesianMGMFRM: MCMCDiagnosticTools
 
 paired_contrast_summary(left::AbstractVector, right::AbstractVector; kwargs...) =

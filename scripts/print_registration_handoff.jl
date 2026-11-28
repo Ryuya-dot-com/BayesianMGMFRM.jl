@@ -5,7 +5,7 @@
 
 include(joinpath(@__DIR__, "release_metadata.jl"))
 const HANDOFF_HELP = """
-Usage: julia --startup-file=no scripts/print_registration_handoff.jl [OPTIONS]
+Usage: julia --startup-file=no --project=. scripts/print_registration_handoff.jl [OPTIONS]
 
 Prints a draft of manual registration instructions from validated package
 metadata. Loads this source and checks its manual-only release boundary using
@@ -27,7 +27,7 @@ if any(arg -> arg in ("-h", "--help"), ARGS)
 end
 
 const ROOT = abspath(normpath(joinpath(@__DIR__, "..")))
-pushfirst!(LOAD_PATH, ROOT)
+# Honor the caller's dependency environment; verify the loaded source below.
 
 using BayesianMGMFRM
 using TOML

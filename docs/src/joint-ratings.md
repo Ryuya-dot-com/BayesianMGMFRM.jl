@@ -13,14 +13,12 @@ The learner, physical task, recording, rating event and criterion have different
 roles. A second recording of the same learner answering the same task is a new
 response, not a new person or task.
 
-!!! warning "Experimental model"
-    This interface is included in this development snapshot, not an accepted
-    stable release. Packaging does not establish scientific acceptance.
+!!! warning "Saved-example diagnostics"
     Existing short saved fits remain unqualified. A four-category new-response
     score also retains unresolved quadrature order agreement. Inspect the
     source diagnostics and numerical qualification flags before interpretation.
 
-Start with the [experimental model guide](experimental.md) for the broader model
+Start with the [model guide](experimental.md) for the broader model
 catalogue. This is one bounded composition, not a generic selector for every
 MFRM/GMFRM/MGMFRM, mixed-category, five-facet or three-dimensional model.
 
@@ -76,7 +74,7 @@ reporting, contrasting, predicting or scoring.
 source sample identity and API boundary alongside the calculation in `.result`.
 Native saves retain the original sample schema and content identity, so earlier
 trusted sample files can be validated without conversion. Original payloads
-retain their experimental/non-accepted status fields.
+retain their original status and diagnostic fields.
 
 ## Name the rating unit and scale
 
@@ -265,4 +263,4 @@ samples and request; private or historical research samples are not bundled.
 
 In Julia, use `?BayesianMGMFRM.Experimental.JointRatings.predict` or
 `@doc BayesianMGMFRM.Experimental.JointRatings.score`. All entry points are
-listed in the [experimental API reference](api-experimental.md#Joint-ratings).
+listed in the [API reference](api-experimental.md#Joint-ratings).

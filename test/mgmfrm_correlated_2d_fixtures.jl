@@ -1,5 +1,6 @@
 module MGMFRMCorrelated2DFixtures
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
 const B = BayesianMGMFRM
 
 function target(; K=4, raters=3, eta=2)

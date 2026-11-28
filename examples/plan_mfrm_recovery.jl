@@ -1,6 +1,7 @@
 module MFRMRecoveryExample
 
 using BayesianMGMFRM, SHA
+using BayesianMGMFRM.Legacy: MFRMPrior
 const P = BayesianMGMFRM.Experimental.RecoveryPlanning
 
 """

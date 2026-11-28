@@ -1,5 +1,6 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.ValidationSuite: mgmfrm_validation_isolated_resource_probe, mgmfrm_validation_isolated_resource_review, mgmfrm_validation_primary_resource_plan, mgmfrm_validation_scaled_resource_plan
 
 function _isolated_review_receipt_json(
         cell_id;

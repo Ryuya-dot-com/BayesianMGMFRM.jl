@@ -15,7 +15,7 @@ function package_sources()
     root=dirname(dirname(pathof(B)))
     files=sort([joinpath(d,f) for branch in ("src","ext")
         for (d,_,fs) in walkdir(joinpath(root,branch)) for f in fs if endswith(f,".jl")])
-    [(;path=relpath(f,root),sha256=digest(f)) for f in files]
+    [(;path=replace(relpath(f,root),'\\'=>'/'),sha256=digest(f)) for f in files]
 end
 
 function context()

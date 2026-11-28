@@ -1,6 +1,8 @@
 # A scoped worked example; including this file starts no estimation or generation.
 module RepeatedModerationExample
 using BayesianMGMFRM, Statistics
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using Distributions: Normal, LogNormal
 const B=BayesianMGMFRM
 

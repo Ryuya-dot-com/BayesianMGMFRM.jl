@@ -1,5 +1,6 @@
 module MGMFRMAdaptationReviewChecks
 using Test, LinearAlgebra, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
 include("../scripts/mgmfrm_adaptation_review.jl")
 const R = MGMFRMAdaptationReview
 const A = R.A

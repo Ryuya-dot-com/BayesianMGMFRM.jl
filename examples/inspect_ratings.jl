@@ -1,4 +1,5 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
 
 # Artificial data for learning the input contract, not a recommended study size.
 ratings = (
@@ -20,10 +21,11 @@ for issue in report.issues
 end
 report.passed || error("Resolve the reported design errors before specifying a model.")
 
-spec = mfrm_spec(data; thresholds = :partial_credit, validation_report = report)
-show(stdout, MIME"text/plain"(), spec)
-println()
-println("Category log weights (k indexes categories starting at 1):")
-println(model_equation(spec).kernel)
+spec = mfrm_spec(data; prior = :default, validation_report = report)
+summary = design_summary(spec)
+println("Model: one-dimensional partial-credit MFRM with sum-to-zero facets and steps.")
+println("Population location and person spread are estimated; no rater/item is fixed at zero.")
+println("Person-spread prior: ", summary.prior_summary.person.label)
+println("Adjacent-category log odds: ability - item difficulty - rater severity - item step.")
 println("No model was fitted and no files were written. Review priors before fitting.")
 println("For the next step, follow the manual's First MFRM analysis: examples/first_analysis.jl.")

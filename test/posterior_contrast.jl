@@ -1,5 +1,6 @@
 module PosteriorContrastChecks
 using Test, BayesianMGMFRM, Statistics, Serialization
+using BayesianMGMFRM.Legacy
 const B=BayesianMGMFRM
 include("common_prediction_fixtures.jl")
 include("../examples/saved_mgmfrm_contrasts.jl")

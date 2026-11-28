@@ -40,7 +40,10 @@ function coordinate_contract(name)
     (;name,stored_draws=:sampler,initial_input=:native_model,model_reports=:native_model,
         jitter=:sampler,metric=:sampler,experimental=name===:pair_132)
 end
-const CHART_WARNING="Experimental pair_132 sampler coordinates: unchanged model/prior; improved mixing or precision is not established."
+const CHART_WARNING="pair_132 sampler coordinates: unchanged model/prior; improved mixing or precision is not established."
+# Older reports carry the same warning with a display qualifier. Keep their
+# sealed contents readable while generating only the current wording.
+has_chart_warning(warnings) = CHART_WARNING in warnings || "Experimental " * CHART_WARNING in warnings
 sampling_target(p,t)=p.record.coordinates.name===:native ? t : K.Target(t)
 native_point(p,t,q)=p.record.coordinates.name===:native ? q : K.convert_coordinates(K.Target(t),q)
 function execution(c;available_threads=Threads.nthreads(:default))
@@ -440,7 +443,7 @@ function check_report(r)
         require(hasproperty(r,:coordinates),"missing coordinate metadata")
         require(R.normalized(r.coordinates)==R.normalized(coordinate_contract(Symbol(r.coordinates.name))),"report coordinate metadata differs")
         if r.coordinates.experimental
-            require(r.model.interaction=="full" && CHART_WARNING in r.warnings,"experimental chart scope/warning differs")
+            require(r.model.interaction=="full" && has_chart_warning(r.warnings),"chart scope/warning differs")
         end
     else
         require(!hasproperty(r,:coordinates),"legacy report cannot carry new coordinate metadata")

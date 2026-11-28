@@ -1,5 +1,6 @@
 module ExplanatoryComparisonTests
 using Test, BayesianMGMFRM, Distributions, Statistics
+using BayesianMGMFRM.GlassBox
 const B=BayesianMGMFRM;const A=B.AdditiveFacets
 function fixture(;mixed=false,population_residual=true,one_per_person=false,performance_coefficients=false)
     rows=[(p,o,r,c) for p in 1:4 for o in 1:2 for r in 1:3 for c in 1:2]
@@ -17,6 +18,32 @@ function fixture(;mixed=false,population_residual=true,one_per_person=false,perf
         predictors=(person=(mean_rate=Normal(0,.5),),response=(rate_change=performance_coefficients ? (by=:session_noise,prior=Normal(0,.5)) : Normal(0,.5),)),
         decompose=(rate=(between=:mean_rate,within=:rate_change),),intercept=Normal(0,.8))
     t
+end
+
+@testset "Assessment-unit shared effects and zero-effect reference" begin
+    rows=[(p,r,c) for p in 1:4 for r in 1:3 for c in 1:3]
+    d=(;person=first.(rows),rater=getindex.(rows,2),item=last.(rows),
+        event=[3p+r for (p,r,c) in rows],score=[mod(p+r+c,4) for (p,r,c) in rows])
+    for mixed in (false,true), sd_prior in (0.,truncated(Normal(),0,Inf),truncated(LocationScale(0,.7,TDist(4)),0,Inf))
+        t=mfrm_spec(d;person=:person,score=:score,facets=(rater=:rater,item=:item,event=:event),
+            assessment=:event,steps=:item,category_levels=mixed ? Dict(i=>0:(i==1 ? 4 : 3) for i in 1:3) : 0:3,
+            population=(person=truncated(Normal(),0,Inf),event=sd_prior),
+            prior_sd=(facets=(rater=1.,item=1.),step=1.),intercept=Normal(0,2.5))
+        @test validate_design(t).identified
+        design=B._explanatory_profile_design(t,:assessment,:event)
+        @test length(design.groups)==12 && all(length(g)==3 for g in design.groups)
+        @test design.integration===:one_iid_assessment_residual_joint_profile
+        train=B._explanatory_training_target(t,design,first(design.profiles).performance)
+        q=.1sin.(1:train.dimension);full=B._explanatory_transport(train,t,q)
+        keep=setdiff(eachindex(t.person),design.groups[1])
+        @test pointwise_loglikelihood(train,q)≈pointwise_loglikelihood(t,full)[keep] atol=1e-12
+        @test A.record(train).schema=="bayesianmgmfrm.explanatory_facet_design.v4"
+        # A joint probability must reduce to the conditional product when SD is zero.
+        quad=first(B._explanatory_quadrature((31,61),1e-7,1e-5))
+        eta=[-.2,.5];tau=[[-.3,.1,.2],[-.3,.1,.2]];ys=[2,4]
+        ref=sum(begin w=[0.;cumsum(eta[i].-tau[i])];w[ys[i]]-log(sum(exp,w)) end for i in 1:2)
+        @test B._explanatory_integral(eta,tau,ys,quad,0.)≈ref atol=1e-12
+    end
 end
 
 @testset "Joint integration, support, identity and normalized refit prior" begin

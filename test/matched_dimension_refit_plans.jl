@@ -1,5 +1,6 @@
 module MatchedDimensionPlanChecks
 using BayesianMGMFRM, Test
+using BayesianMGMFRM.Legacy
 include("../examples/matched_dimension_refit_plans.jl")
 const E=BayesianMGMFRM.Experimental
 

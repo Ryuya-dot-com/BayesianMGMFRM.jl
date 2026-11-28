@@ -1,4 +1,6 @@
 using Test, BayesianMGMFRM, LinearAlgebra, ForwardDiff, Serialization, Statistics
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import LogDensityProblems as L
 const AF=BayesianMGMFRM.AdditiveFacets
 

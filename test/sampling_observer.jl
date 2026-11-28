@@ -2,6 +2,7 @@
 isdefined(@__MODULE__, :MFRMCorrelated2DChecks) || include("mfrm_correlated_2d.jl")
 module SamplingObserverChecks
 using Test, Random, Logging, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
 using ..MFRMCorrelated2DChecks: specification, PRIOR
 const B = BayesianMGMFRM
 

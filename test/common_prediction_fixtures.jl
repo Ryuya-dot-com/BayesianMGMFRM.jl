@@ -1,3 +1,4 @@
+using BayesianMGMFRM.GlassBox
 include("fixtures/reporting_fit.jl")
 include("fixtures/prediction_fixed_fits.jl")
 include("mgmfrm_correlated_2d_fixtures.jl")

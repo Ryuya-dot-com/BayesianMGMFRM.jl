@@ -1,5 +1,6 @@
 module ConcurrentPlotChecks
 using BayesianMGMFRM, JSON3, SHA, Test, Random
+using BayesianMGMFRM.GlassBox
 const B=BayesianMGMFRM
 const R=B.Experimental.ThreeIndicator.ConcurrentReports
 const FIXTURES=joinpath(@__DIR__,"fixtures/concurrent_plot")
@@ -11,6 +12,11 @@ function reseal(d)
 end
 function checks()
     @testset "Concurrent saved plot contract without inference" begin
+        F = B.Experimental.ThreeIndicator.ConcurrentWorkflow
+        @test F.has_chart_warning([F.CHART_WARNING])
+        @test F.has_chart_warning(["Experimental " * F.CHART_WARNING])
+        @test !F.has_chart_warning(String[])
+        @test !F.has_chart_warning(["Unknown " * F.CHART_WARNING])
         p=readfixture("ppc"); c=readfixture("contrasts"); r=readfixture("reference")
         @test length(p.rows)==202
         @test length(c.rows)==24

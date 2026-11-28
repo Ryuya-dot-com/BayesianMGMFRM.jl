@@ -2,7 +2,7 @@
 
 **Does a speaker's change in rate relate more strongly to delivery than to
 content?** Fit the associations together and compare their joint posterior
-difference. This experimental scalar model can use different category counts
+difference. This scalar model can use different category counts
 while sharing person, performance and rater effects.
 
 ## Specify the ratings
@@ -19,6 +19,7 @@ unit loadings is an assumption; different category counts do not establish it.
 
 ```julia
 using BayesianMGMFRM, JSON3
+using BayesianMGMFRM.Legacy
 using Distributions: Normal, LogNormal
 
 ratings = JSON3.read(read(joinpath(pkgdir(BayesianMGMFRM),

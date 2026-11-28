@@ -1,4 +1,6 @@
 using Test, BayesianMGMFRM, Distributions, ForwardDiff, Statistics, JSON3
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const CF=BayesianMGMFRM.AdditiveFacets
 function count_fixture(;P=12,R=6,family=:beta_binomial)
     pairs=[(p,u,r) for p in 1:P for u in 1:2 for r in 1:R if mod(p+u+r,3)!=0]

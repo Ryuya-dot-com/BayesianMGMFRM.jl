@@ -1,3 +1,4 @@
+using BayesianMGMFRM.Legacy
 function boundary_checks(output,fit,recorded)
 @testset "Explicit request, missing output and partial cohort boundaries" begin
     req=request(fit);opts=options(fit)

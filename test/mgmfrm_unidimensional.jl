@@ -1,5 +1,6 @@
 module UnidimensionalMGMFRMChecks
 using Test, BayesianMGMFRM, ForwardDiff, LinearAlgebra, Random
+using BayesianMGMFRM.GlassBox
 const B=BayesianMGMFRM
 const E=B.Experimental
 const SCALES=(;person_sd=.8,rater_sd=.6,item_sd=.9,

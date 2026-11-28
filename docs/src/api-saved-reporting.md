@@ -10,6 +10,7 @@ native files; the portable report is the sharing format.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 save_fit("analysis.jls", result)
 restored = load_fit("analysis.jls")
@@ -17,7 +18,7 @@ receipt = save_report("summary.json", restored; return_receipt=true)
 report = load_report(receipt.path; expected_sha256=receipt.sha256)
 ```
 
-`result` is an already fitted common model, Star model, or supported experimental
+`result` is an already fitted common model, Star model, or supported
 sample record. Save the receipt separately when exporting: reading a changed file
 and calculating its current digest does not verify the original export.
 `return_receipt=true` gives the same `path` and `sha256` fields for every report
@@ -64,7 +65,7 @@ another model is named. The separate observed-score alpha and ICC operations
 consume ratings and also accept `FacetData` without a fit. Finite-cohort
 reliability, matched-response score agreement, category use, classification
 risk and ranks answer different questions. The standalone functions can also
-be requested through `fit_report(...; reporting=(...))`. Experimental sample
+be requested through `fit_report(...; reporting=(...))`. Sample
 records remain distinct from `load_fit_cache` / `fit_report`; use the unified
 entry points above to select their appropriate implementations.
 
@@ -79,6 +80,7 @@ not available through this interface. It is separate from `load_fit_cache` and
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 saved = load_report("three-outcome-report.json";
     expected_sha256 = report_sha256,
     comparison_path = "engine-comparison.json",
@@ -190,9 +192,11 @@ the recipient only needs the computed results.
 
 ### What the development version has actually verified
 
-This manual describes snapshot `20261119-distribution-ci-freeze`. Several development
-snapshots use version `0.1.2`; the version string alone does not identify the code. Keep the exact source archive or revision, as explained in
-[Versions and Saved Results](registration.md).
+This manual describes package **`0.2.0-DEV (unreleased)`** from the matching
+local development source tree. Earlier development snapshots used version
+`0.1.2` (such as `20261119-distribution-ci-freeze`); the version string alone
+does not identify the code. Keep the exact source revision and project
+environment, as explained in [Versions and Saved Results](registration.md).
 
 The table separates checks on earlier source snapshots from saved-result checks
 on specified reporting snapshots. Actual fitting, installation and restoration
@@ -273,10 +277,11 @@ fitting or generating replicated responses, and writes a **new** bundle:
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 fit_result = load_fit_cache(joinpath(@__DIR__, "analysis-fit.jls"))
 # Omit legacy MFRM sections; category functioning simulates new ratings.
-legacy_options = fit_result isa MFRMFit ?
+legacy_options = fit_result isa BayesianMGMFRM.Legacy.MFRMFit ?
     (; include_category_functioning=false, include_rater_homogeneity=false) : (;)
 report = fit_report(fit_result; legacy_options..., view=:public,
     include_prior_predictive=false, include_posterior_predictive=false,
@@ -368,7 +373,7 @@ reporting = (;
     agreement=(;response_ids=performance_ids, interval=0.99, se_unit=:person),
     reliability=[(;id="Ability A", parameters=person_names_A, target=:centered)])
 
-legacy_options = fit_result isa MFRMFit ?
+legacy_options = fit_result isa BayesianMGMFRM.Legacy.MFRMFit ?
     (; include_category_functioning=false, include_rater_homogeneity=false) : (;)
 report = fit_report(fit_result; reporting, legacy_options..., view=:public,
     include_prior_predictive=false, include_posterior_predictive=false, include_artifact=false,

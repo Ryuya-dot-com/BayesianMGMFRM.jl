@@ -7,270 +7,113 @@ estimates, diagnostic qualification, and transparent target densities.
 
 # Unified Practitioner Workflow
 
-Start with `FacetData`, `mfrm_spec`, explicit sampling settings for `fit`,
-`diagnostics` and `contrast`, then save the result. The extended operations below
-share names across models, but availability and return values are model-specific.
-Consult the selected model guide; checkpointing is not required for a scalar fit.
+Start with a rating table and `mfrm_spec` (`prior = :default` for the standard
+isometric zero-sum Bayesian parameterization, or `prior = :none` for frequentist
+estimation), validate the design with `validate_design`, pass explicit sampling
+settings to `fit`, inspect `qualify`, `diagnostics`, and `contrast`, and persist
+verified fits or portable handoff reports. The extended operations below share
+names across models, while availability and return values remain model-specific.
+Consult the selected model guide; checkpointing is not required for an ordinary fit.
+Use `AbstractMFRMSpec` and `AbstractMFRMFit` for type annotations spanning these
+standard specifications and fits; concrete fields remain model-specific.
 
-1. **Specify & Inspect Design**: Build a table with `FacetData` and inspect it
-   with `design_summary` and `mfrm_spec` (or `Experimental.joint_rating_spec`
-   for multi-criterion rating events). Modify specifications cleanly with `with_options`.
+1. **Specify & Inspect Design**: Build an identified model directly from a rating
+   table with `mfrm_spec(ratings; person = ..., score = ..., facets = ..., steps = ..., category_levels = ..., prior = :default)`
+   (including optional `slope = :rater | :item` for 1D GMFRM or `q_matrix = ...`
+   for scale-identified MGMFRM, or `Experimental.joint_rating_spec` for
+   multi-criterion rating events). Inspect `validate_design` and `design_summary`,
+   and modify specifications cleanly with `with_options`. Legacy reference-coded
+   `FacetData` workflows remain available for `0.1.x` compatibility (`FacetData`
+   with `mfrm_spec(data; prior = :default)` also compiles to the isometric route).
 2. **Check Priors & Simulate**: Draw from the joint prior with `prior_draw`,
    generate synthetic datasets with `simulate`, and screen plausibility with
    `prior_predictive_check`.
-3. **Fit & Checkpoint**: Estimate models via `fit` (or multi-worker
-   `prepare_fit`, `run_chain_worker`, `worker_status`, `collect_fit`).
+3. **Fit & Checkpoint**: Estimate models via `fit` (analytic-gradient NUTS by
+   default, or `method = :mmle | :jmle` on 1D `prior = :none` specifications;
+   multi-worker execution uses `prepare_fit`, `run_chain_worker`,
+   `worker_status`, `collect_fit`).
 4. **Qualify, Summarize & Decide**: Screen convergence with `qualify` and
-   `diagnostics`, inspect `posterior_summary`, `facet_summary`, `category_summary`,
-   `contrast`, `event_probabilities`, `reliability`, `ranking`, `classification`,
-   `predictive_check`, `criteria` (`waic`, `psis_loo`), `compare_models`, and
-   `prior_sensitivity`.
+   `diagnostics` (`:mcmc`, `:fit_statistics`, `:fair_average`, `:pair_bias`,
+   `:residual_correlation`), inspect `posterior_summary`, `posterior_mcse`,
+   `facet_summary`, `category_summary`, `contrast`, `plausible_values`,
+   `anchor_linking_summary`, `predict`, `event_probabilities`, `reliability`,
+   `ranking`, `classification`, `predictive_check`, `criteria`, `compare_models`,
+   and `prior_sensitivity`.
 5. **Visualize & Persist**: Render publication-ready figures via
    `BayesianMGMFRM.plot(fit; kind = :posterior)` (after `using CairoMakie`),
    and persist verified fits or portable JSON reports with `save_fit` / `load_fit`
    and `save_report` / `load_report`.
 
-# Glass-Box Researcher Surface
+# Glass-Box Researcher & Submodule Surfaces
 
-Methodological researchers can inspect exact model contracts, coordinate maps,
-basis partitions, Jacobians, analytical gradients, and CmdStan inputs directly via
-`contract`, `parameter_names`, `facet_basis`, `coordinates`, `to_ncp_reference`,
+Methodological researchers can load `using BayesianMGMFRM.GlassBox` to inspect
+exact model contracts, coordinate maps, basis partitions, Jacobians, analytical
+gradients, CmdStan inputs, and interoperability bridges (`contract`,
+`parameter_names`, `facet_basis`, `coordinates`, `to_ncp_reference`,
 `from_ncp_reference`, `reparameterize_point`, `reparameterize_draws`,
 `log_jacobian_to_ncp`, `logprior`, `loglikelihood`, `pointwise_loglikelihood`,
-`logposterior`, `logdensity_and_gradient`, `stan_data`, and `sampler_controls`.
+`logposterior`, `logdensity_and_gradient`, `stan_data`, `sampler_controls`,
+`MRCML`, `StanAdapter`, `PortableHandoff`, `ModelOperationMatrix`).
 
-Simulation-study, calibration-pilot, and benchmark harnesses are organized in
-`BayesianMGMFRM.ValidationSuite`. Generalized, multidimensional, correlated, and
+Simulation-study, calibration-pilot, and benchmark harnesses live in
+`BayesianMGMFRM.ValidationSuite`, compatibility aliases from `0.1.x` live in
+`BayesianMGMFRM.Legacy`, and generalized, multidimensional, correlated, and
 multi-criterion models use `BayesianMGMFRM.Experimental`; computational
 availability does not establish scientific model-selection acceptance.
 """
 module BayesianMGMFRM
 
-export SamplingProgress,
-    progress_snapshot,
+import StatsAPI: fit, predict
+
+export
+    # Core Types (6)
     FacetData,
-    FacetDesign,
-    FacetSpec,
-    CmdStanError,
-    GMFRMFit,
-    MGMFRMFit,
-    MFRMLogDensity,
-    MFRMFit,
-    MFRMPrior,
+    AbstractMFRMSpec,
+    AbstractMFRMFit,
+    SamplingProgress,
     ValidationIssue,
     ValidationReport,
-    anchor_linking_summary,
-    anchor_refit_plan,
-    artifact_content_hash,
-    benchmark_result_row,
-    benchmark_summary,
-    calibration_table,
-    category_functioning_summary,
-    constraint_table,
-    coverage_matrix,
-    coverage_summary,
-    compare_models,
-    compare_kfold,
-    cached_fit,
-    calibration_plot_data,
-    case_study_provenance_manifest,
-    comparison_evidence_row,
-    comparison_evidence_summary,
-    cmdstan_backend_contract,
-    cmdstan_backend_check,
-    conquest_bridge_bundle,
-    diagnostic_map_data,
-    design_identity,
-    design_row_table,
-    dff_report,
-    domain_compilation_summary,
-    evidence_metadata,
-    evidence_artifact_schema_policy,
-    external_bridge_result_receipt,
-    expected_scores,
-    facets_compatibility_stats,
-    facets_bridge_bundle,
-    facets_report,
-    facet_response_table,
-    fair_average_summary,
-    falsification_rule_summary,
-    falsification_rules,
-    fit,
-    fit_archive_manifest,
-    fit_artifact,
-    fit_cache_key,
-    fit_metadata,
-    fit_report,
-    fit_report_health,
-    fit_report_public,
-    fit_report_dossier,
-    fit_report_dossier_markdown,
-    fit_report_markdown,
-    fit_reproduction_manifest,
-    fit_report_section,
-    fit_report_sections,
-    fit_report_rows,
-    fit_ready_parameter_layout,
-    fit_stats,
-    getdesign,
-    identification_declarations,
-    diagnostics,
-    initial_params,
-    kfold,
-    kfold_diagnostics,
-    kfold_plan,
-    kfold_plan_diagnostics,
-    kfold_refit,
-    kfold_refit_comparison,
-    kfold_sensitivity_comparison,
-    loglikelihood,
-    loo,
-    loo_diagnostics,
-    loo_refit,
-    loo_refit_comparison,
-    loo_refit_plan,
-    logposterior,
-    logprior,
-    linear_predictor_table,
-    linear_predictor_values,
-    local_dependence_calibration_contract,
-    local_dependence_calibration_pilot_check,
-    local_dependence_calibration_pilot_contract,
-    local_dependence_calibration_pilot_preflight,
-    local_dependence_calibration_row,
-    local_dependence_calibration_summary,
-    local_dependence_contract,
-    local_dependence_simulation_grid,
-    local_dependence_summary,
-    model_equation,
-    model_family_contract,
-    mgmfrm_decision_stability_score,
-    mgmfrm_predictive_recovery_score,
-    mgmfrm_response_stress_plan,
-    mgmfrm_response_stress_fit_attempts,
-    mgmfrm_response_stress_preflight,
-    mgmfrm_validation_analysis_contract,
-    mgmfrm_validation_execution_design_contract,
-    mgmfrm_validation_isolated_resource_probe,
-    mgmfrm_validation_isolated_resource_review,
-    mgmfrm_validation_primary_grid_candidates,
-    mgmfrm_validation_primary_grid_preflight,
-    mgmfrm_validation_replication_precision,
-    mgmfrm_validation_primary_resource_plan,
-    mgmfrm_validation_protocol,
-    mgmfrm_validation_resource_probe,
-    mgmfrm_validation_scaled_resource_plan,
-    mgmfrm_validation_short_nuts_resource_probe,
-    mcmc_diagnostics,
-    model_manifest,
-    model_ladder,
-    model_surface_check,
-    model_surface_audit,
+    # Design, Priors & Simulation (7)
     mfrm_spec,
-    ordinal_response_pattern_audit,
-    parameter_block_diagnostics,
-    parameter_recovery,
-    parameter_recovery_plot_data,
-    parameter_recovery_summary,
-    pointwise_loglikelihood,
-    pointwise_loglikelihood_matrix,
-    predict,
-    posterior_predict,
-    posterior_predictive_check,
-    posterior_mcse,
-    posterior_summary,
-    psis_loo,
-    prior_likelihood_sensitivity,
-    predictive_check_summary,
-    predictive_probabilities,
-    predictive_residuals,
-    predictive_standardized_residuals,
-    predictive_variances,
-    prior_predict,
-    prior_predictive_check,
-    q_matrix_validation,
-    rater_diagnostics,
-    rater_homogeneity_summary,
-    rater_overlap,
-    rating_design_check,
-    rating_design_audit,
-    related_software_capability_matrix,
-    residual_summary,
-    release_gate_check,
-    release_scope_summary,
-    load_conquest_semantic_parameters,
-    load_fit_cache,
-    load_fit_report_dossier,
-    load_fit_report,
-    load_fit_report_bundle,
-    load_fit_report_tables,
-    load_conquest_parameter_export,
-    sampler_diagnostics,
-    save_fit_cache,
-    save_fit_report_dossier,
-    save_fit_report_dossier_markdown,
-    save_fit_report,
-    save_fit_report_bundle,
-    save_fit_report_markdown,
-    save_fit_report_tables,
-    save_external_bridge_bundle,
-    sensitivity_comparison,
-    sensitivity_comparison_summary,
-    separation_reliability_summary,
-    simulation_grid,
-    simulation_grid_summary,
-    simulate_local_dependence,
-    simulate_mgmfrm_response_stress,
-    simulate_mgmfrm_validation_primary_candidate,
-    simulate_responses,
-    stan_validation_row,
-    stan_validation_summary,
-    threshold_map_data,
-    testlet_design_check,
-    testlet_design_audit,
-    validate_design,
-    validate_external_bridge_bundle,
-    validation_suggestions,
-    predictive_check_plot_data,
-    wright_map_data,
-    waic,
-    waic_diagnostics,
-    category_summary,
-    classification,
-    collect_fit,
-    contract,
-    contrast,
-    coordinates,
-    criteria,
-    design_summary,
-    event_probabilities,
-    facet_basis,
-    facet_summary,
-    from_ncp_reference,
-    load_fit,
-    load_report,
-    log_jacobian_to_ncp,
-    logdensity_and_gradient,
-    parameter_names,
-    predictive_check,
-    prepare_fit,
-    prior_draw,
-    prior_sensitivity,
-    qualify,
-    ranking,
-    reliability,
-    reparameterize_draws,
-    reparameterize_point,
-    run_chain_worker,
-    sampler_controls,
-    save_fit,
-    save_report,
-    simulate,
-    stan_data,
-    to_ncp_reference,
     with_options,
-    worker_status
+    design_summary,
+    validate_design,
+    prior_draw,
+    simulate,
+    prior_predictive_check,
+    # Fitting & Worker Checkpointing (6)
+    fit,
+    prepare_fit,
+    run_chain_worker,
+    worker_status,
+    collect_fit,
+    progress_snapshot,
+    # Qualification, Summaries, Contrasts, Equating & Decisions (12)
+    qualify,
+    diagnostics,
+    posterior_summary,
+    posterior_mcse,
+    facet_summary,
+    category_summary,
+    contrast,
+    plausible_values,
+    reliability,
+    ranking,
+    classification,
+    anchor_linking_summary,
+    # Prediction, Model Comparison, Sensitivity & Persistence (10)
+    predict,
+    event_probabilities,
+    predictive_check,
+    criteria,
+    compare_models,
+    prior_sensitivity,
+    save_fit,
+    load_fit,
+    save_report,
+    load_report
 
+include("workflow_types.jl")
 include("cmdstan_backend.jl")
 include("evidence_metadata.jl")
 include("facet_workflow.jl")
@@ -297,6 +140,7 @@ include("mgmfrm_correlated_2d_samples.jl")
 include("mgmfrm_correlated_2d_predictive.jl")
 include("mgmfrm_correlated_2d_reports.jl")
 include("mgmfrm_normalized_fit.jl")
+include("mgmfrm_scale_identified.jl")
 include("generalized_summary.jl")
 include("mfrm_correlated_2d.jl")
 include("mfrm_prior_predictive.jl")
@@ -361,10 +205,47 @@ include("bounded_comparison.jl")
 include("mixed_outcomes_comparison.jl")
 include("frequentist_mfrm.jl")
 include("frequentist_mfrm_api.jl")
+include("design_connectedness.jl")
 include("stan_adapter.jl")
+include("mgmfrm_scale_identified_api.jl")
+include("fair_reference_extensions.jl")
+include("frequentist_fair_reference.jl")
+Base.include(Experimental.RecoveryPlanning, joinpath(@__DIR__, "v02_sbc.jl"))
 include("api_contract_freeze.jl")
+include("multivariate_generalizability.jl")
+include("glass_box_module.jl")
+include("legacy_module.jl")
 
-# Exact 0.1.x root-export classification and growth boundary.
+# Exact 0.2.x root-export and submodule classification boundary.
 include("root_api_contract.jl")
+
+using PrecompileTools: @compile_workload
+@compile_workload begin
+    tbl = (
+        person = ["P1", "P1", "P2", "P2", "P3", "P3"],
+        item   = ["I1", "I2", "I1", "I2", "I1", "I2"],
+        rater  = ["R1", "R2", "R2", "R1", "R1", "R2"],
+        score  = [0, 1, 2, 1, 1, 2],
+    )
+    t_mrcml = mfrm_spec(
+        tbl;
+        person = :person,
+        score = :score,
+        facets = (item = :item, rater = :rater),
+        steps = :global,
+        category_levels = 0:2,
+        prior = :default,
+    )
+    validate_design(t_mrcml)
+    design_summary(t_mrcml)
+    q0 = zeros(Float64, t_mrcml.dimension)
+    logposterior(t_mrcml, q0)
+    LogDensityProblems.logdensity_and_gradient(t_mrcml, q0)
+    freq = mfrm_spec(merge(tbl,(score=[0,2,1,0,2,1],)); person=:person, score=:score, facets=(rater=:rater,),
+                     steps=:global, category_levels=0:2, prior=:none)
+    fit(freq; method=:jmle)
+    fit(freq; method=:mmle)
+    fit(freq; method=:mmle, quad_points=7, estimate_sd=false)
+end
 
 end

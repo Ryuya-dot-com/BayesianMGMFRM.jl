@@ -1,6 +1,8 @@
 using Test
 using Random
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 
 @testset "MFRM practitioner category and rater diagnostics" begin
     table = (

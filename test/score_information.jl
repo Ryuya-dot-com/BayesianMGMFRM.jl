@@ -1,5 +1,6 @@
 module ScoreInformationChecks
 using BayesianMGMFRM, Test, Statistics, Serialization, JSON3
+using BayesianMGMFRM.Legacy
 const B=BayesianMGMFRM
 include("fixtures/reporting_fit.jl")
 

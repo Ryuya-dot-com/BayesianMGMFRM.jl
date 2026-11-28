@@ -28,7 +28,8 @@ function _plot_frequentist_estimates(rep; size = nothing, annotation_io = stdout
     fixeds = Bool[]
 
     for r in frows
-        push!(labels, "$(r.facet)[$(r.level)]")
+        lbl = (haskey(r, :parameter) && string(r.level) == string(r.parameter)) ? string(r.parameter) : "$(r.facet)[$(r.level)]"
+        push!(labels, lbl)
         push!(ests, _fm_num(r.estimate))
         push!(los, _fm_num(get(r, :lower, NaN)))
         push!(his, _fm_num(get(r, :upper, NaN)))

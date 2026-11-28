@@ -9,6 +9,7 @@ include("count_plot.jl")
 include("mixed_outcome_plot.jl")
 include("explanatory_comparison.jl")
 include("explanatory_power.jl")
+include("generalizability_plot.jl")
 
 function plot_rater_drift(saved; rater, size=(1000,550), annotation_io=stdout)
     d=B.Experimental.RaterDrift.trajectory(saved;rater)
@@ -98,6 +99,10 @@ end
 
 function _figure_text!(fig, title, caption; annotation_io, bottom_row, columns = 1,
         title_fontsize = 21, title_bold = true)
+    # Render historical reports without changing their saved evidence or checksums.
+    clean(s) = replace(s, r"\bExperimental (?=(?:scalar|correlated|fixed|MGMFRM|GMFRM|StarAssociation|explanatory|mixed|model|3D))" => "",
+        "Supported 1D MFRM" => "1D MFRM")
+    title=clean(title);caption=clean(caption)
     if annotation_io === nothing
         Label(fig[1, 1:columns], title; fontsize = title_fontsize,
             font = title_bold ? :bold : :regular, tellwidth = false, word_wrap = true)
@@ -136,7 +141,7 @@ function _render_response_surface(data; size = nothing, azimuth = 1.275pi,
     panels = length(category_indices)
     plot_row = (probabilities ? 2 : 1) + offset
     fig = Figure(; size = something(size, (1200, all_categories ? max(620 + 180offset, 240cld(panels,2)+60+180offset) : 520 + 180offset)), fontsize = 14)
-    title = "Experimental MGMFRM item response surface\nItem $(data.item) · Rater $(data.rater)"
+    title = "MGMFRM item response surface\nItem $(data.item) · Rater $(data.rater)"
     xlabel, ylabel = _ability_axis.(data.dimensions)
     ax = Axis3(fig[plot_row, 1]; xlabel, ylabel, zlabel = data.quantity_label,
         title = "Posterior mean", azimuth, elevation, protrusions = (80, 30, 50, 30))
@@ -219,7 +224,7 @@ function _render_response_panels(data; size, azimuth, elevation, annotation_io, 
         label="$(round(100data.interval;digits=2))% pointwise interval width")
     colgap!(fig.layout,40)
     colgap!(scales,60)
-    return _figure_text!(fig,"Experimental MGMFRM · Item $(data.item) · Rater $(data.rater)",
+    return _figure_text!(fig,"MGMFRM · Item $(data.item) · Rater $(data.rater)",
         _response_caption(data) * "\nCommon mean and width scales across all category panels.";
         annotation_io,bottom_row=2rows+2+offset,columns,title_bold=false)
 end
@@ -230,7 +235,7 @@ end
 
 function _render_posterior(fit, data; size = nothing, annotation_io = stdout)
     family = uppercase(String(fit.design.spec.family))
-    title = (fit isa B.MFRMFit ? "" : "Experimental ") * family * " posterior intervals"
+    title = family * " posterior intervals"
     xlabel = data.scale === :model ? "Model coordinate" :
         fit isa B.MFRMFit ? "Free identified coordinate" : "Raw computational coordinate"
     return _render_posterior(data; title, xlabel,
@@ -284,7 +289,7 @@ function plot_diagnostics(fit; size = nothing, annotation_io = stdout, kwargs...
 end
 
 function _render_diagnostics(fit, data; size = nothing, annotation_io = stdout)
-    family = (fit isa B.MFRMFit ? "" : "Experimental ") * uppercase(String(fit.design.spec.family))
+    family = uppercase(String(fit.design.spec.family))
     scale = data.scale === :model ? "model coordinates" : fit isa B.MFRMFit ?
         "free identified coordinates" : "raw computational coordinates"
     return _render_diagnostics(data; title = "$family chain diagnostics\n$scale", size, annotation_io)
@@ -355,7 +360,7 @@ function plot_predictive(fit; size = nothing, annotation_io = stdout, kwargs...)
 end
 
 function _render_predictive(fit, data; size = nothing, annotation_io = stdout)
-    family = (fit isa B.MFRMFit ? "" : "Experimental ") * uppercase(String(fit.design.spec.family))
+    family = uppercase(String(fit.design.spec.family))
     return _render_predictive(data; title = "$family posterior predictive check\nCategory proportions", size, annotation_io)
 end
 
@@ -617,7 +622,7 @@ function plot_star_result(res; kind::Symbol = :posterior, interval::Real = 0.95,
             scatter!(ax, [r.median], [i]; color = :steelblue4, markersize = 8)
         end
         ylims!(ax, length(rows) + 0.6, 0.4)
-        return _figure_text!(fig, "Experimental StarAssociation posterior summary",
+        return _figure_text!(fig, "StarAssociation posterior summary",
             "Medians and $(round(100 * interval; digits = 2))% equal-tailed intervals. $diag_note.";
             annotation_io, bottom_row = 2 + offset)
     elseif kind === :diagnostics
@@ -636,7 +641,7 @@ function plot_star_result(res; kind::Symbol = :posterior, interval::Real = 0.95,
                     color = colors[mod1(c, length(colors))], linewidth = 1.3)
             end
         end
-        return _figure_text!(fig, "Experimental StarAssociation chain traces",
+        return _figure_text!(fig, "StarAssociation chain traces",
             "$nch chains, $per_ch retained draws per chain. $diag_note.";
             annotation_io, bottom_row = nsel + 1 + offset)
     elseif kind === :predictive
@@ -659,11 +664,203 @@ function plot_star_result(res; kind::Symbol = :posterior, interval::Real = 0.95,
             xlims!(ax, 0.5, length(selected) + 0.5)
             ylims!(ax, 0, 1)
         end
-        return _figure_text!(fig, "Experimental StarAssociation posterior predictive check",
+        return _figure_text!(fig, "StarAssociation posterior predictive check",
             "Black diamonds: observed category proportions; blue points: posterior mean expected proportions; blue bars: 95% replicated intervals. Conditional on fitted entities and raters; all retained draws. $diag_note.";
             annotation_io, bottom_row = length(ids) + 1 + offset)
     end
     throw(ArgumentError("StarResult supports plot kind = :posterior, :diagnostics, or :predictive"))
+end
+
+function _sim_fit_plot_controls(; scale::Symbol = :model, parameters = nothing,
+        interval::Real = 0.95, max_parameters::Union{Nothing, Int} = nothing,
+        seed::Integer = 1, ndraws::Union{Nothing, Int} = nothing, rows = nothing)
+    return (; scale, parameters, interval, max_parameters, seed, ndraws, rows)
+end
+
+function _sim_select_fit_parameters(t, scale::Symbol, parameters, max_parameters; default_limit::Union{Nothing, Int} = nothing)
+    SIM = B.ScaleIdentifiedMGMFRM
+    scale in (:raw, :model) || throw(ArgumentError("scale must be :raw or :model"))
+    all_names = scale === :model ? t.model_names : t.raw_names
+    chosen = if parameters !== nothing
+        c = [String(p) for p in parameters]
+        !isempty(c) && allunique(c) && all(n -> n in all_names, c) ||
+            throw(ArgumentError("select distinct parameter_names from scale = $(repr(scale))"))
+        c
+    else
+        scale === :model && default_limit !== nothing ?
+            [nm for nm in t.model_names if !(nm in t.fixed_model_names)] : copy(all_names)
+    end
+    lim = max_parameters !== nothing ? max_parameters : default_limit
+    if lim !== nothing
+        lim >= 1 || throw(ArgumentError("max_parameters must be positive"))
+        chosen = chosen[1:min(length(chosen), lim)]
+    end
+    isempty(chosen) && throw(ArgumentError("no parameters selected for plot"))
+    return chosen
+end
+
+function plot_scale_identified_mgmfrm(x; kind::Symbol = :posterior,
+        reference = nothing, interval_colors = nothing,
+        return_data::Bool = false, size = nothing, annotation_io = stdout, kwargs...)
+    SIM = B.ScaleIdentifiedMGMFRM
+    is_fit = x isa SIM.Fit
+    kind in (:posterior, :diagnostics, :predictive, :prediction) || throw(ArgumentError(
+        "ScaleIdentifiedMGMFRM plot supports kind in (:posterior, :diagnostics, :predictive, :prediction, :fair_average); got $(repr(kind))"))
+    kind === :posterior || (reference === nothing && interval_colors === nothing) ||
+        throw(ArgumentError("reference coloring applies to posterior parameter CrIs, not predictive or trace plots"))
+    if !is_fit && !isempty(kwargs)
+        throw(ArgumentError("saved ScaleIdentifiedMGMFRM plots accept no numerical or selection controls ($(collect(keys(kwargs)))); compute a new report from the native fit"))
+    end
+    ctl = is_fit ? _sim_fit_plot_controls(; kwargs...) : nothing
+    offset = _annotation_offset(annotation_io)
+    fam_title_from_rep(r) = (hasproperty(r, :contract) && r.contract !== nothing &&
+        hasproperty(r.contract, :family) && Symbol(r.contract.family) === :gmfrm) ?
+        "GMFRM" : (hasproperty(r, :contract) && r.contract !== nothing ? "Scale-identified MGMFRM" : "GMFRM / Scale-identified MGMFRM")
+
+    if kind === :posterior
+        rep = if is_fit
+            t = SIM.checked(x)
+            chosen = _sim_select_fit_parameters(t, ctl.scale, ctl.parameters, ctl.max_parameters)
+            SIM.report(x; scale = ctl.scale, parameters = chosen, interval = ctl.interval)
+        else
+            x
+        end
+        String(rep.schema) == SIM.REPORT_SCHEMA || throw(ArgumentError("posterior plot requires a ScaleIdentifiedMGMFRM fit or report"))
+        sel = [
+            (;
+                parameter = String(r.parameter),
+                median = Float64(r.median),
+                lower = Float64(r.lower),
+                upper = Float64(r.upper),
+                structurally_fixed = Bool(r.structurally_fixed),
+            ) for r in rep.summary.rows
+        ]
+        isempty(sel) && throw(ArgumentError("no parameters selected for posterior plot"))
+        style = (reference === nothing && interval_colors === nothing) ? nothing :
+            B.AdditiveFacets.interval_style(sel; reference, interval_colors)
+        fig = Figure(; size = something(size, (1020, 180 + 32 * length(sel) + 100 * offset)), fontsize = 14)
+        ax = Axis(fig[1 + offset, 1]; yticks = (1:length(sel), [r.parameter for r in sel]),
+            yreversed = true, ygridvisible = false,
+            xlabel = string(rep.summary.scale) == "raw" ? "Raw computational coordinate" : "Model coordinate")
+        vlines!(ax, [style === nothing ? 0.0 : style.reference]; color = :gray60, linestyle = :dash)
+        for (i, r) in enumerate(sel)
+            col = style === nothing ? (r.structurally_fixed ? :gray45 : :steelblue4) : style.colors[i]
+            mkr = style === nothing ? (r.structurally_fixed ? :diamond : :circle) : style.markers[i]
+            r.structurally_fixed || rangebars!(ax, [i], [r.lower], [r.upper]; direction = :x, color = col, linewidth = 2, whiskerwidth = 8)
+            scatter!(ax, [r.median], [i]; marker = mkr, color = col, markersize = 9)
+        end
+        ylims!(ax, length(sel) + 0.6, 0.4)
+        if style !== nothing
+            elems = [MarkerElement(; marker = :circle, color = style.palette.contains, markersize = 10),
+                MarkerElement(; marker = :rect, color = style.palette.excludes, markersize = 10)]
+            lbls = ["CrI contains $(style.reference)", "CrI excludes $(style.reference)"]
+            if :fixed in style.states
+                push!(elems, MarkerElement(; marker = :diamond, color = :gray30, markersize = 10))
+                push!(lbls, "Fixed value (not a CrI)")
+            end
+            Legend(fig[2 + offset, 1], elems, lbls; orientation = :horizontal, framevisible = false)
+        end
+        note = "Medians and $(round(100 * Float64(rep.summary.interval); digits = 1))% equal-tailed credible intervals; diamonds mark structurally fixed parameters. " *
+            "Logit multiplier: $(rep.summary.logit_scale); scale identification: $(rep.summary.scale_identification); location: $(rep.summary.location_identification). " *
+            "Whole-fit numerical qualification: $(Bool(rep.qualification.qualified))."
+        out = _figure_text!(fig, "$(fam_title_from_rep(rep)) · posterior intervals", note;
+            annotation_io, bottom_row = 2 + offset + (style !== nothing))
+        return return_data ? (; figure = out, data = rep) : out
+
+    elseif kind === :diagnostics
+        rep = if is_fit
+            t = SIM.checked(x)
+            chosen = _sim_select_fit_parameters(t, ctl.scale, ctl.parameters, ctl.max_parameters; default_limit = 6)
+            SIM.report(x; scale = ctl.scale, parameters = chosen, interval = ctl.interval, include_draws = true)
+        else
+            String(x.schema) == SIM.REPORT_SCHEMA && hasproperty(x, :traces) && x.traces !== nothing ||
+                throw(ArgumentError("trace plotting from a saved report requires fit_report(fit; include_draws = true)"))
+            x
+        end
+        tr = rep.traces
+        t_params = [String(p) for p in tr.parameters]
+        isempty(t_params) && throw(ArgumentError("no parameters stored in report traces"))
+        nch = Int(tr.chains)
+        per_ch = Int(tr.draws_per_chain)
+        cols = min(2, length(t_params))
+        nr = cld(length(t_params), cols)
+        fig = Figure(; size = something(size, (1150, 240 * nr + 90 + 120 * offset)), fontsize = 14)
+        colors = _response_category_colors(nch)
+        firstaxis = nothing
+        series_vec = collect(tr.series)
+        for (j, name) in enumerate(t_params)
+            ax = Axis(fig[cld(j, cols) + offset, mod1(j, cols)]; title = name,
+                xlabel = "Retained iteration",
+                ylabel = string(tr.scale) == "raw" ? "Raw coordinate" : "Model coordinate")
+            firstaxis === nothing && (firstaxis = ax)
+            for c in 1:nch
+                s = only(filter(sr -> String(sr.parameter) == name && Int(sr.chain) == c, series_vec))
+                lines!(ax, Int.(collect(s.iterations)), Float64.(collect(s.values));
+                    color = (colors[c], 0.7), linewidth = 0.7, label = "Chain $c")
+            end
+        end
+        Legend(fig[nr + 1 + offset, 1:cols], firstaxis; orientation = :horizontal, framevisible = false)
+        note = "Retained MCMC traces, $(nch) chains × $(per_ch) draws; warmup is not displayed. " *
+            "The original chain/iteration ordering is retained without thinning. Visually overlapping traces do not prove convergence. " *
+            "Read R-hat, bulk/tail ESS, divergences, tree depth, E-BFMI, and parameter MCSE alongside these panels. " *
+            "Whole-fit numerical qualification: $(Bool(rep.qualification.qualified))."
+        out = _figure_text!(fig, "$(fam_title_from_rep(rep)) · retained-chain traces", note;
+            annotation_io, bottom_row = nr + 2 + offset, columns = cols)
+        return return_data ? (; figure = out, data = rep) : out
+
+    elseif kind === :predictive
+        rep = is_fit ? SIM.posterior_predictive_check(x; seed = ctl.seed, ndraws = ctl.ndraws, interval = ctl.interval) : x
+        String(rep.schema) == SIM.PPC_SCHEMA || throw(ArgumentError("predictive plot requires a ScaleIdentifiedMGMFRM fit or PPC report"))
+        crows, irows = collect(rep.category_rows), collect(rep.item_rows)
+        fig = Figure(; size = something(size, (1100, 440 + 120 * offset)), fontsize = 14)
+        ax1 = Axis(fig[1 + offset, 1]; xticks = (1:length(crows), string.([r.category for r in crows])),
+            xlabel = "Rating category", ylabel = "Category proportion")
+        rangebars!(ax1, 1:length(crows), [Float64(r.lower) for r in crows], [Float64(r.upper) for r in crows]; color = :steelblue4, linewidth = 2, whiskerwidth = 8)
+        scatter!(ax1, 1:length(crows), [Float64(r.mean) for r in crows]; color = :steelblue4, markersize = 9, label = "Replicated mean / interval")
+        scatter!(ax1, 1:length(crows), [Float64(r.observed) for r in crows]; color = :black, marker = :diamond, markersize = 9, label = "Observed")
+        ylims!(ax1, 0, nothing)
+        ax2 = Axis(fig[1 + offset, 2]; xticks = (1:length(irows), string.([r.item for r in irows])),
+            xlabel = "Item / criterion", ylabel = "Mean rating")
+        rangebars!(ax2, 1:length(irows), [Float64(r.lower) for r in irows], [Float64(r.upper) for r in irows]; color = :steelblue4, linewidth = 2, whiskerwidth = 8)
+        scatter!(ax2, 1:length(irows), [Float64(r.replicated_mean) for r in irows]; color = :steelblue4, markersize = 9)
+        scatter!(ax2, 1:length(irows), [Float64(r.observed_mean) for r in irows]; color = :black, marker = :diamond, markersize = 9)
+        Legend(fig[2 + offset, 1:2], ax1; orientation = :horizontal, framevisible = false)
+        ppc_title = is_fit ? "$(SIM.checked(x).prior.family_tag === :gmfrm ? "GMFRM" : "Scale-identified MGMFRM") · posterior predictive check" :
+            "$(fam_title_from_rep(rep)) · posterior predictive check"
+        note = "POSTERIOR predictive check ($(rep.n_replications) replicated datasets, seed $(rep.seed)): observed black diamonds vs. replicated means and $(round(100 * Float64(rep.interval); digits = 1))% pointwise intervals. " *
+            "Whole-fit numerical qualification: $(Bool(rep.qualification.qualified))."
+        out = _figure_text!(fig, ppc_title, note; annotation_io, bottom_row = 3 + offset, columns = 2)
+        return return_data ? (; figure = out, data = rep) : out
+
+    else # kind === :prediction
+        rep = is_fit ? SIM.predict(x; rows = ctl.rows, interval = ctl.interval) : x
+        String(rep.schema) == SIM.PREDICTION_SCHEMA || throw(ArgumentError("prediction plot requires a ScaleIdentifiedMGMFRM fit or prediction report"))
+        cats = [Int(k) for k in rep.category_levels]
+        row_ids = [Int(r) for r in rep.rows]
+        all_cells = collect(rep.cells)
+        K = length(cats)
+        cols = min(2, K)
+        nr = cld(K, cols)
+        fig = Figure(; size = something(size, (1050, 300 * nr + 120 * offset)), fontsize = 14)
+        for (j, k) in enumerate(cats)
+            crows = [r for r in all_cells if Int(r.category) == k]
+            xs = 1:length(crows)
+            ax = Axis(fig[cld(j, cols) + offset, mod1(j, cols)]; title = "Category $k",
+                xticks = (xs, string.(row_ids)),
+                xlabel = "Selected rating row", ylabel = "Category probability")
+            rangebars!(ax, xs, [Float64(r.lower) for r in crows], [Float64(r.upper) for r in crows];
+                color = :steelblue4, linewidth = 2, whiskerwidth = 8)
+            scatter!(ax, xs, [Float64(r.mean) for r in crows]; color = :steelblue4, marker = :circle, markersize = 9)
+            ylims!(ax, -0.03, 1.03)
+        end
+        pred_title = is_fit ? "$(SIM.checked(x).prior.family_tag === :gmfrm ? "GMFRM" : "Scale-identified MGMFRM") · conditional category probabilities" :
+            "$(fam_title_from_rep(rep)) · conditional category probabilities"
+        note = "Posterior category probabilities for selected rating rows: means and $(round(100 * Float64(rep.interval); digits = 1))% pointwise credible intervals across retained joint draws. " *
+            "Cells report row index, category, mean, and interval bounds; these are intervals for conditional probabilities on known owners, not future-rating predictive intervals. " *
+            "Whole-fit numerical qualification: $(Bool(rep.qualification.qualified))."
+        out = _figure_text!(fig, pred_title, note; annotation_io, bottom_row = nr + 1 + offset, columns = cols)
+        return return_data ? (; figure = out, data = rep) : out
+    end
 end
 
 end

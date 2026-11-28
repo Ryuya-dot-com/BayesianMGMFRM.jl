@@ -43,11 +43,11 @@ const REPORT_SCHEMA = "bayesianmgmfrm.frequentist_mfrm_report.v1"
 const COMPARISON_SCHEMA = "bayesianmgmfrm.frequentist_mfrm_comparison.v1"
 
 """
-Prior-free 1D additive MFRM specification returned by `mfrm_spec` when `prior_sd`
-is omitted. Accepted directly by `fit(spec; method = :jmle | :mmle, ...)` and
+Prior-free 1D additive MFRM specification returned by `mfrm_spec` with
+`prior = :none`. Accepted by `fit(spec; method = :jmle | :mmle, ...)` and
 design-inspection verbs (`design_summary`, `validate_design`, `contract`, `getdesign`).
 """
-struct Spec
+struct Spec <: B.AbstractMFRMSpec
     table::Dict{Symbol,Vector}
     columns::NamedTuple
     person::Vector{Int}
@@ -62,9 +62,10 @@ struct Spec
     allocation::NamedTuple
 end
 
-function build_spec(table; person::Symbol, score::Symbol, facets::NamedTuple, steps::Symbol = :global,
+function build_spec(table; person::Symbol = :person, score::Symbol = :score, facets::NamedTuple, steps::Symbol = :global,
         category_levels, levels = nothing,
-        performance::Union{Nothing,Symbol} = nothing, assessment::Union{Nothing,Symbol} = nothing)
+        performance::Union{Nothing,Symbol} = nothing, assessment::Union{Nothing,Symbol} = nothing,
+        missing_audit = nothing)
     AF = B.AdditiveFacets
     reserved = (:person, :steps, :global, :score, :performance, :assessment)
     all(k -> !(k in reserved), keys(facets)) ||
@@ -107,7 +108,8 @@ function build_spec(table; person::Symbol, score::Symbol, facets::NamedTuple, st
     ranges = AF._step_ranges(supports, offset)
     dim = last(last(ranges))
     alloc = AF._allocation(p, ps, af_blocks, group, supports, dim)
-    columns = (; person, score, facets, performance, assessment)
+    columns = (; person, score, facets, performance, assessment,
+        (missing_audit === nothing ? (;) : (; missing_audit = deepcopy(missing_audit)))...)
     return Spec(raw, columns, p, ps, cat, categories, supports, fblocks, steps, group, groups, alloc)
 end
 
@@ -169,7 +171,7 @@ struct Layout
     active_rows::Vector{Int}
 end
 
-struct Fit
+struct Fit <: B.AbstractMFRMFit
     record::NamedTuple
 end
 
@@ -408,19 +410,34 @@ function _compile_additive_common(source_kind::Symbol, person_levels::Vector{Any
     )
 end
 
+function _map_additive_categories_to_problem(categories::Vector{Int}, supports::Vector{UnitRange{Int}}, category_idx::Vector{Int})
+    val_supports = Vector{UnitRange{Int}}(undef, length(supports))
+    for (g, sup) in enumerate(supports)
+        vals_g = categories[sup]
+        rng_g = first(vals_g):last(vals_g)
+        collect(rng_g) == vals_g ||
+            throw(ArgumentError("unit-slope RSM/PCM requires consecutive integer category_levels within each step support (got $(vals_g)); use MRCML.custom_spec with explicit scoring matrix `B` for non-consecutive category scores"))
+        val_supports[g] = rng_g
+    end
+    raw_scores = Int[categories[c] for c in category_idx]
+    return (val_supports, raw_scores)
+end
+
 function compile_problem(s::Spec; kwargs...)
     s.allocation.identified ||
         throw(ArgumentError("F-facet design is rank-deficient / disconnected; inspect validate_design(spec)"))
+    val_supports, raw_scores = _map_additive_categories_to_problem(s.categories, s.supports, s.category)
     return _compile_additive_common(:frequentist_spec, s.people, s.person, s.facets,
-        s.owner, s.group, s.group_levels, s.supports, s.category; kwargs...)
+        s.owner, s.group, s.group_levels, val_supports, raw_scores; kwargs...)
 end
 
 function compile_problem(t::B.AdditiveFacets.Target; kwargs...)
     t.allocation.identified ||
         throw(ArgumentError("AdditiveFacets.Target is rank-deficient / disconnected; inspect validate_design(target)"))
     ftuples = [(; name = b.name, levels = b.levels, index = b.index) for b in t.facets]
+    val_supports, raw_scores = _map_additive_categories_to_problem(t.categories, t.supports, t.category)
     return _compile_additive_common(:additive_facets, t.people, t.person, ftuples,
-        t.owner, t.group, t.group_levels, t.supports, t.category; kwargs...)
+        t.owner, t.group, t.group_levels, val_supports, raw_scores; kwargs...)
 end
 
 function compile_problem(t::B.AdditiveFacets.ExplanatoryTarget; method::Symbol, kwargs...)
@@ -433,8 +450,9 @@ function compile_problem(t::B.AdditiveFacets.ExplanatoryTarget; method::Symbol, 
     t.allocation.identified ||
         throw(ArgumentError("ExplanatoryTarget design is not identified; inspect validate_design(target)"))
     ftuples = [(; name = b.name, levels = b.levels, index = b.index) for b in t.facets]
+    val_supports, raw_scores = _map_additive_categories_to_problem(t.categories, t.supports, t.category)
     return _compile_additive_common(:explanatory_facets, t.people, t.person, ftuples,
-        t.owner, t.group, t.group_levels, t.supports, t.category; method = m, kwargs...)
+        t.owner, t.group, t.group_levels, val_supports, raw_scores; method = m, kwargs...)
 end
 
 function compile_problem(t::B.AdditiveFacets.AbstractTarget; kwargs...)
@@ -688,6 +706,66 @@ function build_layout(prob::Problem;
     end
 
     J_mat = sparse(I_rows, J_cols, V_vals, n_full_structural, free_offset)
+
+    # CR5 guard: verify unadjusted JMLE active rows remain connected / full location rank
+    # after removing extreme-scoring persons (catches extreme-score-only bridges).
+    if separate_extremes && length(active_rows) < prob.n_obs
+        loc_cols = Int[]
+        append!(loc_cols, p_free_rng)
+        for rng in f_free_rngs
+            append!(loc_cols, rng)
+        end
+        if !isempty(loc_cols)
+            r_rows = Int[]
+            r_cols = Int[]
+            r_vals = Float64[]
+            for (k, r) in enumerate(active_rows)
+                push!(r_rows, k); push!(r_cols, p_full_rng[prob.person_idx[r]]); push!(r_vals, 1.0)
+                for fi in eachindex(f_full_rngs)
+                    push!(r_rows, k); push!(r_cols, f_full_rngs[fi][prob.facets[fi].index[r]]); push!(r_vals, Float64(prob.facets[fi].sign))
+                end
+            end
+            R_inc = sparse(r_rows, r_cols, r_vals, length(active_rows), n_full_structural)
+            M_loc = R_inc * J_mat[:, loc_cols]
+            dropzeros!(M_loc)
+            loc_audit = B.AdditiveFacets._mrcml_spqr_rank(M_loc, free_names[loc_cols])
+            if !loc_audit.full_rank
+                throw(ArgumentError(
+                    "Unadjusted JMLE (`extreme_adjustment = 0.0`) became rank-deficient or score-disconnected after excluding extreme-scoring persons (active rank $(loc_audit.rank)/$(length(loc_cols)), $(length(active_rows))/$(prob.n_obs) interior rows; aliased: $(loc_audit.dependent_columns)). Inspect `validate_design(spec).connectedness`, add interior bridging observations, or use `method = :mmle`, Bayesian NUTS, or positive `extreme_adjustment`."))
+            end
+        end
+    end
+
+    # CR5 Fischer (1981) one-sided separation guard for unadjusted JMLE:
+    # Even when all margins are interior and structural rank is full, one-sided directed
+    # cuts between facet subsets imply no finite unpenalized JMLE exists.
+    if separate_extremes && !isempty(active_rows)
+        fmeta = NamedTuple[
+            (; name = f.name, levels = collect(Any, f.levels), index = f.index, sign = f.sign)
+            for f in prob.facets
+        ]
+        fmap = Dict{Tuple{Symbol,Any},Bool}()
+        for f in prob.facets
+            for (l, lvl) in enumerate(f.levels)
+                isfinite(f.anchors[l]) && (fmap[(f.name, lvl)] = true)
+            end
+        end
+        cat_1based = Int[prob.score_k[r] + first(prob.supports[prob.step_group[r]]) for r in 1:prob.n_obs]
+        sep = B._cr5_fischer_separation_audit(
+            prob.person_levels, prob.person_idx, fmeta, cat_1based, prob.supports, prob.step_group,
+            active_rows; op = nothing, fixed_map = fmap)
+        if sep.separated
+            reasons = vcat(
+                String[String(rec.reason) for rec in sep.by_facet if rec.separated],
+                String[String(trec.reason) for trec in sep.threshold_separations],
+            )
+            throw(ArgumentError(
+                "Unadjusted JMLE (`extreme_adjustment = 0.0`) has no finite solution due to demonstrated score/threshold separation: " *
+                join(reasons, " ") *
+                " Inspect `validate_design(spec).one_sided_separation`, add bridging ratings, or use `method = :mmle`, Bayesian NUTS, or positive `extreme_adjustment`."))
+        end
+    end
+
     return Layout(
         n_full_structural, p_full_rng, f_full_rngs, s_full_rngs,
         p_free_rng, f_free_rngs, s_free_rngs, mu_idx, lsig_idx, free_offset,
@@ -749,15 +827,6 @@ function jmle_nll_and_grad!(grad_free::Union{Nothing,Vector{Float64}}, u::Abstra
     K_max = maximum(length, prob.supports)
     pbuf = zeros(T, K_max)
     nll = zero(T)
-    p_weights = if extreme_adjustment > 0.0
-        pw = zeros(Float64, length(prob.person_levels))
-        @inbounds for i in 1:prob.n_obs
-            pw[prob.person_idx[i]] += prob.weights[i]
-        end
-        pw
-    else
-        nothing
-    end
 
     for r in lay.active_rows
         p = prob.person_idx[r]
@@ -772,21 +841,9 @@ function jmle_nll_and_grad!(grad_free::Union{Nothing,Vector{Float64}}, u::Abstra
         steps_v = view(full, srng)
         log_denom = _row_probs!(pv, eta, steps_v)
         yk = prob.score_k[r]
-        y_eff = Float64(yk)
-        if p_weights !== nothing
-            st = lay.extreme_person_status[p]
-            wtot = p_weights[p]
-            if wtot > 0.0
-                if st === :all_minimum
-                    y_eff += extreme_adjustment / wtot
-                elseif st === :all_maximum
-                    y_eff -= extreme_adjustment / wtot
-                end
-            end
-        end
-        # Reconstruct observed (or FACETS-adjusted) numerator stably
+        # Reconstruct observed numerator stably
         cum_obs = yk == 0 ? zero(T) : sum(view(steps_v, 1:yk))
-        ll_r = (y_eff * eta - cum_obs) - log_denom
+        ll_r = (yk * eta - cum_obs) - log_denom
         w = prob.weights[r]
         nll -= w * ll_r
 
@@ -795,7 +852,7 @@ function jmle_nll_and_grad!(grad_free::Union{Nothing,Vector{Float64}}, u::Abstra
             @inbounds for k in 1:(K_g - 1)
                 exp_k += k * Float64(pv[k + 1])
             end
-            d_eta = -w * (y_eff - exp_k)
+            d_eta = -w * (Float64(yk) - exp_k)
             g_full[lay.person_full_range[p]] += d_eta
             @inbounds for (fi, f) in enumerate(prob.facets)
                 g_full[lay.facet_full_ranges[fi][f.index[r]]] += f.sign * d_eta
@@ -806,6 +863,20 @@ function jmle_nll_and_grad!(grad_free::Union{Nothing,Vector{Float64}}, u::Abstra
                 p_ge += Float64(pv[s + 1])
                 obs_ge = yk >= s ? 1.0 : 0.0
                 g_full[srng[s]] += w * (obs_ge - p_ge)
+            end
+        end
+    end
+
+    if extreme_adjustment > 0.0
+        @inbounds for p in 1:length(prob.person_levels)
+            st = lay.extreme_person_status[p]
+            p_idx_full = lay.person_full_range[p]
+            if st === :all_minimum
+                nll -= extreme_adjustment * full[p_idx_full]
+                g_full !== nothing && (g_full[p_idx_full] -= extreme_adjustment)
+            elseif st === :all_maximum
+                nll += extreme_adjustment * full[p_idx_full]
+                g_full !== nothing && (g_full[p_idx_full] += extreme_adjustment)
             end
         end
     end
@@ -821,7 +892,7 @@ Exact analytical full-space Hessian `H_full` of the JMLE negative log-likelihood
 mapped into free coordinates `H_free = J' * H_full * J`. Also supports exact
 O(N + d_psi^3) block Schur complement inversion when `person` is uncentered!
 """
-function jmle_exact_hessian_and_schur_cov(u_hat::Vector{Float64}, prob::Problem, lay::Layout)
+function jmle_exact_hessian_and_schur_cov(u_hat::Vector{Float64}, prob::Problem, lay::Layout; direction_only::Bool = false)
     full = lay.c_vec .+ lay.J_mat * u_hat
     d_theta = length(lay.person_free_range)
     d_psi = lay.n_free - d_theta
@@ -835,7 +906,6 @@ function jmle_exact_hessian_and_schur_cov(u_hat::Vector{Float64}, prob::Problem,
     if can_use_schur
         # Build J_psi (mapping structural free coords to non-person full coords)
         psi_cols = (d_theta + 1):lay.n_free
-        J_psi = lay.J_mat[:, psi_cols]
         # Map active interior person index -> position in 1:d_theta
         p_to_free = zeros(Int, length(prob.person_levels))
         for col in lay.person_free_range
@@ -933,20 +1003,28 @@ function jmle_exact_hessian_and_schur_cov(u_hat::Vector{Float64}, prob::Problem,
 
         H_psi_psi = Symmetric(Matrix(transpose(J_np) * H_np_full * J_np))
         H_theta_psi = H_p_np_full * J_np
+        if !all(x -> isfinite(x) && x > 0, D_theta)
+            direction_only && return nothing
+            return (; ok=false, full_se=fill(NaN, lay.n_full_structural), cov_psi=nothing,
+                    S_psi=fill(NaN, d_psi, d_psi), D_theta, H_theta_psi, min_eig=0.0, cond=Inf)
+        end
         inv_D = 1.0 ./ D_theta
         # Schur complement S_psi = H_psi_psi - H_theta_psi' * diag(inv_D) * H_theta_psi
         weighted_cross = H_theta_psi .* sqrt.(inv_D)
         S_psi = Symmetric(Matrix(H_psi_psi) - transpose(weighted_cross) * weighted_cross)
         ch = cholesky(S_psi; check = false)
         pd_ok = issuccess(ch) && all(>(0.0), D_theta)
+        if direction_only
+            return pd_ok ? (; factor=ch, diagonal=D_theta, cross=H_theta_psi) : nothing
+        end
         if !pd_ok
             return (; ok = false, full_se = fill(NaN, lay.n_full_structural), cov_psi = nothing,
-                S_psi = Matrix(S_psi), D_theta, H_theta_psi, min_eig = minimum(eigvals(S_psi)), cond = Inf)
+                S_psi = Matrix(S_psi), D_theta, H_theta_psi, min_eig = minimum(eigvals(S_psi); init=Inf), cond = Inf)
         end
         cov_psi = inv(ch)
         eigs = eigvals(S_psi)
-        min_eig = min(minimum(D_theta), minimum(eigs))
-        max_eig = max(maximum(D_theta), maximum(eigs))
+        min_eig = min(minimum(D_theta), minimum(eigs; init=Inf))
+        max_eig = max(maximum(D_theta), maximum(eigs; init=0.0))
         cond_num = max_eig / max(min_eig, eps(Float64))
 
         # Full SEs:
@@ -989,116 +1067,235 @@ function jmle_exact_hessian_and_schur_cov(u_hat::Vector{Float64}, prob::Problem,
     end
 end
 
-function mmle_nll_and_grad!(grad_free::Union{Nothing,Vector{Float64}}, u::AbstractVector{T},
-        prob::Problem, lay::Layout, base_quad; fixed_sd::Float64 = 1.0) where {T<:Real}
-    full = T.(lay.c_vec) .+ lay.J_mat * u
+struct _FreqMMLEPatternScratch
+    n_patterns::Int
+    pat_group::Vector{Int}
+    pat_facet_full::Matrix{Int}
+    facet_signs::Vector{Float64}
+    pat_offsets::Vector{Int}
+    pat_of_row::Vector{Int}
+    obs_slot::Vector{Int}
+    M_tot::Int
+    std_nodes::Vector{Float64}
+    log_w::Vector{Float64}
+    full_buf::Vector{Float64}
+    pat_eta::Vector{Float64}
+    logp_slot::Vector{Float64}
+    ll_pq::Matrix{Float64}
+    post_w::Matrix{Float64}
+    slot_acc::Vector{Float64}
+    pat_w::Vector{Float64}
+    g_full::Vector{Float64}
+    pbuf::Vector{Float64}
+end
+
+function _build_freq_mmle_scratch(prob::Problem, lay::Layout, base_quad)
+    F = length(prob.facets)
+    n = prob.n_obs
+    P = length(prob.person_levels)
+    Q = length(base_quad.std_nodes)
+    K_max = maximum(length, prob.supports)
+
+    pat_map = Dict{Tuple{Int,Tuple},Int}()
+    pat_group = Int[]
+    pat_fcols = Vector{Int}[]
+    pat_of_row = Vector{Int}(undef, n)
+
+    for r in 1:n
+        g = prob.step_group[r]
+        key = (g, Tuple(prob.facets[fi].index[r] for fi in 1:F))
+        u = get!(pat_map, key) do
+            push!(pat_group, g)
+            push!(pat_fcols, Int[lay.facet_full_ranges[fi][prob.facets[fi].index[r]] for fi in 1:F])
+            length(pat_group)
+        end
+        pat_of_row[r] = u
+    end
+
+    U = length(pat_group)
+    pat_facet_full = Matrix{Int}(undef, F, U)
+    for u in 1:U, fi in 1:F
+        pat_facet_full[fi, u] = pat_fcols[u][fi]
+    end
+    facet_signs = Float64[Float64(f.sign) for f in prob.facets]
+
+    pat_offsets = Vector{Int}(undef, U)
+    M_tot = 0
+    for u in 1:U
+        pat_offsets[u] = M_tot
+        M_tot += length(prob.supports[pat_group[u]])
+    end
+    obs_slot = Vector{Int}(undef, n)
+    @inbounds for r in 1:n
+        obs_slot[r] = pat_offsets[pat_of_row[r]] + prob.score_k[r] + 1
+    end
+    log_w = Float64[w > 0.0 ? log(w) : -Inf for w in base_quad.weights]
+
+    return _FreqMMLEPatternScratch(
+        U, pat_group, pat_facet_full, facet_signs, pat_offsets, pat_of_row, obs_slot, M_tot,
+        collect(Float64, base_quad.std_nodes), log_w,
+        Vector{Float64}(undef, lay.n_full_structural),
+        Vector{Float64}(undef, U),
+        Vector{Float64}(undef, M_tot),
+        Matrix{Float64}(undef, P, Q),
+        Matrix{Float64}(undef, P, Q),
+        Vector{Float64}(undef, M_tot),
+        Vector{Float64}(undef, U),
+        Vector{Float64}(undef, lay.n_full_structural),
+        Vector{Float64}(undef, K_max),
+    )
+end
+
+function mmle_nll_and_grad!(grad_free::Union{Nothing,AbstractVector}, u::AbstractVector{T},
+        prob::Problem, lay::Layout, base_quad;
+        fixed_sd::Float64 = 1.0,
+        scratch::Union{Nothing,_FreqMMLEPatternScratch} = nothing) where {T<:Real}
+    sc = scratch === nothing ? _build_freq_mmle_scratch(prob, lay, base_quad) : scratch
+    use_f64 = (T === Float64) && (grad_free === nothing || eltype(grad_free) === Float64)
+
+    full = if use_f64
+        copyto!(sc.full_buf, lay.c_vec)
+        mul!(sc.full_buf, lay.J_mat, u, 1.0, 1.0)
+        sc.full_buf
+    else
+        T.(lay.c_vec) .+ lay.J_mat * u
+    end
     mu = lay.mu_free_idx > 0 ? u[lay.mu_free_idx] : zero(T)
     sigma = lay.log_sigma_free_idx > 0 ? exp(u[lay.log_sigma_free_idx]) : T(fixed_sd)
-    Q = length(base_quad.std_nodes)
+    !(isfinite(sigma) && 1e-8 <= sigma <= 1e4) && return T(Inf)
+
+    U = sc.n_patterns
+    F = length(sc.facet_signs)
+    Q = length(sc.std_nodes)
     P = length(prob.person_levels)
     K_max = maximum(length, prob.supports)
 
-    # Precompute base_eta per observation
-    base_eta = zeros(T, prob.n_obs)
-    @inbounds for r in 1:prob.n_obs
+    pat_eta = use_f64 ? sc.pat_eta : Vector{T}(undef, U)
+    @inbounds for u_pat in 1:U
         s = mu
-        for (fi, f) in enumerate(prob.facets)
-            s += f.sign * full[lay.facet_full_ranges[fi][f.index[r]]]
+        for fi in 1:F
+            s += T(sc.facet_signs[fi]) * full[sc.pat_facet_full[fi, u_pat]]
         end
-        base_eta[r] = s
+        pat_eta[u_pat] = s
     end
 
-    # Person x Node log-likelihood matrix
-    ll_pq = zeros(T, P, Q)
-    pbuf = zeros(T, K_max)
+    if use_f64 && 2U > prob.n_obs
+        fast = _ordinal_scalar_mmle!(grad_free, prob, lay, sc, sigma)
+        isnothing(fast) || return fast
+    end
+
+    logp_slot = use_f64 ? sc.logp_slot : Vector{T}(undef, sc.M_tot)
+    ll_pq = use_f64 ? fill!(sc.ll_pq, 0.0) : zeros(T, P, Q)
+
     @inbounds for q in 1:Q
-        theta_shift = sigma * T(base_quad.std_nodes[q])
-        for r in 1:prob.n_obs
-            eta = base_eta[r] + theta_shift
-            g = prob.step_group[r]
+        sc.log_w[q] == -Inf && continue
+        theta_shift = sigma * T(sc.std_nodes[q])
+        for u_pat in 1:U
+            eta = pat_eta[u_pat] + theta_shift
+            g = sc.pat_group[u_pat]
             srng = lay.step_full_ranges[g]
             K_g = length(prob.supports[g])
-            pv = view(pbuf, 1:K_g)
-            steps_v = view(full, srng)
-            log_denom = _row_probs!(pv, eta, steps_v)
-            yk = prob.score_k[r]
-            cum_obs = yk == 0 ? zero(T) : sum(view(steps_v, 1:yk))
-            ll_pq[prob.person_idx[r], q] += prob.weights[r] * ((yk * eta - cum_obs) - log_denom)
+            m0 = sc.pat_offsets[u_pat]
+            logp_slot[m0 + 1] = zero(T)
+            mmax = zero(T)
+            cum = zero(T)
+            for k in 1:(K_g - 1)
+                cum += full[srng[k]]
+                v = k * eta - cum
+                logp_slot[m0 + k + 1] = v
+                v > mmax && (mmax = v)
+            end
+            denom = zero(T)
+            for k in 1:K_g
+                denom += exp(logp_slot[m0 + k] - mmax)
+            end
+            ld = mmax + log(denom)
+            for k in 1:K_g
+                logp_slot[m0 + k] -= ld
+            end
+        end
+        for r in 1:prob.n_obs
+            ll_pq[prob.person_idx[r], q] += T(prob.weights[r]) * logp_slot[sc.obs_slot[r]]
         end
     end
 
-    log_w = [w > 0.0 ? log(w) : -Inf for w in base_quad.weights]
-    post_w = grad_free === nothing ? nothing : zeros(Float64, P, Q)
+    post_w = grad_free === nothing ? nothing : (use_f64 ? sc.post_w : Matrix{T}(undef, P, Q))
     total_ll = zero(T)
     @inbounds for p in 1:P
-        mval = typemin(Float64)
-        # Find max for logsumexp
-        m_t = ll_pq[p, 1] + T(log_w[1])
-        for q in 2:Q
-            log_w[q] == -Inf && continue
-            cand = ll_pq[p, q] + T(log_w[q])
-            if cand > m_t
-                m_t = cand
-            end
+        m_t = T(-Inf)
+        for q in 1:Q
+            sc.log_w[q] == -Inf && continue
+            cand = ll_pq[p, q] + T(sc.log_w[q])
+            cand > m_t && (m_t = cand)
         end
         s_exp = zero(T)
         for q in 1:Q
-            log_w[q] == -Inf && continue
-            s_exp += exp(ll_pq[p, q] + T(log_w[q]) - m_t)
+            sc.log_w[q] == -Inf && continue
+            s_exp += exp(ll_pq[p, q] + T(sc.log_w[q]) - m_t)
         end
         lp = m_t + log(s_exp)
         total_ll += lp
         if post_w !== nothing
-            lp_f = Float64(lp)
             for q in 1:Q
-                post_w[p, q] = log_w[q] == -Inf ? 0.0 : exp(Float64(ll_pq[p, q]) + log_w[q] - lp_f)
+                post_w[p, q] = sc.log_w[q] == -Inf ? zero(T) : exp(ll_pq[p, q] + T(sc.log_w[q]) - lp)
             end
         end
     end
 
     if grad_free !== nothing
-        g_full = zeros(Float64, lay.n_full_structural)
-        g_mu = 0.0
-        g_lsig = 0.0
-        pbuf_f = zeros(Float64, K_max)
-        full_f = Float64.(full)
-        base_eta_f = Float64.(base_eta)
-        sig_f = Float64(sigma)
+        g_full = use_f64 ? fill!(sc.g_full, 0.0) : zeros(T, lay.n_full_structural)
+        slot_acc = use_f64 ? sc.slot_acc : Vector{T}(undef, sc.M_tot)
+        pat_w = use_f64 ? sc.pat_w : Vector{T}(undef, U)
+        pbuf = use_f64 ? sc.pbuf : Vector{T}(undef, K_max)
+        g_mu = zero(T)
+        g_lsig = zero(T)
 
         @inbounds for q in 1:Q
-            zq = base_quad.std_nodes[q]
-            theta_shift = sig_f * zq
+            sc.log_w[q] == -Inf && continue
+            zq = sc.std_nodes[q]
+            theta_shift = sigma * T(zq)
+            fill!(slot_acc, zero(T))
+            fill!(pat_w, zero(T))
             for r in 1:prob.n_obs
-                p = prob.person_idx[r]
-                pw = post_w[p, q]
-                pw == 0.0 && continue
-                eta = base_eta_f[r] + theta_shift
-                g = prob.step_group[r]
+                pw = post_w[prob.person_idx[r], q]
+                pw == zero(T) && continue
+                w_pw = T(prob.weights[r]) * pw
+                slot_acc[sc.obs_slot[r]] += w_pw
+                pat_w[sc.pat_of_row[r]] += w_pw
+            end
+
+            for u_pat in 1:U
+                wu = pat_w[u_pat]
+                wu == zero(T) && continue
+                eta = pat_eta[u_pat] + theta_shift
+                g = sc.pat_group[u_pat]
                 srng = lay.step_full_ranges[g]
                 K_g = length(prob.supports[g])
-                pv = view(pbuf_f, 1:K_g)
-                _row_probs!(pv, eta, view(full_f, srng))
-                yk = prob.score_k[r]
-                exp_k = 0.0
+                pv = view(pbuf, 1:K_g)
+                _row_probs!(pv, eta, view(full, srng))
+                m0 = sc.pat_offsets[u_pat]
+                obs_k_sum = zero(T)
+                exp_k = zero(T)
                 for k in 1:(K_g - 1)
+                    obs_k_sum += k * slot_acc[m0 + k + 1]
                     exp_k += k * pv[k + 1]
                 end
-                w_pw = prob.weights[r] * pw
-                d_eta = -w_pw * (yk - exp_k)
+                d_eta = -(obs_k_sum - wu * exp_k)
                 g_mu += d_eta
                 g_lsig += d_eta * theta_shift
-                for (fi, f) in enumerate(prob.facets)
-                    g_full[lay.facet_full_ranges[fi][f.index[r]]] += f.sign * d_eta
+                for fi in 1:F
+                    g_full[sc.pat_facet_full[fi, u_pat]] += T(sc.facet_signs[fi]) * d_eta
                 end
-                p_ge = 0.0
+                p_ge = zero(T)
+                obs_ge = zero(T)
                 for s in (K_g - 1):-1:1
                     p_ge += pv[s + 1]
-                    obs_ge = yk >= s ? 1.0 : 0.0
-                    g_full[srng[s]] += w_pw * (obs_ge - p_ge)
+                    obs_ge += slot_acc[m0 + s + 1]
+                    g_full[srng[s]] += obs_ge - wu * p_ge
                 end
             end
         end
-        fill!(grad_free, 0.0)
+        fill!(grad_free, zero(eltype(grad_free)))
         mul!(grad_free, transpose(lay.J_mat), g_full)
         lay.mu_free_idx > 0 && (grad_free[lay.mu_free_idx] = g_mu)
         lay.log_sigma_free_idx > 0 && (grad_free[lay.log_sigma_free_idx] = g_lsig)
@@ -1156,19 +1353,32 @@ function _optimize_lbfgs(fg!, x0::Vector{Float64};
             empty!(s_list); empty!(y_list); empty!(rho_list)
         end
 
-        # Backtracking Armijo line search with curvature safeguard
+        # Bracket a Wolfe step. Near the roundoff floor use the derivative
+        # bounds of Hager–Zhang's approximate Wolfe test.
         step = 1.0
+        lower, upper = 0.0, Inf
         accepted = false
         f_try = f
         for _ in 1:45
             @. x_new = x + step * d
+            x_new == x && break
             f_try = fg!(g_new, x_new)
             nfev += 1
-            if isfinite(f_try) && all(isfinite, g_new) && f_try <= f + 1e-4 * step * dg
+            finite = isfinite(f_try) && all(isfinite, g_new)
+            next_slope = finite ? dot(d,g_new) : Inf
+            decrease = finite && f_try <= f + 1e-4 * step * dg
+            near_floor = finite && abs(f_try - f) <= 32eps(max(1.0, abs(f)))
+            if next_slope >= 0.9 * dg &&
+                    (decrease || (near_floor && next_slope <= (2e-4 - 1) * dg))
                 accepted = true
                 break
             end
-            step *= 0.5
+            if (decrease || near_floor) && next_slope < 0.9 * dg
+                lower = step
+            else
+                upper = step
+            end
+            step = isfinite(upper) ? (lower + upper) / 2 : 2 * step
         end
         if !accepted
             break
@@ -1197,74 +1407,82 @@ function _optimize_lbfgs(fg!, x0::Vector{Float64};
     return (; x, f, g, nit, nfev, converged = norm(g, Inf) <= max(gtol * 10, 1e-6))
 end
 
-function _polish_jmle_schur!(x::Vector{Float64}, prob::Problem, lay::Layout;
-        extreme_adjustment::Float64 = 0.0, max_steps::Int = 8, gtol::Float64 = 1e-11)
-    g = zeros(Float64, lay.n_free)
-    f = jmle_nll_and_grad!(g, x, prob, lay; extreme_adjustment)
-    lay.n_free == 0 && return (; x, f, g, steps = 0, dec = 0.0)
-    d_theta = length(lay.person_free_range)
-    steps_taken = 0
-    dec = NaN
-    for _ in 1:max_steps
-        norm(g, Inf) <= gtol && break
-        if !prob.person_centered && d_theta > 0
-            sch = jmle_exact_hessian_and_schur_cov(x, prob, lay)
-            sch.ok || break
-            # Solve [D_theta  H_theta_psi; H_theta_psi'  H_psi_psi] [dx_theta; dx_psi] = -g
-            g_theta = view(g, 1:d_theta)
-            g_psi = view(g, (d_theta + 1):lay.n_free)
-            inv_D = 1.0 ./ sch.D_theta
-            rhs_psi = -(g_psi .- transpose(sch.H_theta_psi) * (inv_D .* g_theta))
-            dx_psi = sch.cov_psi * rhs_psi
-            dx_theta = -(inv_D .* (g_theta .+ sch.H_theta_psi * dx_psi))
-            dx = vcat(dx_theta, dx_psi)
-        else
-            H = Symmetric(ForwardDiff.hessian(z -> jmle_nll_and_grad!(nothing, z, prob, lay; extreme_adjustment), x))
-            ch = cholesky(H; check = false)
-            issuccess(ch) || break
-            dx = -(ch \ g)
-        end
-        dg = dot(g, dx)
-        dg < 0.0 || break
-        dec = -dg
-        step = 1.0
-        g_try = similar(g)
-        improved = false
-        for _ in 1:25
-            x_try = x .+ step .* dx
-            f_try = jmle_nll_and_grad!(g_try, x_try, prob, lay; extreme_adjustment)
-            if isfinite(f_try) && (f_try <= f + 1e-4 * step * dg || norm(g_try, Inf) < 0.5 * norm(g, Inf))
-                copyto!(x, x_try)
-                copyto!(g, g_try)
-                f = f_try
-                improved = true
-                steps_taken += 1
-                break
-            end
-            step *= 0.5
-        end
-        improved || break
-    end
-    if isnan(dec)
-        dec = norm(g, Inf)
-    end
-    return (; x, f, g, steps = steps_taken, dec)
+# Each free person contributes one diagonal element; only the structural Schur block is factored.
+function _joint_schur_direction(block, g)
+    isnothing(block) && return nothing
+    n = length(block.diagonal)
+    gt = view(g, 1:n)
+    gx = view(g, n+1:length(g))
+    dx = block.factor \ (block.cross' * (gt ./ block.diagonal) .- gx)
+    return vcat(-((gt .+ block.cross * dx) ./ block.diagonal), dx)
 end
 
+function _fit_joint_newton(fg!, direction, initial; maxit, gtol)
+    x = copy(initial)
+    g = similar(x)
+    f = fg!(g, x)
+    evaluations = 1
+    iterations = 0
+    candidate = similar(x)
+    next_gradient = similar(g)
+    fallback_used = false
+    tolerance = min(1e-11, gtol)
+    while iterations < maxit && norm(g, Inf) > tolerance
+        dx = direction(x, g)
+        slope = isnothing(dx) ? NaN : dot(g, dx)
+        accepted = false
+        if isfinite(slope) && slope < 0
+            step = 1.0
+            for _ in 1:25
+                @. candidate = x + step * dx
+                candidate == x && break
+                next_f = fg!(next_gradient, candidate)
+                evaluations += 1
+                # Near the optimum the objective can round upward while the score drops to zero.
+                if isfinite(next_f) && all(isfinite, next_gradient) &&
+                        (next_f <= f + 1e-4 * step * slope ||
+                         (next_f <= f + 32eps(max(abs(f), 1.0)) && norm(next_gradient, Inf) < 0.5 * norm(g, Inf)))
+                    x, candidate = candidate, x
+                    g, next_gradient = next_gradient, g
+                    f = next_f
+                    accepted = true
+                    iterations += 1
+                    break
+                end
+                step *= 0.5
+            end
+        end
+        if !accepted
+            fallback_used && break
+            opt = _optimize_lbfgs(fg!, x; maxit=maxit-iterations, gtol)
+            x, f, g = opt.x, opt.f, opt.g
+            iterations += opt.nit
+            evaluations += opt.nfev
+            fallback_used = true
+        end
+    end
+    return (; x, f, g, nit=iterations, nfev=evaluations)
+end
+
+include("frequentist_louis.jl")
+
 function _polish_mmle_newton!(x::Vector{Float64}, prob::Problem, lay::Layout, base_quad;
-        fixed_sd::Float64 = 1.0, max_steps::Int = 8, gtol::Float64 = 1e-11)
-    g = zeros(Float64, lay.n_free)
-    f = mmle_nll_and_grad!(g, x, prob, lay, base_quad; fixed_sd)
-    (lay.n_free == 0 || lay.n_free > 250) && return (; x, f, g, steps = 0, dec = norm(g, Inf))
+        fixed_sd::Float64 = 1.0, max_steps::Int = 12, gtol::Float64 = 1e-11,
+        scratch::Union{Nothing,_FreqMMLEPatternScratch} = nothing)
+    sc = scratch === nothing ? _build_freq_mmle_scratch(prob, lay, base_quad) : scratch
+    nf = lay.n_free
+    g = zeros(Float64, nf)
+    f = mmle_nll_and_grad!(g, x, prob, lay, base_quad; fixed_sd, scratch = sc)
+    (nf == 0 || nf > 2000) && return (; x, f, g, steps = 0, dec = norm(g, Inf))
     steps_taken = 0
     dec = norm(g, Inf)
     for _ in 1:max_steps
         norm(g, Inf) <= gtol && break
-        H = Symmetric(ForwardDiff.hessian(z -> mmle_nll_and_grad!(nothing, z, prob, lay, base_quad; fixed_sd), x))
+        H = _ordinal_louis(x, prob, lay, base_quad, fixed_sd, sc)
         ch = cholesky(H; check = false)
         if !issuccess(ch)
             # Small Levenberg-Marquardt shift if slightly nonconvex far from optimum
-            lam = max(1e-6, -minimum(eigvals(H)) + 1e-5)
+            lam = max(1e-6, -minimum(eigvals(Matrix(H))) + 1e-5)
             ch = cholesky(Symmetric(Matrix(H) + lam * I); check = false)
             issuccess(ch) || break
         end
@@ -1277,7 +1495,7 @@ function _polish_mmle_newton!(x::Vector{Float64}, prob::Problem, lay::Layout, ba
         improved = false
         for _ in 1:25
             x_try = x .+ step .* dx
-            f_try = mmle_nll_and_grad!(g_try, x_try, prob, lay, base_quad; fixed_sd)
+            f_try = mmle_nll_and_grad!(g_try, x_try, prob, lay, base_quad; fixed_sd, scratch = sc)
             if isfinite(f_try) && (f_try <= f + 1e-4 * step * dg || norm(g_try, Inf) < 0.5 * norm(g, Inf))
                 copyto!(x, x_try)
                 copyto!(g, g_try)
@@ -1294,123 +1512,180 @@ function _polish_mmle_newton!(x::Vector{Float64}, prob::Problem, lay::Layout, ba
 end
 
 function _em_warmstart_mmle!(x::Vector{Float64}, prob::Problem, lay::Layout, base_quad;
-        fixed_sd::Float64 = 1.0, em_iters::Int = 8)
+        fixed_sd::Float64 = 1.0, em_iters::Int = 8,
+        scratch::Union{Nothing,_FreqMMLEPatternScratch} = nothing)
+    sc = scratch === nothing ? _build_freq_mmle_scratch(prob, lay, base_quad) : scratch
+    U = sc.n_patterns
+    F = length(sc.facet_signs)
     P = length(prob.person_levels)
-    Q = length(base_quad.std_nodes)
-    K_max = maximum(length, prob.supports)
-    log_w = [w > 0.0 ? log(w) : -Inf for w in base_quad.weights]
+    Q = length(sc.std_nodes)
     d_struct = lay.n_free - Int(lay.mu_free_idx > 0) - Int(lay.log_sigma_free_idx > 0)
+    J_struct = d_struct > 0 ? lay.J_mat[:, 1:d_struct] : nothing
+    u_tmp = similar(x)
+    slot_q = Matrix{Float64}(undef, sc.M_tot, Q)
+    pat_wq = Matrix{Float64}(undef, U, Q)
 
     for _ in 1:em_iters
-        full = lay.c_vec .+ lay.J_mat * x
+        copyto!(sc.full_buf, lay.c_vec)
+        mul!(sc.full_buf, lay.J_mat, x, 1.0, 1.0)
+        full = sc.full_buf
         mu = lay.mu_free_idx > 0 ? x[lay.mu_free_idx] : 0.0
         sigma = lay.log_sigma_free_idx > 0 ? clamp(exp(x[lay.log_sigma_free_idx]), 0.05, 10.0) : fixed_sd
 
-        base_eta = zeros(Float64, prob.n_obs)
-        for r in 1:prob.n_obs
+        @inbounds for u_pat in 1:U
             s = mu
-            for (fi, f) in enumerate(prob.facets)
-                s += f.sign * full[lay.facet_full_ranges[fi][f.index[r]]]
+            for fi in 1:F
+                s += sc.facet_signs[fi] * full[sc.pat_facet_full[fi, u_pat]]
             end
-            base_eta[r] = s
+            sc.pat_eta[u_pat] = s
         end
 
-        ll_pq = zeros(Float64, P, Q)
-        pbuf = zeros(Float64, K_max)
-        for q in 1:Q
-            th_q = sigma * base_quad.std_nodes[q]
-            for r in 1:prob.n_obs
-                eta = base_eta[r] + th_q
-                g = prob.step_group[r]
+        ll_pq = fill!(sc.ll_pq, 0.0)
+        logp_slot = sc.logp_slot
+        @inbounds for q in 1:Q
+            sc.log_w[q] == -Inf && continue
+            th_q = sigma * sc.std_nodes[q]
+            for u_pat in 1:U
+                eta = sc.pat_eta[u_pat] + th_q
+                g = sc.pat_group[u_pat]
                 srng = lay.step_full_ranges[g]
                 K_g = length(prob.supports[g])
-                pv = view(pbuf, 1:K_g)
-                steps_v = view(full, srng)
-                ld = _row_probs!(pv, eta, steps_v)
-                yk = prob.score_k[r]
-                cum_obs = yk == 0 ? 0.0 : sum(view(steps_v, 1:yk))
-                ll_pq[prob.person_idx[r], q] += prob.weights[r] * ((yk * eta - cum_obs) - ld)
+                m0 = sc.pat_offsets[u_pat]
+                logp_slot[m0 + 1] = 0.0
+                mmax = 0.0
+                cum = 0.0
+                for k in 1:(K_g - 1)
+                    cum += full[srng[k]]
+                    v = k * eta - cum
+                    logp_slot[m0 + k + 1] = v
+                    v > mmax && (mmax = v)
+                end
+                denom = 0.0
+                for k in 1:K_g
+                    denom += exp(logp_slot[m0 + k] - mmax)
+                end
+                ld = mmax + log(denom)
+                for k in 1:K_g
+                    logp_slot[m0 + k] -= ld
+                end
+            end
+            for r in 1:prob.n_obs
+                ll_pq[prob.person_idx[r], q] += prob.weights[r] * logp_slot[sc.obs_slot[r]]
             end
         end
 
-        post_w = zeros(Float64, P, Q)
-        for p in 1:P
+        post_w = sc.post_w
+        @inbounds for p in 1:P
             mval = -Inf
             for q in 1:Q
-                log_w[q] == -Inf && continue
-                mval = max(mval, ll_pq[p, q] + log_w[q])
+                sc.log_w[q] == -Inf && continue
+                mval = max(mval, ll_pq[p, q] + sc.log_w[q])
             end
             s_exp = 0.0
             for q in 1:Q
-                log_w[q] == -Inf && continue
-                s_exp += exp(ll_pq[p, q] + log_w[q] - mval)
+                sc.log_w[q] == -Inf && continue
+                s_exp += exp(ll_pq[p, q] + sc.log_w[q] - mval)
             end
             lp = mval + log(s_exp)
             for q in 1:Q
-                post_w[p, q] = log_w[q] == -Inf ? 0.0 : exp(ll_pq[p, q] + log_w[q] - lp)
+                post_w[p, q] = sc.log_w[q] == -Inf ? 0.0 : exp(ll_pq[p, q] + sc.log_w[q] - lp)
             end
         end
 
-        # Update population moments from E-step posterior weights
-        theta_nodes = [mu + sigma * z for z in base_quad.std_nodes]
         if lay.mu_free_idx > 0
-            mu_new = mean(sum(post_w[p, q] * theta_nodes[q] for q in 1:Q) for p in 1:P)
-            x[lay.mu_free_idx] = mu_new
-            mu = mu_new
+            mu_acc = 0.0
+            @inbounds for p in 1:P, q in 1:Q
+                mu_acc += post_w[p, q] * (mu + sigma * sc.std_nodes[q])
+            end
+            mu = mu_acc / P
+            x[lay.mu_free_idx] = mu
         end
         if lay.log_sigma_free_idx > 0
-            v_new = mean(sum(post_w[p, q] * (theta_nodes[q] - mu)^2 for q in 1:Q) for p in 1:P)
-            x[lay.log_sigma_free_idx] = 0.5 * log(clamp(v_new, 0.05^2, 10.0^2))
+            v_acc = 0.0
+            mu_cur = mu
+            sig_cur = sigma
+            @inbounds for p in 1:P, q in 1:Q
+                th_q = (lay.mu_free_idx > 0 ? mu_cur : 0.0) + sig_cur * sc.std_nodes[q]
+                d_th = th_q - mu_cur
+                v_acc += post_w[p, q] * (d_th * d_th)
+            end
+            x[lay.log_sigma_free_idx] = 0.5 * log(clamp(v_acc / P, 0.05^2, 10.0^2))
             sigma = exp(x[lay.log_sigma_free_idx])
         end
 
-        # Short M-step on structural coordinates holding post_w fixed
-        if d_struct > 0
-            J_struct = lay.J_mat[:, 1:d_struct]
+        if d_struct > 0 && J_struct !== nothing
+            fill!(slot_q, 0.0)
+            fill!(pat_wq, 0.0)
+            @inbounds for q in 1:Q
+                sc.log_w[q] == -Inf && continue
+                for r in 1:prob.n_obs
+                    pw = post_w[prob.person_idx[r], q]
+                    pw == 0.0 && continue
+                    w_pw = prob.weights[r] * pw
+                    slot_q[sc.obs_slot[r], q] += w_pw
+                    pat_wq[sc.pat_of_row[r], q] += w_pw
+                end
+            end
+            mu_m = mu
+            sig_m = sigma
             function mstep_fg!(gs, xs)
-                u_tmp = copy(x)
+                copyto!(u_tmp, x)
                 u_tmp[1:d_struct] .= xs
-                full_m = lay.c_vec .+ lay.J_mat * u_tmp
-                g_full = zeros(Float64, lay.n_full_structural)
+                copyto!(sc.full_buf, lay.c_vec)
+                mul!(sc.full_buf, lay.J_mat, u_tmp, 1.0, 1.0)
+                full_m = sc.full_buf
+                @inbounds for u_pat in 1:U
+                    s = mu_m
+                    for fi in 1:F
+                        s += sc.facet_signs[fi] * full_m[sc.pat_facet_full[fi, u_pat]]
+                    end
+                    sc.pat_eta[u_pat] = s
+                end
+                g_full = fill!(sc.g_full, 0.0)
+                pbuf = sc.pbuf
                 val = 0.0
-                for q in 1:Q
-                    th_q = mu + sigma * base_quad.std_nodes[q]
-                    for r in 1:prob.n_obs
-                        pw = post_w[prob.person_idx[r], q]
-                        pw == 0.0 && continue
-                        eta = th_q
-                        for (fi, f) in enumerate(prob.facets)
-                            eta += f.sign * full_m[lay.facet_full_ranges[fi][f.index[r]]]
-                        end
-                        g_id = prob.step_group[r]
+                @inbounds for q in 1:Q
+                    sc.log_w[q] == -Inf && continue
+                    th_shift = sig_m * sc.std_nodes[q]
+                    for u_pat in 1:U
+                        wu = pat_wq[u_pat, q]
+                        wu == 0.0 && continue
+                        eta = sc.pat_eta[u_pat] + th_shift
+                        g_id = sc.pat_group[u_pat]
                         srng = lay.step_full_ranges[g_id]
                         K_g = length(prob.supports[g_id])
                         pv = view(pbuf, 1:K_g)
-                        steps_v = view(full_m, srng)
-                        ld = _row_probs!(pv, eta, steps_v)
-                        yk = prob.score_k[r]
-                        cum_obs = yk == 0 ? 0.0 : sum(view(steps_v, 1:yk))
-                        w_pw = prob.weights[r] * pw
-                        val -= w_pw * ((yk * eta - cum_obs) - ld)
+                        ld = _row_probs!(pv, eta, view(full_m, srng))
+                        m0 = sc.pat_offsets[u_pat]
+                        obs_k_sum = 0.0
                         exp_k = 0.0
+                        cum_step_loss = 0.0
+                        cum_s = 0.0
                         for k in 1:(K_g - 1)
+                            cum_s += full_m[srng[k]]
+                            sa = slot_q[m0 + k + 1, q]
+                            obs_k_sum += k * sa
+                            cum_step_loss += cum_s * sa
                             exp_k += k * pv[k + 1]
                         end
-                        d_eta = -w_pw * (yk - exp_k)
-                        for (fi, f) in enumerate(prob.facets)
-                            g_full[lay.facet_full_ranges[fi][f.index[r]]] += f.sign * d_eta
+                        val -= (obs_k_sum * eta - cum_step_loss) - wu * ld
+                        d_eta = -(obs_k_sum - wu * exp_k)
+                        for fi in 1:F
+                            g_full[sc.pat_facet_full[fi, u_pat]] += sc.facet_signs[fi] * d_eta
                         end
                         p_ge = 0.0
+                        obs_ge = 0.0
                         for s in (K_g - 1):-1:1
                             p_ge += pv[s + 1]
-                            g_full[srng[s]] += w_pw * ((yk >= s ? 1.0 : 0.0) - p_ge)
+                            obs_ge += slot_q[m0 + s + 1, q]
+                            g_full[srng[s]] += obs_ge - wu * p_ge
                         end
                     end
                 end
                 mul!(gs, transpose(J_struct), g_full)
                 return val
             end
-            res_m = _optimize_lbfgs(mstep_fg!, x[1:d_struct]; maxit = 15, gtol = 1e-6)
+            res_m = _optimize_lbfgs(mstep_fg!, x[1:d_struct]; maxit = 12, gtol = 1e-5)
             x[1:d_struct] .= res_m.x
         end
     end
@@ -1618,11 +1893,11 @@ function compute_person_scores(full::Vector{Float64}, prob::Problem, lay::Layout
                 fin_p = false
                 primary_theta[p] = est_p
             elseif st in (:all_minimum, :all_maximum) && extreme_adjustment > 0.0
-                shift = st === :all_minimum ? Float64(extreme_adjustment) : -Float64(extreme_adjustment)
-                adj_sol = _solve_person_root(rs, base_eta, full, prob, lay; weighted = false, target_shift = shift)
-                est_p = adj_sol.estimate
-                se_p = missing # adjusted score proxy has conditional SE, not unpenalized Hessian SE
-                cse_p = isfinite(adj_sol.se) ? adj_sol.se : missing
+                est_p = full[lay.person_full_range[p]]
+                ev_p = _eval_person_theta(est_p, rs, base_eta, full, prob, lay; weighted = false)
+                hse = jmle_full_se === nothing ? NaN : jmle_full_se[lay.person_full_range[p]]
+                se_p = isfinite(hse) ? hse : missing
+                cse_p = ev_p.info > 0 ? 1.0 / sqrt(ev_p.info) : missing
                 fin_p = isfinite(est_p)
                 primary_theta[p] = est_p
             else
@@ -1684,16 +1959,20 @@ end
 # 7. Response Residuals, Wright-Masters Fit Diagnostics & Reliability
 # ---------------------------------------------------------------------------
 
-@inline function _wilson_hilferty_zstd(mnsq::Float64, df::Float64; cap::Union{Nothing,Float64} = 9.0)
-    (isfinite(mnsq) && mnsq >= 0.0 && isfinite(df) && df >= 1.0) || return missing
-    z = (cbrt(mnsq) - (1.0 - 2.0 / (9.0 * df))) / sqrt(2.0 / (9.0 * df))
+@inline function _wilson_hilferty_zstd(mnsq::Float64, df::Float64;
+        cap::Union{Nothing,Float64} = 9.0, whexact::Bool = true)
+    (isfinite(mnsq) && mnsq >= 0.0 && isfinite(df) && df > 0.0) || return missing
+    q = sqrt(2.0 / df)
+    z = 3.0 * (cbrt(mnsq) - 1.0) / q + (whexact ? q / 3.0 : 0.0)
+    isfinite(z) || return missing
     cap === nothing && return z
     return clamp(z, -cap, cap)
 end
 
 function _summarize_fit_rows(indices::Vector{Int}, obs_var::Vector{Float64}, obs_m4::Vector{Float64},
         obs_z2::Vector{Float64}, obs_bzero::BitVector, weights::Vector{Float64};
-        has_boundary_proxy::Bool = false, single_obs_free_jmle::Bool = false, zstd_cap::Union{Nothing,Float64} = 9.0)
+        has_boundary_proxy::Bool = false, single_obs_free_jmle::Bool = false,
+        zstd_cap::Union{Nothing,Float64} = 9.0, whexact::Bool = true)
     if isempty(indices) || single_obs_free_jmle
         return (; n_rows = length(indices), weighted_n = isempty(indices) ? 0.0 : sum(weights[r] for r in indices),
             infit = missing, outfit = missing, infit_zstd = missing, outfit_zstd = missing,
@@ -1744,10 +2023,10 @@ function _summarize_fit_rows(indices::Vector{Int}, obs_var::Vector{Float64}, obs
     df_inf_eng = sum_vw
     df_out_eng = sum_w
 
-    iz_fac = has_boundary_proxy ? missing : _wilson_hilferty_zstd(infit, df_inf_fac; cap = zstd_cap)
-    oz_fac = has_boundary_proxy ? missing : _wilson_hilferty_zstd(outfit, df_out_fac; cap = zstd_cap)
-    iz_eng = has_boundary_proxy ? missing : _wilson_hilferty_zstd(infit, df_inf_eng; cap = nothing)
-    oz_eng = has_boundary_proxy ? missing : _wilson_hilferty_zstd(outfit, df_out_eng; cap = nothing)
+    iz_fac = has_boundary_proxy ? missing : _wilson_hilferty_zstd(infit, df_inf_fac; cap = zstd_cap, whexact)
+    oz_fac = has_boundary_proxy ? missing : _wilson_hilferty_zstd(outfit, df_out_fac; cap = zstd_cap, whexact)
+    iz_eng = has_boundary_proxy ? missing : _wilson_hilferty_zstd(infit, df_inf_eng; cap = nothing, whexact)
+    oz_eng = has_boundary_proxy ? missing : _wilson_hilferty_zstd(outfit, df_out_eng; cap = nothing, whexact)
     st = has_boundary_proxy ? :zstd_withheld_extreme_person_boundary :
          (ismissing(iz_fac) || ismissing(oz_fac) ? :zstd_unavailable_low_df : :available_descriptive)
     return (;
@@ -1777,9 +2056,268 @@ function _ptmea_corr(scores::AbstractVector{<:Real}, measures::AbstractVector{<:
     return cor(sx, mx)
 end
 
+@inline _finite_pos_num(x) = !(x === missing) && x isa Real && isfinite(x) && Float64(x) > 0.0
+@inline _finite_num(x) = !(x === missing) && x isa Real && isfinite(x)
+
+@inline function _sep_rel_strata_stats(mv::Float64, ev::Float64; is_eap::Bool = false)
+    sig = is_eap ? mv : max(mv - ev, 0.0)
+    sep = ev > 0.0 ? sqrt(sig / ev) : missing
+    rel = is_eap ? (mv + ev > 0.0 ? mv / (mv + ev) : 0.0) : (mv > 0.0 ? sig / mv : missing)
+    str = sep === missing ? missing : (4.0 * sep + 1.0) / 3.0
+    return (; sd = sqrt(max(mv, 0.0)), rmse = sqrt(max(ev, 0.0)), true_sd = sqrt(sig),
+        separation = sep, strata = str, reliability = rel)
+end
+
+function _unavailable_reliability_row(
+        facet::Symbol, n_levels::Int, n_valid::Int;
+        basis::Symbol, status::Symbol,
+        variance_definition::Symbol = :sample,
+        se_definition::Symbol = :not_applicable,
+        extreme_policy::Symbol = :not_applicable)
+    return (;
+        facet,
+        n_levels,
+        n_valid,
+        sd = missing,
+        rmse = missing,
+        true_sd = missing,
+        separation = missing,
+        strata = missing,
+        reliability = missing,
+        basis,
+        status,
+        variance_definition,
+        se_definition,
+        extreme_policy,
+        population_sd = missing,
+        population_separation = missing,
+        population_strata = missing,
+        population_reliability = missing,
+        real_rmse = missing,
+        real_separation = missing,
+        real_strata = missing,
+        real_reliability = missing,
+        facets_conditional_rmse = missing,
+        facets_conditional_separation = missing,
+        facets_conditional_strata = missing,
+        facets_conditional_reliability = missing,
+    )
+end
+
+function _frequentist_person_reliability_row(
+        person_rows::AbstractVector{<:NamedTuple};
+        is_eap::Bool,
+        grouped::Bool = false,
+        extreme_adjusted::Bool = false,
+        variance::Symbol = :sample,
+        se::Symbol = :default,
+        nonextreme_only::Bool = false)
+    variance in (:sample, :population) ||
+        throw(ArgumentError("variance must be :sample or :population; got $(repr(variance))"))
+    se in (:default, :observed, :conditional, :real) ||
+        throw(ArgumentError("se must be :default, :observed, :conditional, or :real; got $(repr(se))"))
+
+    ext_policy = nonextreme_only ? :excluded_extremes :
+        (is_eap ? :all_finite_included : (extreme_adjusted ? :included_adjusted : :withhold_if_any_nonfinite))
+    cand_rows = nonextreme_only ?
+        [r for r in person_rows if !(get(r, :extreme, :interior) in (:all_minimum, :all_maximum))] :
+        collect(person_rows)
+
+    _eap_sd_of(r) = hasproperty(r, :eap_sd) && !(r.eap_sd === missing) ? r.eap_sd : get(r, :posterior_sd, missing)
+    _model_se_of(r) = is_eap ? _eap_sd_of(r) :
+        (se === :observed ? get(r, :se, missing) : get(r, :conditional_se, missing))
+
+    if is_eap && se === :conditional
+        return _unavailable_reliability_row(
+            :person, length(person_rows), length(cand_rows);
+            basis = :not_applicable_conditional_se_on_shrunk_eap,
+            status = :not_applicable,
+            variance_definition = variance,
+            se_definition = :model_conditional,
+            extreme_policy = ext_policy,
+        )
+    end
+
+    req_se_of(r) = se === :real ? get(r, :real_se, missing) : _model_se_of(r)
+    se_def = se === :real ? (is_eap ? :real_eap_posterior_sd : :real_conditional) :
+        (is_eap ? :model_eap_posterior_sd : (se === :observed ? :model_observed_information : :model_conditional))
+    basis_sym = is_eap ?
+        (grouped ? :pooled_grouped_eap_posterior_sd_total_variance : :eap_posterior_sd_total_variance) :
+        (se === :observed ? :observed_information_se_variance_correction :
+         se === :real ? :real_conditional_se_variance_correction : :conditional_se_variance_correction)
+
+    valid_p = [r for r in cand_rows if !Bool(get(r, :fixed, false)) && _finite_num(r.estimate) && _finite_pos_num(req_se_of(r))]
+    target_n = nonextreme_only ? length(cand_rows) : length(person_rows)
+    if !(length(valid_p) == target_n && length(valid_p) >= 2)
+        return _unavailable_reliability_row(
+            :person, length(person_rows), length(valid_p);
+            basis = basis_sym,
+            status = :withheld_incomplete_or_extreme_levels,
+            variance_definition = variance,
+            se_definition = se_def,
+            extreme_policy = ext_policy,
+        )
+    end
+
+    ests = Float64[Float64(r.estimate) for r in valid_p]
+    ses_req = Float64[Float64(req_se_of(r)) for r in valid_p]
+    mv_samp = var(ests; corrected = true)
+    mv_pop = var(ests; corrected = false)
+    mv_main = variance === :population ? mv_pop : mv_samp
+    ev_req = mean(ses_req .^ 2)
+    main_st = _sep_rel_strata_stats(mv_main, ev_req; is_eap)
+
+    def_ok = all(r -> _finite_pos_num(_model_se_of(r)), valid_p)
+    ev_def = def_ok ? mean(Float64(_model_se_of(r))^2 for r in valid_p) : NaN
+    pop_st = isfinite(ev_def) ? _sep_rel_strata_stats(mv_pop, ev_def; is_eap) :
+        (; sd = missing, separation = missing, strata = missing, reliability = missing)
+
+    real_ok = all(r -> _finite_pos_num(get(r, :real_se, missing)), valid_p)
+    real_st = real_ok ? _sep_rel_strata_stats(variance === :population ? mv_pop : mv_samp,
+        mean(Float64(r.real_se)^2 for r in valid_p); is_eap) :
+        (; rmse = missing, separation = missing, strata = missing, reliability = missing)
+
+    cond_ok = !is_eap && all(r -> _finite_pos_num(get(r, :conditional_se, missing)), valid_p)
+    cond_st = cond_ok ? _sep_rel_strata_stats(variance === :population ? mv_pop : mv_samp,
+        mean(Float64(r.conditional_se)^2 for r in valid_p); is_eap = false) :
+        (; rmse = missing, separation = missing, strata = missing, reliability = missing)
+
+    return (;
+        facet = :person,
+        n_levels = length(person_rows),
+        n_valid = length(valid_p),
+        sd = main_st.sd,
+        rmse = main_st.rmse,
+        true_sd = main_st.true_sd,
+        separation = main_st.separation,
+        strata = main_st.strata,
+        reliability = main_st.reliability,
+        basis = basis_sym,
+        status = :available_descriptive,
+        variance_definition = variance,
+        se_definition = se_def,
+        extreme_policy = ext_policy,
+        population_sd = pop_st.sd,
+        population_separation = pop_st.separation,
+        population_strata = pop_st.strata,
+        population_reliability = pop_st.reliability,
+        real_rmse = real_st.rmse,
+        real_separation = real_st.separation,
+        real_strata = real_st.strata,
+        real_reliability = real_st.reliability,
+        facets_conditional_rmse = cond_st.rmse,
+        facets_conditional_separation = cond_st.separation,
+        facets_conditional_strata = cond_st.strata,
+        facets_conditional_reliability = cond_st.reliability,
+    )
+end
+
+function _frequentist_facet_reliability_row(
+        fname::Symbol,
+        frows::AbstractVector{<:NamedTuple};
+        method::Symbol = :mmle,
+        variance::Symbol = :sample,
+        se::Symbol = :default,
+        nonextreme_only::Bool = false,
+        extreme_levels = NamedTuple[])
+    variance in (:sample, :population) ||
+        throw(ArgumentError("variance must be :sample or :population; got $(repr(variance))"))
+    se in (:default, :observed, :conditional, :real) ||
+        throw(ArgumentError("se must be :default, :observed, :conditional, or :real; got $(repr(se))"))
+
+    ext_set = Set(x.level for x in extreme_levels if get(x, :facet, nothing) === fname)
+    cand_rows = (nonextreme_only && !isempty(ext_set)) ?
+        [r for r in frows if !(r.level in ext_set)] : collect(frows)
+    ext_policy = nonextreme_only ? :excluded_extremes : :all_finite_included
+
+    all_free_finite = length(cand_rows) >= 2 &&
+        all(r -> !Bool(r.fixed) && _finite_num(r.estimate), cand_rows)
+    obs_ok = all_free_finite && all(r -> _finite_pos_num(get(r, :se, missing)), cand_rows)
+    cond_ok = all_free_finite && all(r -> _finite_pos_num(get(r, :conditional_se, missing)), cand_rows)
+    real_ok = all_free_finite && all(r -> _finite_pos_num(get(r, :real_se, missing)), cand_rows)
+
+    def_mode = obs_ok ? :observed : (cond_ok ? :conditional : :none)
+    chosen_mode = se === :default ? def_mode :
+                  se === :observed ? (obs_ok ? :observed : :none) :
+                  se === :conditional ? (cond_ok ? :conditional : :none) :
+                  (real_ok ? :real : :none)
+
+    if chosen_mode === :none
+        return _unavailable_reliability_row(
+            fname, length(frows), count(r -> !Bool(r.fixed), cand_rows);
+            basis = :unassessable_fixed_or_missing_se,
+            status = :unassessable,
+            variance_definition = variance,
+            se_definition = :not_applicable,
+            extreme_policy = ext_policy,
+        )
+    end
+
+    ests = Float64[Float64(r.estimate) for r in cand_rows]
+    mv_samp = var(ests; corrected = true)
+    mv_pop = var(ests; corrected = false)
+    mv_main = variance === :population ? mv_pop : mv_samp
+
+    ses_real = real_ok ? Float64[Float64(r.real_se) for r in cand_rows] : Float64[]
+
+    ses_main = chosen_mode === :observed ? Float64[Float64(r.se) for r in cand_rows] :
+               chosen_mode === :conditional ? Float64[Float64(r.conditional_se) for r in cand_rows] : ses_real
+    ev_main = mean(ses_main .^ 2)
+    main_st = _sep_rel_strata_stats(mv_main, ev_main; is_eap = false)
+
+    pop_st = def_mode !== :none ?
+        _sep_rel_strata_stats(
+            mv_pop,
+            mean((def_mode === :observed ? Float64(r.se) : Float64(r.conditional_se))^2 for r in cand_rows);
+            is_eap = false,
+        ) :
+        (; sd = missing, separation = missing, strata = missing, reliability = missing)
+
+    real_st = real_ok ? _sep_rel_strata_stats(mv_main, mean(ses_real .^ 2); is_eap = false) :
+        (; rmse = missing, separation = missing, strata = missing, reliability = missing)
+    cond_st = cond_ok ? _sep_rel_strata_stats(mv_main, mean(Float64(r.conditional_se)^2 for r in cand_rows); is_eap = false) :
+        (; rmse = missing, separation = missing, strata = missing, reliability = missing)
+
+    se_def = chosen_mode === :observed ? :model_observed_information :
+             chosen_mode === :conditional ? :model_conditional :
+             (method === :jmle ? :real_conditional : :real_observed_information)
+    basis_sym = chosen_mode === :observed ? :observed_information_se_variance_correction :
+                chosen_mode === :conditional ? :conditional_se_variance_correction :
+                (method === :jmle ? :real_conditional_se_variance_correction : :real_observed_information_se_variance_correction)
+
+    return (;
+        facet = fname,
+        n_levels = length(frows),
+        n_valid = length(cand_rows),
+        sd = main_st.sd,
+        rmse = main_st.rmse,
+        true_sd = main_st.true_sd,
+        separation = main_st.separation,
+        strata = main_st.strata,
+        reliability = main_st.reliability,
+        basis = basis_sym,
+        status = :available_descriptive,
+        variance_definition = variance,
+        se_definition = se_def,
+        extreme_policy = ext_policy,
+        population_sd = pop_st.sd,
+        population_separation = pop_st.separation,
+        population_strata = pop_st.strata,
+        population_reliability = pop_st.reliability,
+        real_rmse = real_st.rmse,
+        real_separation = real_st.separation,
+        real_strata = real_st.strata,
+        real_reliability = real_st.reliability,
+        facets_conditional_rmse = cond_st.rmse,
+        facets_conditional_separation = cond_st.separation,
+        facets_conditional_strata = cond_st.strata,
+        facets_conditional_reliability = cond_st.reliability,
+    )
+end
+
 function compute_diagnostics_and_tables(full::Vector{Float64}, primary_theta::Vector{Float64},
         person_rows_info::AbstractVector{<:NamedTuple}, full_se::Vector{Float64}, prob::Problem, lay::Layout;
-        interval::Float64 = 0.95, zstd_cap::Union{Nothing,Float64} = 9.0)
+        interval::Float64 = 0.95, zstd_cap::Union{Nothing,Float64} = 9.0, whexact::Bool = true)
     n = prob.n_obs
     obs_exp = zeros(Float64, n)
     obs_var = zeros(Float64, n)
@@ -1833,8 +2371,23 @@ function compute_diagnostics_and_tables(full::Vector{Float64}, primary_theta::Ve
     end
 
     z_crit = quantile(Normal(), 0.5 * (1.0 + interval))
-    overall_fit = _summarize_fit_rows(collect(1:n), obs_var, obs_m4, obs_z2, obs_bzero, prob.weights;
-        has_boundary_proxy = any(obs_bzero), zstd_cap)
+    overall_fit = merge(
+        _summarize_fit_rows(collect(1:n), obs_var, obs_m4, obs_z2, obs_bzero, prob.weights;
+            has_boundary_proxy = any(obs_bzero), zstd_cap, whexact),
+        (; whexact, zstd_cap),
+    )
+
+    # Precompute FACETS-style marginal Fair(M) and Fair(Z) baselines across step groups
+    same_sup_fa = allequal(prob.supports)
+    fin_th_fa = Float64[th for th in primary_theta if isfinite(th)]
+    th_bar_fa = isempty(fin_th_fa) ? 0.0 : mean(fin_th_fa)
+    f_means_fa = Float64[mean(view(full, lay.facet_full_ranges[fi])) for fi in eachindex(prob.facets)]
+    f_shift_fa = sum(prob.facets[fi].sign * f_means_fa[fi] for fi in eachindex(prob.facets); init = 0.0)
+    tau_groups_fa = [Float64[full[idx] for idx in lay.step_full_ranges[g]] for g in eachindex(prob.supports)]
+    cat_groups_fa = [Float64.(collect(prob.supports[g])) for g in eachindex(prob.supports)]
+    tau_mean_fa = same_sup_fa ?
+        Float64[mean(tau_groups_fa[g][h] for g in eachindex(tau_groups_fa)) for h in 1:length(tau_groups_fa[1])] :
+        Float64[]
 
     # Person measure + fit table
     P = length(prob.person_levels)
@@ -1854,7 +2407,7 @@ function compute_diagnostics_and_tables(full::Vector{Float64}, primary_theta::Ve
                outfit_zstd_engine = missing, df_infit_engine = missing, df_outfit_engine = missing,
                status = :unavailable_extreme_boundary) :
             _summarize_fit_rows(rs, obs_var, obs_m4, obs_z2, obs_bzero, prob.weights;
-                has_boundary_proxy = has_b, single_obs_free_jmle = single_free, zstd_cap)
+                has_boundary_proxy = has_b, single_obs_free_jmle = single_free, zstd_cap, whexact)
         info_sum = sum((obs_bzero[r] ? 0.0 : prob.weights[r] * obs_var[r]) for r in rs; init = 0.0)
         cond_se = (prob.method === :jmle && isfinite(prob.person_anchors[p])) || (!pr.finite_mle && prob.method === :jmle) ?
             missing : (info_sum > 0.0 ? 1.0 / sqrt(info_sum) : missing)
@@ -1868,11 +2421,22 @@ function compute_diagnostics_and_tables(full::Vector{Float64}, primary_theta::Ve
         target_scores = Float64[prob.raw_score[r] for r in rs]
         target_meas = Float64[obs_eta[r] - (isfinite(primary_theta[p]) ? primary_theta[p] : 0.0) for r in rs]
         ptm = _ptmea_corr(target_scores, -target_meas)
+        p_fair_m, p_fair_z = if same_sup_fa
+            th_p_fa = primary_theta[p]
+            fm_p = first(_freq_adjacent_expected_score_and_slope(
+                isfinite(th_p_fa) ? (th_p_fa + f_shift_fa) : th_p_fa, tau_mean_fa, cat_groups_fa[1]))
+            fz_p = first(_freq_adjacent_expected_score_and_slope(th_p_fa, tau_mean_fa, cat_groups_fa[1]))
+            (isfinite(fm_p) ? fm_p : missing, isfinite(fz_p) ? fz_p : missing)
+        else
+            (missing, missing)
+        end
 
         push!(person_measures, merge(pr, (;
             facet = :person,
             level = prob.person_levels[p],
             fixed = isfinite(prob.person_anchors[p]),
+            fair_m = p_fair_m,
+            fair_z = p_fair_z,
             conditional_se = cond_se,
             real_se,
             lower = lo,
@@ -1912,7 +2476,7 @@ function compute_diagnostics_and_tables(full::Vector{Float64}, primary_theta::Ve
             has_b = any(r -> obs_bzero[r], rs)
             single_free = prob.method === :jmle && !is_fix && length(rs) == 1
             fstat = _summarize_fit_rows(rs, obs_var, obs_m4, obs_z2, obs_bzero, prob.weights;
-                has_boundary_proxy = has_b, single_obs_free_jmle = single_free, zstd_cap)
+                has_boundary_proxy = has_b, single_obs_free_jmle = single_free, zstd_cap, whexact)
             model_se = prob.method === :mmle ? se_v : cond_se
             real_se = (!(model_se === missing) && !(fstat.infit === missing)) ?
                 model_se * sqrt(max(1.0, Float64(fstat.infit))) : missing
@@ -1936,6 +2500,16 @@ function compute_diagnostics_and_tables(full::Vector{Float64}, primary_theta::Ve
             ptm_p = _ptmea_corr(scores_l, meas_l)
             raw_sum = isempty(rs) ? 0.0 : sum(prob.weights[r] * prob.raw_score[r] for r in rs)
             exp_sum = isempty(rs) ? 0.0 : sum(prob.weights[r] * (first(prob.supports[prob.step_group[r]]) + obs_exp[r]) for r in rs)
+            f_fair_m, f_fair_z = if same_sup_fa || f.name === prob.step_owner
+                c_v_fa = f.name === prob.step_owner ? cat_groups_fa[l] : cat_groups_fa[1]
+                t_v_fa = f.name === prob.step_owner ? tau_groups_fa[l] : tau_mean_fa
+                oth_sh = f_shift_fa - f.sign * f_means_fa[fi]
+                fm_v = first(_freq_adjacent_expected_score_and_slope(th_bar_fa + f.sign * est + oth_sh, t_v_fa, c_v_fa))
+                fz_v = first(_freq_adjacent_expected_score_and_slope(f.sign * est, t_v_fa, c_v_fa))
+                (isfinite(fm_v) ? fm_v : missing, isfinite(fz_v) ? fz_v : missing)
+            else
+                (missing, missing)
+            end
 
             push!(facet_measures, (;
                 facet = f.name,
@@ -1944,6 +2518,8 @@ function compute_diagnostics_and_tables(full::Vector{Float64}, primary_theta::Ve
                 weighted_n = isempty(rs) ? 0.0 : sum(prob.weights[r] for r in rs),
                 observed_average = isempty(rs) ? missing : raw_sum / sum(prob.weights[r] for r in rs),
                 expected_average = isempty(rs) ? missing : exp_sum / sum(prob.weights[r] for r in rs),
+                fair_m = f_fair_m,
+                fair_z = f_fair_z,
                 fixed = is_fix,
                 sign = f.sign,
                 estimate = est,
@@ -2054,88 +2630,20 @@ function compute_diagnostics_and_tables(full::Vector{Float64}, primary_theta::Ve
         end
     end
 
-    # Reliability & separation by facet (aligned with mfrmr 0.3.0 & mfrmpy 0.2.0 reliability.py)
+    # Reliability & separation by facet (with explicit FACETS Sample/Population & Model/Real/Conditional metadata)
     reliability_rows = NamedTuple[]
-    # 1. Person facet
-    begin
-        is_eap = prob.method === :mmle
-        valid_p = [r for r in person_measures if !(r.estimate === missing) && isfinite(r.estimate) &&
-            !(is_eap ? (r.eap_sd === missing || !isfinite(r.eap_sd) || r.eap_sd <= 0) :
-                       (r.conditional_se === missing || !isfinite(r.conditional_se) || r.conditional_se <= 0))]
-        all_complete = length(valid_p) == length(person_measures) && length(valid_p) >= 2
-        if all_complete
-            ests = Float64[r.estimate for r in valid_p]
-            ses = Float64[is_eap ? r.eap_sd : r.conditional_se for r in valid_p]
-            mv = var(ests; corrected = true)
-            ev = mean(ses .^ 2)
-            sig = is_eap ? mv : max(mv - ev, 0.0)
-            sep = ev > 0 ? sqrt(sig / ev) : missing
-            rel = is_eap ? (mv + ev > 0 ? mv / (mv + ev) : 0.0) : (mv > 0 ? sig / mv : missing)
-            str = sep === missing ? missing : (4.0 * sep + 1.0) / 3.0
-            push!(reliability_rows, (;
-                facet = :person,
-                n_levels = length(person_measures),
-                n_valid = length(valid_p),
-                sd = sqrt(mv),
-                rmse = sqrt(ev),
-                true_sd = sqrt(sig),
-                separation = sep,
-                strata = str,
-                reliability = rel,
-                basis = is_eap ? :eap_posterior_sd_total_variance : :conditional_se_variance_correction,
-                status = :available_descriptive,
-            ))
-        else
-            push!(reliability_rows, (;
-                facet = :person,
-                n_levels = length(person_measures),
-                n_valid = length(valid_p),
-                sd = missing, rmse = missing, true_sd = missing,
-                separation = missing, strata = missing, reliability = missing,
-                basis = is_eap ? :eap_posterior_sd_total_variance : :conditional_se_variance_correction,
-                status = :withheld_incomplete_or_extreme_levels,
-            ))
-        end
-    end
-    # 2. Non-person facets (report both exact observed-info SE basis and FACETS conditional SE basis)
+    push!(reliability_rows, _frequentist_person_reliability_row(
+        person_measures;
+        is_eap = prob.method === :mmle,
+        grouped = false,
+        extreme_adjusted = prob.method === :jmle && lay.active_rows == collect(1:n) &&
+            any(s -> s in (:all_minimum, :all_maximum), lay.extreme_person_status),
+    ))
     for f in prob.facets
         frows = [r for r in facet_measures if r.facet === f.name]
-        # Primary SE: exact observed-info SE when available on all free levels, else conditional SE
-        use_obs = all(r -> !r.fixed && !(r.se === missing) && isfinite(r.se) && r.se > 0, frows)
-        use_cond = all(r -> !r.fixed && !(r.conditional_se === missing) && isfinite(r.conditional_se) && r.conditional_se > 0, frows)
-        if length(frows) >= 2 && (use_obs || use_cond)
-            ests = Float64[r.estimate for r in frows]
-            ses = Float64[use_obs ? r.se : r.conditional_se for r in frows]
-            mv = var(ests; corrected = true)
-            ev = mean(ses .^ 2)
-            sig = max(mv - ev, 0.0)
-            sep = ev > 0 ? sqrt(sig / ev) : missing
-            rel = mv > 0 ? sig / mv : missing
-            str = sep === missing ? missing : (4.0 * sep + 1.0) / 3.0
-            push!(reliability_rows, (;
-                facet = f.name,
-                n_levels = length(frows),
-                n_valid = length(frows),
-                sd = sqrt(mv),
-                rmse = sqrt(ev),
-                true_sd = sqrt(sig),
-                separation = sep,
-                strata = str,
-                reliability = rel,
-                basis = use_obs ? :observed_information_se_variance_correction : :conditional_se_variance_correction,
-                status = :available_descriptive,
-            ))
-        else
-            push!(reliability_rows, (;
-                facet = f.name,
-                n_levels = length(frows),
-                n_valid = count(r -> !r.fixed, frows),
-                sd = missing, rmse = missing, true_sd = missing,
-                separation = missing, strata = missing, reliability = missing,
-                basis = :unassessable_fixed_or_missing_se,
-                status = :unassessable,
-            ))
-        end
+        push!(reliability_rows, _frequentist_facet_reliability_row(
+            f.name, frows; method = prob.method, extreme_levels = extreme_facet_levels,
+        ))
     end
 
     return (;
@@ -2175,13 +2683,16 @@ function fit(spec_or_target;
         maxit::Int = 400,
         gtol::Real = 1e-9,
         interval::Real = 0.95,
-        zstd_cap::Union{Nothing,Real} = 9.0)
+        zstd_cap::Union{Nothing,Real} = 9.0,
+        whexact::Bool = true)
     extreme_adjustment isa Real && !(extreme_adjustment isa Bool) && isfinite(extreme_adjustment) && 0.0 <= extreme_adjustment < 1.0 ||
         throw(ArgumentError("extreme_adjustment must be in [0.0, 1.0); use 0.0 for unadjusted JMLE or 0.3 for FACETS adjustment"))
     0.0 < Float64(interval) < 1.0 || throw(ArgumentError("interval must lie in (0, 1)"))
     gtol_f = Float64(gtol)
     gtol_f > 0.0 && isfinite(gtol_f) || throw(ArgumentError("gtol must be finite and positive"))
     maxit >= 1 || throw(ArgumentError("maxit must be >= 1"))
+    zstd_cap === nothing || (zstd_cap isa Real && !(zstd_cap isa Bool) && isfinite(zstd_cap) && Float64(zstd_cap) > 0.0) ||
+        throw(ArgumentError("zstd_cap must be nothing or a finite positive real number"))
     cap_f = zstd_cap === nothing ? nothing : Float64(zstd_cap)
 
     prob = compile_problem(spec_or_target; method, noncenter_facet, centering, positive_facets, anchors, weights)
@@ -2204,14 +2715,32 @@ function fit(spec_or_target;
 
     if prob.method === :jmle
         ext_adj = Float64(extreme_adjustment)
-        opt = _optimize_lbfgs((g, x) -> jmle_nll_and_grad!(g, x, prob, lay; extreme_adjustment = ext_adj), u0;
-            maxit, gtol = gtol_f)
-        pol = _polish_jmle_schur!(copy(opt.x), prob, lay; extreme_adjustment = ext_adj)
-        u_hat = pol.x
-        nll = pol.f
-        g_final = pol.g
-        nit_total = opt.nit + pol.steps
-        nfev_total = opt.nfev + pol.steps
+        if !prob.person_centered
+            fill!(u0, 0.0)
+            earned = zeros(length(prob.person_levels))
+            remaining = zeros(length(earned))
+            for r in lay.active_rows
+                p = prob.person_idx[r]
+                earned[p] += prob.weights[r] * prob.score_k[r]
+                remaining[p] += prob.weights[r] * (length(prob.supports[prob.step_group[r]]) - 1 - prob.score_k[r])
+            end
+            for (j,p) in zip(lay.person_free_range, lay.interior_persons)
+                u0[j] = log((earned[p] + 0.5) / (remaining[p] + 1.0))
+            end
+        end
+        fg_j! = (g,x) -> jmle_nll_and_grad!(g, x, prob, lay; extreme_adjustment=ext_adj)
+        function joint_direction(x, g)
+            if !prob.person_centered && !isempty(lay.person_free_range)
+                block = jmle_exact_hessian_and_schur_cov(x, prob, lay; direction_only=true)
+                return _joint_schur_direction(block, g)
+            end
+            H = Symmetric(ForwardDiff.hessian(z -> fg_j!(nothing, z), x))
+            ch = cholesky(H; check=false)
+            return issuccess(ch) ? -(ch \ g) : nothing
+        end
+        opt = _fit_joint_newton(fg_j!, joint_direction, u0; maxit, gtol=gtol_f)
+        u_hat, nll, g_final = opt.x, opt.f, opt.g
+        nit_total, nfev_total = opt.nit, opt.nfev
         sch = jmle_exact_hessian_and_schur_cov(u_hat, prob, lay)
         full_hat = lay.c_vec .+ lay.J_mat * u_hat
         pscores = compute_person_scores(full_hat, prob, lay;
@@ -2232,15 +2761,17 @@ function fit(spec_or_target;
     else
         base_quad = build_quadrature(quadrature, quad_points; sd = 1.0, theta_lim)
         fsd = Float64(population_sd)
+        mmle_sc = _build_freq_mmle_scratch(prob, lay, base_quad)
+        nf_mml = lay.n_free
         u_start = copy(u0)
         em_used = 0
         if mml_engine in (:hybrid, :em)
-            em_used = mml_engine === :em ? maxit : min(10, max(2, maxit ÷ 10))
-            _em_warmstart_mmle!(u_start, prob, lay, base_quad; fixed_sd = fsd, em_iters = em_used)
+            em_used = mml_engine === :em ? maxit : min(6, max(2, maxit ÷ 10))
+            _em_warmstart_mmle!(u_start, prob, lay, base_quad; fixed_sd = fsd, em_iters = em_used, scratch = mmle_sc)
         end
         if mml_engine === :em
-            g_em = zeros(Float64, lay.n_free)
-            f_em = mmle_nll_and_grad!(g_em, u_start, prob, lay, base_quad; fixed_sd = fsd)
+            g_em = zeros(Float64, nf_mml)
+            f_em = mmle_nll_and_grad!(g_em, u_start, prob, lay, base_quad; fixed_sd = fsd, scratch = mmle_sc)
             u_hat = u_start
             nll = f_em
             g_final = g_em
@@ -2248,9 +2779,11 @@ function fit(spec_or_target;
             nfev_total = em_used
             dec_val = norm(g_em, Inf)
         else
-            opt = _optimize_lbfgs((g, x) -> mmle_nll_and_grad!(g, x, prob, lay, base_quad; fixed_sd = fsd), u_start;
-                maxit = max(1, maxit - em_used), gtol = gtol_f)
-            pol = _polish_mmle_newton!(copy(opt.x), prob, lay, base_quad; fixed_sd = fsd)
+            lbfgs_gtol = nf_mml <= 2000 ? max(gtol_f, 1e-5) : gtol_f
+            opt = _optimize_lbfgs((g, x) -> mmle_nll_and_grad!(g, x, prob, lay, base_quad; fixed_sd = fsd, scratch = mmle_sc), u_start;
+                maxit = max(1, maxit - em_used), gtol = lbfgs_gtol)
+            pol = _polish_mmle_newton!(copy(opt.x), prob, lay, base_quad;
+                fixed_sd = fsd, gtol = min(gtol_f, 1e-11), scratch = mmle_sc)
             u_hat = pol.x
             nll = pol.f
             g_final = pol.g
@@ -2264,14 +2797,14 @@ function fit(spec_or_target;
         quad_used = build_quadrature(quadrature, quad_points; sd = sigma_hat, theta_lim)
 
         # Exact observed-information Hessian of marginal NLL in free coordinates
-        if lay.n_free == 0
+        if nf_mml == 0
             hess_pd = true; min_eig = Inf; cond_num = 1.0
             full_se = fill(NaN, lay.n_full_structural)
             cov_expanded = nothing
             pop_se = (; mu_se = missing, sigma_se = missing)
         else
-            H_mml = Symmetric(ForwardDiff.hessian(z -> mmle_nll_and_grad!(nothing, z, prob, lay, base_quad; fixed_sd = fsd), u_hat))
-            eigs = eigvals(H_mml)
+            H_mml = _ordinal_louis(u_hat, prob, lay, base_quad, fsd, mmle_sc)
+            eigs = eigvals(Matrix(H_mml))
             min_eig = minimum(eigs)
             cond_num = min_eig > 0 ? maximum(eigs) / min_eig : Inf
             ch = cholesky(H_mml; check = false)
@@ -2296,7 +2829,7 @@ function fit(spec_or_target;
     elapsed = time() - t_start
 
     tabs = compute_diagnostics_and_tables(full_hat, pscores.primary_theta, pscores.rows, full_se, prob, lay;
-        interval = Float64(interval), zstd_cap = cap_f)
+        interval = Float64(interval), zstd_cap = cap_f, whexact = Bool(whexact))
 
     max_grad = isempty(g_final) ? 0.0 : norm(g_final, Inf)
     converged = isfinite(nll) && max_grad <= max(100.0 * gtol_f, 1e-5)
@@ -2381,7 +2914,7 @@ function fit(spec_or_target;
         gradient = g_final,
         full_se,
         covariance = cov_expanded,
-        overall_fit = tabs.overall_fit,
+        overall_fit = merge(tabs.overall_fit, (; loglikelihood = ll, deviance = -2.0 * ll, n_free_parameters = k_free)),
         person_scores = tabs.person_measures,
         facet_measures = tabs.facet_measures,
         step_measures = tabs.step_rows,
@@ -2401,17 +2934,25 @@ function fit(spec_or_target;
     return Fit(merge(core_body, (; content_hash = digest)))
 end
 
+function _frequentist_fit_digest(r)
+    body = (; schema=FIT_SCHEMA, observation_binding=r.problem.observation_binding,
+        method=r.problem.method, model=r.problem.model, u_free=r.u_free, loglikelihood=r.summary.loglikelihood)
+    if hasproperty(r.summary,:population)
+        body = merge(body,(;population=r.summary.population))
+    end
+    if hasproperty(r.summary,:calibration)
+        body = merge(body,(;calibration=r.summary.calibration,population_mean_se=r.summary.population_mean_se))
+    elseif hasproperty(get(r.summary,:fixed_calibration,(;)),:groups) ||
+           hasproperty(get(r.summary,:fixed_calibration,(;)),:interaction_dimensions)
+        body = merge(body,(;fixed_calibration=r.summary.fixed_calibration))
+    end
+    return B._cache_hash(body)
+end
+
 function checked(f::Fit)
     r = f.record
     r.schema == FIT_SCHEMA || throw(ArgumentError("unknown FrequentistMFRM fit schema"))
-    expected = B._cache_hash((;
-        schema = FIT_SCHEMA,
-        observation_binding = r.problem.observation_binding,
-        method = r.problem.method,
-        model = r.problem.model,
-        u_free = r.u_free,
-        loglikelihood = r.summary.loglikelihood,
-    ))
+    expected = _frequentist_fit_digest(r)
     expected == r.content_hash || throw(ArgumentError("FrequentistMFRM fit checksum mismatch"))
     return r
 end
@@ -2445,7 +2986,7 @@ function qualify(f::Fit; max_gradient::Real = 1e-5, max_condition::Real = 1e10)
     grad_ok = isfinite(d.max_abs_gradient) && d.max_abs_gradient <= Float64(max_gradient)
     hess_ok = d.hessian_positive_definite === true && isfinite(d.hessian_condition_number) &&
               d.hessian_condition_number <= Float64(max_condition)
-    b_ok = isempty(d.extreme_facet_levels)
+    b_ok = !any(x -> !get(x, :fixed, false), d.extreme_facet_levels)
     ok = d.converged && grad_ok && hess_ok && b_ok
     return merge(d, (;
         qualified = ok,
@@ -2475,6 +3016,46 @@ function report(f::Fit)
     return merge(body, (; report_hash = B._cache_hash(body)))
 end
 
+@inline function _freq_adjacent_expected_score_and_slope(
+        eta::Float64,
+        steps_vec::AbstractVector{<:Real},
+        cat_vals::AbstractVector{<:Real})
+    M = length(cat_vals)
+    H = length(steps_vec)
+    H == M - 1 || throw(DimensionMismatch("steps_vec length ($H) must equal length(cat_vals) - 1 ($(M - 1))"))
+    if !isfinite(eta)
+        return eta == Inf ? (Float64(cat_vals[end]), 0.0) :
+               eta == -Inf ? (Float64(cat_vals[1]), 0.0) : (NaN, NaN)
+    end
+    mmax = 0.0
+    csum = 0.0
+    for lk in 2:M
+        csum += Float64(steps_vec[lk - 1])
+        v = Float64(lk - 1) * eta - csum
+        v > mmax && (mmax = v)
+    end
+    wsum = exp(-mmax)
+    esum = Float64(cat_vals[1]) * wsum
+    csum = 0.0
+    for lk in 2:M
+        csum += Float64(steps_vec[lk - 1])
+        v = Float64(lk - 1) * eta - csum
+        w = exp(v - mmax)
+        wsum += w
+        esum += Float64(cat_vals[lk]) * w
+    end
+    e_val = esum / wsum
+    slope = (Float64(cat_vals[1]) - e_val) * 0.0
+    csum = 0.0
+    for lk in 2:M
+        csum += Float64(steps_vec[lk - 1])
+        v = Float64(lk - 1) * eta - csum
+        pk = exp(v - mmax) / wsum
+        slope += pk * (Float64(cat_vals[lk]) - e_val) * Float64(lk - 1)
+    end
+    return e_val, slope
+end
+
 function criteria_report(f::Fit)
     r = checked(f)
     s = r.summary
@@ -2500,6 +3081,232 @@ function criteria_report(f::Fit)
     )
 end
 
+function _mmle_row_pattern_system(f::Fit)
+    r = f.record
+    prob = r.problem
+    s = r.summary
+    has_pop = hasproperty(s, :population)
+    est_mu = Bool(s.estimate_mean)
+    est_sd = Bool(s.estimate_sd)
+    mu_fix = (est_mu || has_pop) ? 0.0 : Float64(s.population_mean)
+    sd_fix = (est_sd || has_pop) ? 1.0 : Float64(s.population_sd)
+
+    if hasproperty(r, :mrcml_operator)
+        op = r.mrcml_operator
+        U = op.n_patterns
+        d_xi = size(op.A_free, 2)
+        At = sparse(op.A_free')
+        rv = rowvals(At)
+        nz = nonzeros(At)
+        b_list = Vector{Vector{Float64}}(undef, U)
+        c_list = Vector{Vector{Float64}}(undef, U)
+        A_list = Vector{Matrix{Float64}}(undef, U)
+        for u in 1:U
+            rng = op.pattern_ranges[u]
+            m0 = first(rng)
+            L_u = length(rng) - 1
+            bu = Vector{Float64}(undef, L_u)
+            cu = Vector{Float64}(undef, L_u)
+            Au = zeros(Float64, L_u, d_xi)
+            b0 = op.B_pat[m0]
+            c0 = op.c_pat[m0]
+            for (k, m) in enumerate(rng[2:end])
+                bu[k] = op.B_pat[m] - b0
+                cu[k] = op.c_pat[m] - c0
+                for ptr in nzrange(At, m)
+                    Au[k, rv[ptr]] += nz[ptr]
+                end
+                for ptr in nzrange(At, m0)
+                    Au[k, rv[ptr]] -= nz[ptr]
+                end
+            end
+            b_list[u] = bu
+            c_list[u] = cu
+            A_list[u] = Au
+        end
+        return (; pat_of_row = op.pattern_of_row, b = b_list, c = c_list, A = A_list, est_mu, est_sd, mu_fix, sd_fix)
+    else
+        lay = r.layout
+        d_xi = lay.n_free - (lay.mu_free_idx > 0 ? 1 : 0) - (lay.log_sigma_free_idx > 0 ? 1 : 0)
+        J_struct = d_xi > 0 ? Matrix(lay.J_mat[:, 1:d_xi]) : zeros(Float64, lay.n_full_structural, 0)
+        pat_map = Dict{Any,Int}()
+        pat_of_row = Vector{Int}(undef, prob.n_obs)
+        b_list = Vector{Float64}[]
+        c_list = Vector{Float64}[]
+        A_list = Matrix{Float64}[]
+        for i in 1:prob.n_obs
+            g = prob.step_group[i]
+            f_idxs = Tuple(fd.index[i] for fd in prob.facets)
+            key = (g, f_idxs)
+            u = get(pat_map, key, 0)
+            if u == 0
+                u = length(b_list) + 1
+                pat_map[key] = u
+                L_u = length(prob.supports[g]) - 1
+                srng = lay.step_full_ranges[g]
+                c_eta = 0.0
+                a_eta = zeros(Float64, d_xi)
+                for (fi, fd) in enumerate(prob.facets)
+                    row_f = lay.facet_full_ranges[fi][f_idxs[fi]]
+                    c_eta += fd.sign * lay.c_vec[row_f]
+                    if d_xi > 0
+                        @views a_eta .+= fd.sign .* J_struct[row_f, :]
+                    end
+                end
+                bu = Float64[k for k in 1:L_u]
+                cu = Vector{Float64}(undef, L_u)
+                Au = zeros(Float64, L_u, d_xi)
+                cum_c = 0.0
+                cum_a = zeros(Float64, d_xi)
+                for k in 1:L_u
+                    s_row = srng[k]
+                    cum_c += lay.c_vec[s_row]
+                    if d_xi > 0
+                        @views cum_a .+= J_struct[s_row, :]
+                    end
+                    cu[k] = k * c_eta - cum_c
+                    if d_xi > 0
+                        @views Au[k, :] .= k .* a_eta .- cum_a
+                    end
+                end
+                push!(b_list, bu)
+                push!(c_list, cu)
+                push!(A_list, Au)
+            end
+            pat_of_row[i] = u
+        end
+        return (; pat_of_row, b = b_list, c = c_list, A = A_list, est_mu, est_sd, mu_fix, sd_fix)
+    end
+end
+
+function _verify_mmle_nested(f_simple::Fit, f_complex::Fit)
+    hp0 = hasproperty(f_simple.record.summary, :population)
+    hp1 = hasproperty(f_complex.record.summary, :population)
+    if hp0 != hp1
+        return (; nested = false, reason = :grouped_population_mismatch, df = 0)
+    end
+    d0 = Int(f_simple.record.summary.n_free_parameters)
+    d1 = Int(f_complex.record.summary.n_free_parameters)
+    d1 > d0 || return (; nested = false, reason = :equal_or_larger_parameter_dimension, df = 0)
+
+    sys0 = _mmle_row_pattern_system(f_simple)
+    sys1 = _mmle_row_pattern_system(f_complex)
+    seen = Set{Tuple{Int,Int}}()
+    pairs_u = Tuple{Int,Int}[]
+    for i in eachindex(sys0.pat_of_row)
+        pr = (sys0.pat_of_row[i], sys1.pat_of_row[i])
+        if !(pr in seen)
+            push!(seen, pr)
+            push!(pairs_u, pr)
+        end
+    end
+    for (u0, u1) in pairs_u
+        length(sys0.b[u0]) == length(sys1.b[u1]) ||
+            return (; nested = false, reason = :mismatched_category_arity, df = 0)
+    end
+
+    b0 = reduce(vcat, (sys0.b[u0] for (u0, _) in pairs_u))
+    b1 = reduce(vcat, (sys1.b[u1] for (_, u1) in pairs_u))
+    c0 = reduce(vcat, (sys0.c[u0] for (u0, _) in pairs_u))
+    c1 = reduce(vcat, (sys1.c[u1] for (_, u1) in pairs_u))
+    A0 = reduce(vcat, (sys0.A[u0] for (u0, _) in pairs_u))
+    A1 = reduce(vcat, (sys1.A[u1] for (_, u1) in pairs_u))
+
+    if hp0 && hp1
+        pop0 = f_simple.record.summary.population
+        pop1 = f_complex.record.summary.population
+        d_p0, d_p1 = pop0.design, pop1.design
+        (d_p0.people == d_p1.people && d_p0.groups == d_p1.groups && d_p0.group_index == d_p1.group_index) ||
+            return (; nested = false, reason = :mismatched_population_roster_or_groups, df = 0)
+        eq0 = Bool(get(pop0, :equal_sd, false))
+        eq1 = Bool(get(pop1, :equal_sd, false))
+        (!eq0 && eq1) && return (; nested = false, reason = :free_group_sd_not_nested_in_equal_sd, df = 0)
+        norm(b1 .- b0, Inf) <= 1e-9 * max(1.0, norm(b1, Inf)) ||
+            return (; nested = false, reason = :non_identical_grouped_ability_slopes, df = 0)
+        X0, X1 = d_p0.X, d_p1.X
+        sv_x1 = size(X1, 2) > 0 ? svd(X1) : nothing
+        tol_x1 = (sv_x1 === nothing || isempty(sv_x1.S)) ? 0.0 : 1e-10 * max(size(X1)...) * max(1.0, sv_x1.S[1])
+        r_x1 = sv_x1 === nothing ? 0 : count(>(tol_x1), sv_x1.S)
+        Ux1 = r_x1 > 0 ? view(sv_x1.U, :, 1:r_x1) : zeros(Float64, size(X1, 1), 0)
+        if size(X0, 2) > 0
+            maximum(abs, X0 .- Ux1 * (Ux1' * X0)) <= 1e-9 * max(1.0, maximum(abs, X0)) ||
+                return (; nested = false, reason = :non_nested_population_covariates, df = 0)
+        end
+        sv1_g = size(A1, 2) > 0 ? svd(A1) : nothing
+        tol1_g = (sv1_g === nothing || isempty(sv1_g.S)) ? 0.0 : 1e-10 * max(size(A1)...) * max(1.0, sv1_g.S[1])
+        r_A1 = sv1_g === nothing ? 0 : count(>(tol1_g), sv1_g.S)
+        U1_g = r_A1 > 0 ? view(sv1_g.U, :, 1:r_A1) : zeros(Float64, length(c1), 0)
+        sv0_g = size(A0, 2) > 0 ? svd(A0) : nothing
+        tol0_g = (sv0_g === nothing || isempty(sv0_g.S)) ? 0.0 : 1e-10 * max(size(A0)...) * max(1.0, sv0_g.S[1])
+        r_A0 = sv0_g === nothing ? 0 : count(>(tol0_g), sv0_g.S)
+
+        n_sd0 = eq0 ? 1 : length(d_p0.groups)
+        n_sd1 = eq1 ? 1 : length(d_p1.groups)
+        eff0_g = r_A0 + size(X0, 2) + n_sd0
+        eff1_g = r_A1 + size(X1, 2) + n_sd1
+        (eff0_g == d0 && eff1_g == d1 && d1 > d0) ||
+            return (; nested = false, reason = :effective_rank_mismatch, df = 0)
+        dd_g = c0 .- c1
+        norm(dd_g .- U1_g * (U1_g' * dd_g), Inf) <= 1e-9 * max(1.0, norm(dd_g, Inf)) ||
+            return (; nested = false, reason = :incompatible_affine_offsets, df = 0)
+        if size(A0, 2) > 0
+            maximum(abs, A0 .- U1_g * (U1_g' * A0)) <= 1e-9 * max(1.0, maximum(abs, A0)) ||
+                return (; nested = false, reason = :non_nested_intercept_subspace, df = 0)
+        end
+        return (; nested = true, reason = :verified_interior_linear_subspace, df = d1 - d0)
+    end
+
+    nb0 = norm(b0, Inf)
+    nb1 = norm(b1, Inf)
+    if nb0 <= 1e-13 && nb1 <= 1e-13
+        (sys0.est_sd || sys1.est_sd) && return (; nested = false, reason = :unidentified_population_sd, df = 0)
+    elseif nb0 <= 1e-13 || nb1 <= 1e-13
+        return (; nested = false, reason = :boundary_or_mismatched_ability_slope, df = 0)
+    else
+        idx_max = argmax(abs.(b0))
+        alpha = b1[idx_max] / b0[idx_max]
+        abs(alpha) > 1e-12 || return (; nested = false, reason = :boundary_or_mismatched_ability_slope, df = 0)
+        norm(b1 .- alpha .* b0, Inf) <= 1e-9 * max(1.0, nb1) ||
+            return (; nested = false, reason = :non_collinear_ability_slopes, df = 0)
+        if sys0.est_sd && !sys1.est_sd
+            return (; nested = false, reason = :free_sd_not_nested_in_fixed_sd, df = 0)
+        elseif !sys0.est_sd && !sys1.est_sd
+            abs(abs(alpha) * sys1.sd_fix - sys0.sd_fix) <= 1e-9 * max(1.0, sys0.sd_fix) ||
+                return (; nested = false, reason = :incompatible_fixed_population_sd, df = 0)
+        end
+    end
+
+    G0 = sys0.est_mu ? hcat(A0, reshape(b0, :, 1)) : A0
+    G1 = sys1.est_mu ? hcat(A1, reshape(b1, :, 1)) : A1
+    d_vec0 = sys0.est_mu ? c0 : (c0 .+ sys0.mu_fix .* b0)
+    d_vec1 = sys1.est_mu ? c1 : (c1 .+ sys1.mu_fix .* b1)
+
+    sv1 = size(G1, 2) > 0 ? svd(G1) : nothing
+    tol1 = (sv1 === nothing || isempty(sv1.S)) ? 0.0 : 1e-10 * max(size(G1)...) * max(1.0, sv1.S[1])
+    r_G1 = sv1 === nothing ? 0 : count(>(tol1), sv1.S)
+    U1 = r_G1 > 0 ? view(sv1.U, :, 1:r_G1) : zeros(Float64, length(d_vec1), 0)
+
+    sv0 = size(G0, 2) > 0 ? svd(G0) : nothing
+    tol0 = (sv0 === nothing || isempty(sv0.S)) ? 0.0 : 1e-10 * max(size(G0)...) * max(1.0, sv0.S[1])
+    r_G0 = sv0 === nothing ? 0 : count(>(tol0), sv0.S)
+
+    eff0 = r_G0 + (sys0.est_sd ? 1 : 0)
+    eff1 = r_G1 + (sys1.est_sd ? 1 : 0)
+    (eff0 == d0 && eff1 == d1 && d1 > d0) ||
+        return (; nested = false, reason = :effective_rank_mismatch, df = 0)
+
+    dd = d_vec0 .- d_vec1
+    res_d = norm(dd .- U1 * (U1' * dd), Inf)
+    res_d <= 1e-9 * max(1.0, norm(dd, Inf)) ||
+        return (; nested = false, reason = :incompatible_affine_offsets, df = 0)
+
+    if size(G0, 2) > 0
+        res_G = maximum(abs, G0 .- U1 * (U1' * G0))
+        res_G <= 1e-9 * max(1.0, maximum(abs, G0)) ||
+            return (; nested = false, reason = :non_nested_intercept_subspace, df = 0)
+    end
+    return (; nested = true, reason = :verified_interior_linear_subspace, df = d1 - d0)
+end
 function compare_mmle_models(pairs_vec::AbstractVector{<:Pair}; criterion::Symbol = :aic)
     criterion in (:aic, :bic, :bic_persons, :bic_observations) ||
         throw(ArgumentError("frequentist MMLE model comparison requires criterion in (:aic, :bic, :bic_persons, :bic_observations); got $(repr(criterion))"))
@@ -2549,18 +3356,34 @@ function compare_mmle_models(pairs_vec::AbstractVector{<:Pair}; criterion::Symbo
             )
         end for (rnk, idx) in enumerate(order)
     ]
-    # Nested LRT convenience summary when exactly 2 models have distinct parameter counts
-    lrt = if length(fits) == 2 && fits[1].record.summary.n_free_parameters != fits[2].record.summary.n_free_parameters
-        i_complex = fits[1].record.summary.n_free_parameters > fits[2].record.summary.n_free_parameters ? 1 : 2
-        i_simple = 3 - i_complex
-        df_diff = fits[i_complex].record.summary.n_free_parameters - fits[i_simple].record.summary.n_free_parameters
-        stat = 2.0 * (fits[i_complex].record.summary.loglikelihood - fits[i_simple].record.summary.loglikelihood)
-        pval = stat >= 0.0 ? ccdf(Chisq(df_diff), stat) : missing
-        (; complex_model = labels[i_complex], reduced_model = labels[i_simple],
-           lr_statistic = stat, df = df_diff, asymptotic_chisq_pvalue = pval,
-           note = "Nested chi-square p-value assumes the reduced model is an interior subspace of the complex model with adequate cell counts.")
+    # Exact algebraic linear-subspace check before emitting any nested chi-square LRT
+    nest_info, lrt = if length(fits) == 2
+        if fits[1].record.summary.n_free_parameters == fits[2].record.summary.n_free_parameters
+            ((; nested = false, reason = :equal_parameter_dimension), nothing)
+        else
+            i_complex = fits[1].record.summary.n_free_parameters > fits[2].record.summary.n_free_parameters ? 1 : 2
+            i_simple = 3 - i_complex
+            ni = _verify_mmle_nested(fits[i_simple], fits[i_complex])
+            if ni.nested
+                df_diff = ni.df
+                raw_stat = 2.0 * (fits[i_complex].record.summary.loglikelihood - fits[i_simple].record.summary.loglikelihood)
+                stat = (-1e-9 <= raw_stat < 0.0) ? 0.0 : raw_stat
+                pval = stat >= 0.0 ? ccdf(Chisq(df_diff), stat) : missing
+                (ni, (;
+                    nested = true,
+                    complex_model = labels[i_complex],
+                    reduced_model = labels[i_simple],
+                    lr_statistic = stat,
+                    df = df_diff,
+                    asymptotic_chisq_pvalue = pval,
+                    note = "Verified interior linear-subspace nesting; asymptotic chi-square p-value assumes adequate sample size.",
+                ))
+            else
+                (ni, nothing)
+            end
+        end
     else
-        nothing
+        ((; nested = missing, reason = :multiple_models), nothing)
     end
     body = (;
         schema = COMPARISON_SCHEMA,
@@ -2570,18 +3393,199 @@ function compare_mmle_models(pairs_vec::AbstractVector{<:Pair}; criterion::Symbo
         quadrature = q_rule0[1],
         quad_points = q_rule0[2],
         rows,
+        nested = nest_info.nested,
+        nesting_status = nest_info.reason,
         likelihood_ratio = lrt,
         warning = "Asymptotic marginal information criteria on the observed design; not cross-validated out-of-sample or Bayesian PSIS-LOO.",
     )
     return merge(body, (; report_hash = B._cache_hash(body)))
 end
 
-function contrast(f::Fit; facet::Symbol, left, right, interval::Real = 0.95)
+function contrast(f::Fit;
+        facet::Union{Nothing,Symbol} = nothing,
+        left = nothing,
+        right = nothing,
+        interaction = nothing,
+        focal = nothing,
+        level_1 = nothing,
+        group = nothing,
+        reference = nothing,
+        estimand::Symbol = :vs_rest_of_panel,
+        se_type::Symbol = :observed,
+        interval::Union{Nothing,Real} = nothing,
+        level::Union{Nothing,Real} = nothing)
     r = checked(f)
-    0.0 < Float64(interval) < 1.0 || throw(ArgumentError("interval must lie in (0, 1)"))
-    z_crit = quantile(Normal(), 0.5 * (1.0 + Float64(interval)))
+    (interval !== nothing && level !== nothing) &&
+        throw(ArgumentError("supply either `interval` or `level` to contrast, not both"))
+    iv = Float64(something(interval, level, 0.95))
+    0.0 < iv < 1.0 || throw(ArgumentError("interval must lie in (0, 1)"))
+    se_type in (:observed, :sandwich) ||
+        throw(ArgumentError("se_type must be `:observed` or `:sandwich`; got $(repr(se_type))"))
+    z_crit = quantile(Normal(), 0.5 * (1.0 + iv))
     prob = r.problem
     lay = r.layout
+
+    if interaction !== nothing
+        hasproperty(r, :mrcml_operator) ||
+            throw(ArgumentError("interaction DFF contrast requires an MRCML frequentist fit"))
+        (group !== nothing && reference !== nothing) ||
+            throw(ArgumentError("interaction DFF contrast requires `group` and `reference`"))
+        op = r.mrcml_operator
+        resolved = B.AdditiveFacets._resolve_dff_linear_weights(
+            op, interaction; focal, level_1, group, reference, estimand,
+        )
+        cov_rec = r.covariance
+        off = cov_rec === nothing ? 0 : cov_rec.offset
+        V_obs = cov_rec === nothing ? nothing : cov_rec.matrix
+        V_snd = (cov_rec !== nothing && hasproperty(cov_rec, :sandwich_matrix)) ? cov_rec.sandwich_matrix : nothing
+        xi_hat = r.full_parameters[(off + 1):(off + length(op.model_names))]
+
+        rows = map(resolved.entries) do ent
+            w = ent.weights
+            est = dot(w, xi_hat)
+            v_o = V_obs === nothing ? NaN : dot(w, V_obs * w)
+            se_obs = (isfinite(v_o) && v_o >= -1e-12) ? sqrt(max(v_o, 0.0)) : missing
+            v_s = V_snd === nothing ? NaN : dot(w, V_snd * w)
+            se_snd = (isfinite(v_s) && v_s >= -1e-12) ? sqrt(max(v_s, 0.0)) : missing
+            se_sel = se_type === :sandwich ? se_snd : se_obs
+            z_st = !(se_sel === missing) && se_sel > 0 ? est / se_sel : missing
+            pval = !(z_st === missing) ? 2.0 * ccdf(Normal(), abs(z_st)) : missing
+            lo = !(se_sel === missing) ? est - z_crit * se_sel : missing
+            hi = !(se_sel === missing) ? est + z_crit * se_sel : missing
+            (;
+                inference_paradigm = :frequentist,
+                facet = resolved.facet,
+                target_level = ent.target_level,
+                group = resolved.group,
+                reference = resolved.reference,
+                estimand = resolved.estimand,
+                parameterization = ent.mode,
+                scale_factor = ent.scale_factor,
+                estimate = est,
+                se = se_sel,
+                observed_se = se_obs,
+                sandwich_se = se_snd,
+                z_statistic = z_st,
+                p_value = pval,
+                lower = lo,
+                upper = hi,
+                interval = iv,
+                uncertainty_basis = se_type === :sandwich ? :person_cluster_huber_white_sandwich : :constrained_observed_information_delta,
+            )
+        end
+        return resolved.single ? only(rows) : (;
+            inference_paradigm = :frequentist,
+            interaction = (resolved.facet, resolved.group_role),
+            group = resolved.group,
+            reference = resolved.reference,
+            estimand = resolved.estimand,
+            interval = iv,
+            rows,
+        )
+    end
+
+    if group !== nothing || reference !== nothing
+        (group !== nothing && reference !== nothing) ||
+            throw(ArgumentError("grouped population contrast requires both `group` and `reference`"))
+        hasproperty(r.summary, :population) ||
+            throw(ArgumentError("grouped population contrast requires a grouped MRCML MMLE fit"))
+        pop = r.summary.population
+        d_pop = pop.design
+        ga_i = findfirst(x -> isequal(x, group), d_pop.groups)
+        gb_i = findfirst(x -> isequal(x, reference), d_pop.groups)
+        (ga_i !== nothing && gb_i !== nothing && ga_i != gb_i) ||
+            throw(ArgumentError("select two distinct modeled population groups"))
+        others = findall(!=(d_pop.reference), d_pop.groups)
+        d_xi = size(r.mrcml_operator.A_free, 2)
+        int_off = Bool(get(d_pop, :has_intercept, false)) ? 1 : 0
+        w_free = zeros(Float64, lay.n_free)
+        if ga_i != findfirst(==(d_pop.reference), d_pop.groups)
+            w_free[d_xi + int_off + only(findall(==(ga_i), others))] += 1.0
+        end
+        if gb_i != findfirst(==(d_pop.reference), d_pop.groups)
+            w_free[d_xi + int_off + only(findall(==(gb_i), others))] -= 1.0
+        end
+        est = dot(w_free, r.u_free)
+        V_f_obs = r.covariance.free_covariance
+        V_f_snd = hasproperty(r.covariance, :sandwich_free_covariance) ? r.covariance.sandwich_free_covariance : nothing
+        vo = dot(w_free, V_f_obs * w_free)
+        se_obs = (isfinite(vo) && vo >= -1e-12) ? sqrt(max(vo, 0.0)) : missing
+        vs = V_f_snd === nothing ? NaN : dot(w_free, V_f_snd * w_free)
+        se_snd = (isfinite(vs) && vs >= -1e-12) ? sqrt(max(vs, 0.0)) : missing
+        se_sel = se_type === :sandwich ? se_snd : se_obs
+        z_st = !(se_sel === missing) && se_sel > 0 ? est / se_sel : missing
+        pval = !(z_st === missing) ? 2.0 * ccdf(Normal(), abs(z_st)) : missing
+        return (;
+            inference_paradigm = :frequentist,
+            group = d_pop.groups[ga_i],
+            reference = d_pop.groups[gb_i],
+            estimate = est,
+            se = se_sel,
+            observed_se = se_obs,
+            sandwich_se = se_snd,
+            z_statistic = z_st,
+            p_value = pval,
+            lower = !(se_sel === missing) ? est - z_crit * se_sel : missing,
+            upper = !(se_sel === missing) ? est + z_crit * se_sel : missing,
+            interval = iv,
+            uncertainty_basis = se_type === :sandwich ? :person_cluster_huber_white_sandwich : :constrained_observed_information_delta,
+        )
+    end
+
+    (left !== nothing && right !== nothing) ||
+        throw(ArgumentError("supply `left` and `right` (or `interaction = ...` / `group = ..., reference = ...`) to contrast"))
+
+    if hasproperty(r, :mrcml_operator)
+        l_target = facet === nothing ? String(left) : "$(facet)[$(repr(left))]"
+        r_target = facet === nothing ? String(right) : "$(facet)[$(repr(right))]"
+        l_target != r_target || throw(ArgumentError("left and right targets must be distinct"))
+        il = findfirst(==(l_target), lay.full_names)
+        ir = findfirst(==(r_target), lay.full_names)
+        # Fallback for unquoted FrequentistMFRM style `facet[level]`
+        il === nothing && facet !== nothing && (il = findfirst(==("$(facet)[$(left)]"), lay.full_names))
+        ir === nothing && facet !== nothing && (ir = findfirst(==("$(facet)[$(right)]"), lay.full_names))
+        il !== nothing && ir !== nothing ||
+            throw(ArgumentError("unknown MRCML model parameter(s) $(repr(l_target)), $(repr(r_target)); inspect parameter_names(fit; scale = :model)"))
+        diff_est = r.full_parameters[il] - r.full_parameters[ir]
+        se_obs_d = missing
+        se_snd_d = missing
+        cov_rec = r.covariance
+        if cov_rec !== nothing
+            off = cov_rec.offset
+            mat = cov_rec.matrix
+            ml = il - off
+            mr = ir - off
+            if 1 <= ml <= size(mat, 1) && 1 <= mr <= size(mat, 1)
+                v = mat[ml, ml] + mat[mr, mr] - 2.0 * mat[ml, mr]
+                isfinite(v) && v >= -1e-12 && (se_obs_d = sqrt(max(v, 0.0)))
+                if hasproperty(cov_rec, :sandwich_matrix)
+                    sm = cov_rec.sandwich_matrix
+                    vs = sm[ml, ml] + sm[mr, mr] - 2.0 * sm[ml, mr]
+                    isfinite(vs) && vs >= -1e-12 && (se_snd_d = sqrt(max(vs, 0.0)))
+                end
+            end
+        end
+        se_diff = se_type === :sandwich ? se_snd_d : se_obs_d
+        z_stat = !(se_diff === missing) && se_diff > 0 ? diff_est / se_diff : missing
+        lo = !(se_diff === missing) ? diff_est - z_crit * se_diff : missing
+        hi = !(se_diff === missing) ? diff_est + z_crit * se_diff : missing
+        return (;
+            inference_paradigm = :frequentist,
+            facet = facet === nothing ? :mrcml : facet,
+            left = lay.full_names[il],
+            right = lay.full_names[ir],
+            estimate = diff_est,
+            se = se_diff,
+            observed_se = se_obs_d,
+            sandwich_se = se_snd_d,
+            z_statistic = z_stat,
+            lower = lo,
+            upper = hi,
+            interval = iv,
+            uncertainty_basis = se_type === :sandwich ? :person_cluster_huber_white_sandwich : :constrained_observed_information_delta,
+        )
+    end
+    facet !== nothing || throw(ArgumentError("contrast requires `facet = :...`"))
     fi = findfirst(x -> x.name === facet, prob.facets)
     fi === nothing && throw(ArgumentError("contrast requires a declared non-person facet in $([x.name for x in prob.facets]); got $(repr(facet))"))
     fdef = prob.facets[fi]
@@ -2619,7 +3623,7 @@ function contrast(f::Fit; facet::Symbol, left, right, interval::Real = 0.95)
         z_statistic = z_stat,
         lower = lo,
         upper = hi,
-        interval = Float64(interval),
+        interval = iv,
         uncertainty_basis = :constrained_observed_information_delta,
     )
 end
@@ -2635,6 +3639,66 @@ function predict_rows(f::Fit; rows = nothing, mode::Symbol = :plugin)
         throw(ArgumentError("mode = :marginal_new_person requires an MMLE fit"))
     sel = rows === nothing ? collect(1:prob.n_obs) : collect(Int, rows)
     all(i -> 1 <= i <= prob.n_obs, sel) || throw(ArgumentError("row indices out of range 1:$(prob.n_obs)"))
+
+    if hasproperty(r, :mrcml_operator)
+        op = r.mrcml_operator
+        v_pat = copy(op.c_pat)
+        mul!(v_pat, op.A_free, r.eta_free, 1.0, 1.0)
+        quad_m = mode === :marginal_new_person ?
+            build_quadrature(r.summary.quadrature, r.summary.quad_points; sd=1.0, theta_lim=Float64(r.summary.theta_lim)) : nothing
+        out_m = NamedTuple[]
+        for idx in sel
+            g_idx = prob.step_group[idx]
+            cats = hasproperty(r, :mrcml_category_labels) ?
+                r.mrcml_category_labels[g_idx] :
+                collect(prob.supports[g_idx])
+            prng = op.pattern_ranges[op.pattern_of_row[idx]]
+            M_g = length(cats)
+            probs = zeros(Float64, M_g)
+            if mode === :plugin
+                pr = r.person_scores[prob.person_idx[idx]]
+                th = prob.method === :mmle ? Float64(pr.eap) : Float64(pr.limit_estimate)
+                if !isfinite(th)
+                    if isnan(th)
+                        fill!(probs, NaN)
+                    else
+                        bvec = [op.B_pat[prng[lk]] for lk in 1:M_g]
+                        b_ext = th < 0 ? minimum(bvec) : maximum(bvec)
+                        ext_lks = [lk for lk in 1:M_g if abs(bvec[lk] - b_ext) <= 1e-14]
+                        v_ext = [v_pat[prng[lk]] for lk in ext_lks]
+                        vmax = maximum(v_ext)
+                        w_ext = exp.(v_ext .- vmax)
+                        w_ext ./= sum(w_ext)
+                        for (j_e, lk) in enumerate(ext_lks)
+                            probs[lk] = w_ext[j_e]
+                        end
+                    end
+                else
+                    lvec = [op.B_pat[prng[lk]] * th + v_pat[prng[lk]] for lk in 1:M_g]
+                    mmax = maximum(lvec)
+                    probs .= exp.(lvec .- mmax)
+                    probs ./= sum(probs)
+                end
+            else
+                mu_m,sd_m = _mrcml_person_law(r.summary,prob.person_idx[idx])
+                for (nq, wq) in zip(quad_m.std_nodes, quad_m.weights)
+                    wq == 0.0 && continue
+                    th = mu_m + sd_m*nq
+                    lvec = [op.B_pat[prng[lk]] * th + v_pat[prng[lk]] for lk in 1:M_g]
+                    mmax = maximum(lvec)
+                    pv = exp.(lvec .- mmax)
+                    pv ./= sum(pv)
+                    probs .+= wq .* pv
+                end
+            end
+            exp_s = sum(cats[lk] * probs[lk] for lk in 1:M_g)
+            push!(out_m, (; row = idx, person = prob.person_levels[prob.person_idx[idx]],
+                observed_score = prob.raw_score[idx], categories = copy(cats),
+                probabilities = probs, expected_score = exp_s, mode))
+        end
+        return (; inference_paradigm = :frequentist, method = prob.method, mode, rows = out_m,
+            warning = "Plug-in / quadrature point probabilities do not propagate parameter estimation uncertainty.")
+    end
 
     K_max = maximum(length, prob.supports)
     pbuf = zeros(Float64, K_max)
@@ -2709,6 +3773,18 @@ end
 
 function save_computed(path::AbstractString, rep::NamedTuple)
     ispath(path) && throw(ArgumentError("refusing to overwrite existing report: $path"))
+    if hasproperty(rep,:summary) && hasproperty(rep.summary,:population)
+        pop = rep.summary.population
+        pop = merge(pop,(;design=B.AdditiveFacets._report_population(pop.design)))
+        rep = merge(rep,(;summary=merge(rep.summary,(;population=pop))))
+    end
+    if hasproperty(rep,:summary) && hasproperty(rep.summary,:calibration)
+        cal = B.AdditiveFacets._report_calibration(rep.summary.calibration)
+        rep = merge(rep,(;summary=merge(rep.summary,(;calibration=cal))))
+    elseif hasproperty(rep,:summary) && hasproperty(get(rep.summary,:fixed_calibration,(;)),:groups)
+        cal = B.AdditiveFacets._report_calibration_groups(rep.summary.fixed_calibration)
+        rep = merge(rep,(;summary=merge(rep.summary,(;fixed_calibration=cal))))
+    end
     B._SA_MOD._save_atomic_json(path, rep)
 end
 
@@ -2717,5 +3793,7 @@ function check_loaded_report(parsed)
         throw(ArgumentError("unknown FrequentistMFRM report schema"))
     return parsed
 end
+
+include("mrcml_frequentist.jl")
 
 end # module FrequentistMFRM

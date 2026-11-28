@@ -56,8 +56,9 @@ scalar reference includes the Uto-Ueno logistic scaling constant `1.7`.
 ## Optional research records
 
 Ordinary tests do not use optional research artifacts as numerical oracles.
-Checks routed through `optional_fixture_path` require both
-`BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true` and test group `all`. In that mode,
+Checks routed through `optional_fixture_path` require
+`BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true`. The default group `all` runs the
+full suite. Manual CI covers the same six concrete groups in parallel. In that mode,
 an existing default fixture or its documented `MFRM_*_FIXTURE` override is
 checked. A nonempty override without opt-in is rejected; an explicitly missing
 path also errors. An empty override disables that optional fixture. Ordinary
@@ -76,6 +77,26 @@ random data, fits models or reads external results before running it. Reproduce
 historical studies using their original source, complete dependency environment,
 protocol and inputs; the current checkout does not supply every study input.
 Do not replace a source-pinned reference merely to make a failing test pass.
+
+The archived local-dependence pilot protocol and 660-command dry run were
+produced at `cb8fbaee251220eee024166dcde15d7780e05a12`. To reproduce the
+harness bytes, run the batch harness generator from that checkout with its
+Julia 1.10 manifest. To validate the same job plan against today's checkout,
+run `julia --project=. test/local_dependence_pilot_harness_reproduction.jl`
+from a full Git clone. This builds a temporary protocol with the current source
+hashes and checks every planned command's job ID without starting a fit.
+The same producer checkout contains the archived calibration scorer and design
+stress grid. From the current checkout, run
+`julia --project=/path/to/producer test/research_archive_reproduction.jl`
+to check their source and environment hashes and reproduce the original
+design plan and pilot harness. The current design plan also checks that
+compiling a hard rater anchor preserves the observed ratings.
+
+The guarded-fit validation grid records the SHA-256 of the original
+13-scenario Q-matrix study at commit `6e8291c96e10332eddd651a3477c3c2c11550115`.
+`mgmfrm_q_matrix_validation_expansion_13_scenarios.json` preserves those
+bytes. The 15-scenario successor has its own checks and remains at
+`mgmfrm_q_matrix_validation_expansion.json`.
 
 The scalar references above, the ConQuest bridge records below and
 `local_dependence_known_truth_preflight.json` also have ordinary behavioral

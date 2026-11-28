@@ -1,5 +1,7 @@
 module RefitPlanIntegrityChecks
 using Test, BayesianMGMFRM, Random, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 
 function panel()

@@ -1,4 +1,5 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 # Reopen a normalized/correlated MGMFRM or fixed-coefficient multidimensional
 # MFRM cache (independent, correlated or exchangeable-rater); keep original IDs.

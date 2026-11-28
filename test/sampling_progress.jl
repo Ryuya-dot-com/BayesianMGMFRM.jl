@@ -1,5 +1,6 @@
 module SamplingProgressChecks
 using Test, Logging, BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 const E = B.Experimental
 
@@ -126,7 +127,7 @@ end
     end
 end
 
-include(joinpath(@__DIR__,"..","examples","first_analysis.jl"))
+include(joinpath(@__DIR__,"..","examples","legacy","first_analysis.jl"))
 @testset "Progress preserves actual scalar and mean-profile sampling" begin
     prepared=FirstMFRMAnalysis.inputs()
     @test prepared.data.n==72

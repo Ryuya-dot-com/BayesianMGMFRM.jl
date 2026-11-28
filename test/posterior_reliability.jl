@@ -1,5 +1,6 @@
 module PosteriorReliabilityChecks
 using BayesianMGMFRM, Test, Statistics, LinearAlgebra, Serialization
+using BayesianMGMFRM.Legacy
 import ..CommonPredictionRefitChecks, ..CommonPredictionKfoldChecks
 const B = BayesianMGMFRM
 const R = CommonPredictionRefitChecks

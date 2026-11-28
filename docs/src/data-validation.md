@@ -28,17 +28,19 @@ ratings = (
     score = [0, 1, 2, 0, 1, 2, 0, 2],
 )
 
-data = FacetData(ratings;
+spec = mfrm_spec(
+    ratings;
     person = :examinee,
-    rater = :rater,
-    item = :item,
     score = :score,
+    facets = (rater = :rater, item = :item),
+    steps = :item,
     category_levels = 0:2,
+    prior = :default,
 )
 
-validation = validate_design(data)
+validation = validate_design(spec)
 validation.passed || error(validation)
-spec = mfrm_spec(data; thresholds = :partial_credit, validation_report = validation)
+design_summary(spec).prior_summary
 ```
 
 `FacetData` records deterministic integer indexes and stable label maps for
@@ -166,15 +168,32 @@ shared performances need [response and criterion identities](joint-ratings.md).
 
 ### Continue with a scalar specification
 
-For one ability dimension and item-specific category steps, continue with your
-validated data. This constructs the specification without fitting:
+For one ability dimension and item-specific category steps, continue on the
+standard `0.2.0-DEV` isometric specification directly from your imported
+`ratings` table. This constructs the specification, checks design rank and
+connectedness, and reports the prior implications without fitting:
 
 ```julia
-spec = mfrm_spec(data; thresholds=:partial_credit, validation_report=validation)
-design_summary(spec)
+spec = mfrm_spec(
+    ratings;
+    person = :person,
+    score = :score,
+    facets = (item = :item, rater = :rater),
+    steps = :item,
+    category_levels = 1:4,
+    prior = :default,
+)
+spec_validation = validate_design(spec)
+spec_validation.passed || error("Resolve design errors before fitting: $spec_validation")
+design_summary(spec).prior_summary
 ```
 
-Then choose/check a prior and follow [the scalar fitting example](fitting.md#Supported-MFRM/RSM/PCM-Fit).
+Inspect `design_summary(spec).prior_summary`, then follow
+[Your First Rating Analysis](first-analysis.md) for fitting, whole-fit
+qualification, contrasts, posterior-integrated `Infit`/`Outfit`, and SHA-256
+portable handoff persistence (or
+[the scalar fitting guide](fitting.md#Supported-MFRM/RSM/PCM-Fit) for custom
+priors and reference-level identification).
 The next section is an alternative for a substantively two-dimensional question.
 
 ### Continue with your own two-dimensional specification
@@ -194,7 +213,7 @@ q = Bool[q_by_item[item][d] for item in data.item_levels, d in 1:2]
 spec = mfrm_spec(data; family=:mgmfrm, thresholds=:partial_credit,
     dimensions=2, q_matrix=q, dimension_labels=["Fluency", "Accuracy"],
     validation_report=validation)
-q_check = q_matrix_validation(spec)
+q_check = BayesianMGMFRM.q_matrix_validation(spec)
 println("Q check passed: ", q_check.passed,
     "; warnings: ", q_check.summary.n_warning_rows)
 display([(; check=row.check, severity=row.severity, status=row.status)
@@ -213,6 +232,10 @@ structural support for all ability directions. An empty list does not establish
 adequate precision; [the dimension-support example](#person-dimension-support)
 explains missing-dimension and rank warnings.
 
+You can also pass the dictionary directly as `q_matrix=q_by_item`.
+Each observed item must match exactly one row. When numeric `1` and string
+`"1"` both appear in the data, supply a distinct key for each.
+
 These steps stop at input checks and model specification. For fitting, choose
 all six scales of the [normalized prior](experimental.md#MGMFRM-prior-choice-and-comparable-scales)
 explicitly for your study and review the [current scientific scope](scope.md#current-scientific-evidence).
@@ -226,7 +249,7 @@ Use [`ordinal_response_pattern_audit`](@ref) before fitting when category use
 or boundary responses are part of the design risk:
 
 ```julia
-audit = ordinal_response_pattern_audit(data)
+audit = BayesianMGMFRM.ordinal_response_pattern_audit(data)
 audit.status
 audit.category_scale.intended_levels
 audit.category_scale.observed_levels
@@ -307,7 +330,7 @@ q = Bool[q_by_item[item][d] for item in data.item_levels, d in 1:2]
 spec = mfrm_spec(data; family=:mgmfrm, thresholds=:partial_credit,
     dimensions=2, q_matrix=q, dimension_labels=["dim=1", "dim=2"],
     validation_report=validation)
-q_check = q_matrix_validation(spec)
+q_check = BayesianMGMFRM.q_matrix_validation(spec)
 affected = [(; person=row.person_label,
     unobserved=row.unobserved_dimension_labels, rank=row.structural_rank)
     for row in q_check.identification.likelihood_support.person_rows
@@ -449,7 +472,7 @@ fit-supported minimal MFRM/RSM/PCM slice. `family = :gmfrm` and
 have `estimation_status = :specified_only` and are rejected by `getdesign`
 unless `preview = true` is requested. Preview designs expose parameter names and
 block ranges for design review, but are not accepted by `fit` unless they are
-one of the guarded experimental generalized candidates.
+one of the guarded generalized candidates.
 
 Use [`model_ladder`](@ref) to inspect the package's fit-supported and
 specified-only model ladder, and [`constraint_table`](@ref) to inspect
@@ -489,11 +512,11 @@ to keep three claims separate:
 - `prior_anchor` records the design-reference standard-normal ability prior
   and fixed identity correlation, rather than likelihood-only identification.
   It is not an external fixed calibration and does not enable `anchors` for MGMFRM.
-  An actual experimental fit can use a different `person_sd`; its diagnostics
+  An actual fit can use a different `person_sd`; its diagnostics
   and artifacts record that resolved prior. See [prior and coordinate
   conventions](experimental.md#Workflow).
 
-`guarded_fit_structure_ready` retains the current experimental pre-fit boundary.
+`guarded_fit_structure_ready` retains the current pre-fit boundary.
 `conservative_stable_structure_ready` is stricter: it additionally requires
 full person-level dimension support, at least one pure item per dimension, and
 connected dimension-specific facet graphs. It is a sufficient structural
@@ -522,7 +545,7 @@ for every response category, not only the observed category. This table is the
 denominator-level review surface for checking category-specific location
 multipliers, step paths, item-discrimination blocks, rater-consistency blocks,
 and item-dimension-discrimination blocks. Inspection does not extend the
-configurations accepted by the experimental fitting API.
+configurations accepted by the fitting API.
 
 For the current fit-supported MFRM/RSM/PCM slice, use
 [`linear_predictor_values`](@ref) with a parameter vector to add numeric
@@ -547,7 +570,7 @@ anchors, it fixes the first rater and item levels as references; threshold
 steps use a sum-to-zero constraint. Ordinary fitting can call `fit(spec)`
 directly without this separate compilation step.
 
-`FacetData`, `FacetSpec`, and `FacetDesign` contain mutable Julia collections,
+`FacetData`, `BayesianMGMFRM.Legacy.FacetSpec`, and `BayesianMGMFRM.Legacy.FacetDesign` contain mutable Julia collections,
 so construction alone is not a permanent immutability guarantee. Numerical,
 cache-request, and design-manifest entry points therefore recheck the current
 data signature and compiler-derived spec/design fields. Use
@@ -582,7 +605,7 @@ model_manifest(design; view = :public)
 
 The ordinary model-fitting API supports the minimal MFRM/RSM/PCM
 configuration; guarded
-experimental generalized fits are opt-in through
+generalized fits are opt-in through
 `BayesianMGMFRM.Experimental.fit(spec)`
 for the narrow scalar GMFRM and fixed-Q confirmatory MGMFRM candidates described
 above.
@@ -645,7 +668,7 @@ metadata, including derived sum-to-zero steps when a parameter vector is
 supplied.
 ## [Inspect a three-outcome input](@id three-outcome-input)
 
-For the experimental no-state model of accentedness, comprehension difficulty
+For the no-state model of accentedness, comprehension difficulty
 and transcription error, inspect the labelled input before attempting an
 analysis. This operation checks the declared data contract; it does not fit the
 model or establish identification, adequate linking or suitable priors.

@@ -1,5 +1,7 @@
 module SpecDisplayChecks
 using Test, BayesianMGMFRM, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 
 # Explicit arithmetic input fixture, not simulated ratings or posterior draws.

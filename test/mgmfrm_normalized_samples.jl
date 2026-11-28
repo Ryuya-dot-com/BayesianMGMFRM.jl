@@ -1,6 +1,8 @@
 module MGMFRMNormalizedSampleChecks
 
 using Test, BayesianMGMFRM, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("test_groups.jl")
 

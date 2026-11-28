@@ -4,6 +4,8 @@ using Random
 using Statistics
 
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 
 const _FAMILIES = (:mfrm, :gmfrm, :mgmfrm)
 const _SCENARIOS = (:dense, :sparse)

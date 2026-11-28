@@ -1,5 +1,7 @@
 module JointDrawArtifactChecks
 using Test, BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B=BayesianMGMFRM
 include("fixtures/reporting_fit.jl")
 

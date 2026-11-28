@@ -1,5 +1,7 @@
 module MGMFRMNormalizedPriorPredictiveChecks
 using Test, BayesianMGMFRM, Random, LinearAlgebra, ForwardDiff, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 const SCALES = (; person_sd=.8, rater_sd=.6, item_sd=.9,
     log_discrimination_sd=.3, log_consistency_sd=.4, step_sd=.7)

@@ -16,6 +16,8 @@ Runs short package fits and save/reopen checks in temporary files.
 end
 
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 
 function require_smoke(condition::Bool, message::AbstractString)
     condition || error("platform smoke failed: $message")

@@ -1,6 +1,8 @@
 isdefined(@__MODULE__, :MGMFRMCorrelated2DFixtures) || include("mgmfrm_correlated_2d_fixtures.jl")
 module MGMFRMCorrelated2DReportChecks
 using Test, BayesianMGMFRM, Random, Statistics, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using ..MGMFRMCorrelated2DFixtures: target, synthetic_record
 include("../scripts/public_language_gate.jl")
 const B = BayesianMGMFRM

@@ -1,5 +1,6 @@
 module MGMFRMSlopePriorBlockChecks
 using Test, BayesianMGMFRM, LinearAlgebra
+using BayesianMGMFRM.GlassBox
 const B=BayesianMGMFRM
 const E=B.Experimental
 const FD=B.ForwardDiff

@@ -2,6 +2,7 @@ module MGMFRMFoundationPrediction
 
 # Normalized-C bindings; reuse numerical helpers without relabeling C as the old raw candidate.
 using BayesianMGMFRM, Random, Serialization, Statistics
+using BayesianMGMFRM.GlassBox
 include("mgmfrm_foundation_sensitivity.jl")
 const B=BayesianMGMFRM
 const S=MGMFRMFoundationSensitivity

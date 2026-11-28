@@ -1,4 +1,5 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 """
     saved_fold_predictions(cache_path, request; include_probabilities=false)

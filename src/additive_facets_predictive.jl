@@ -45,7 +45,7 @@ function posterior_check(f::Fit;ndraws=500,seed,groupby=nothing,interval=.95)
     groups=[(;label=repr(labels[j]),n=den[j],observed=mean(t.categories[t.category[ids.==j]]),
         stats(view(means,:,j))...) for j in eachindex(labels)]
     d=design(t)
-    (;schema=PPC_SCHEMA,kind=:posterior_predictive,rows,groups,groupby,interval,
+    (;schema=PPC_SCHEMA,kind=:posterior_predictive,api=contract(t),rows,groups,groupby,interval,
       n_observations=n,ndraws=Int(ndraws),seed=Int(seed),draw_indices=indices,
       n_unique_draws=length(unique(indices)),selection=:uniform_with_replacement,
       category_support=d.category_support,response_patterns=d.response_patterns,grouping_by_support=mixed,

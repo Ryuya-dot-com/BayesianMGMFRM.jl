@@ -1,6 +1,8 @@
 using Test
 using Random
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 
 function _ld_single_rating_data(; n_responses::Int = 6)
     patterns = (

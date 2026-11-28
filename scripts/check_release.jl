@@ -276,7 +276,7 @@ function run_aqua()
         Pkg.add(PackageSpec(name = "Aqua", version = "0.8"))
         using BayesianMGMFRM
         using Aqua
-        Aqua.test_all(BayesianMGMFRM; ambiguities = false)
+        Aqua.test_all(BayesianMGMFRM; ambiguities = false, persistent_tasks = (; tmax = 90))
         """
     run_with_developed_package(code)
     return nothing

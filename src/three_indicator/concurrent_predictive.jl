@@ -243,7 +243,7 @@ function check_report(r)
             r.seed isa Integer && !(r.seed isa Bool) && r.seed>=0,"invalid legacy predictive seed")
     end
     require(R.normalized(r.coordinates)==R.normalized(F.coordinate_contract(Symbol(r.coordinates.name))) &&
-        (!r.coordinates.experimental || F.CHART_WARNING in r.warnings),"sampler-coordinate metadata/warning differs")
+        (!r.coordinates.experimental || F.has_chart_warning(r.warnings)),"sampler-coordinate metadata/warning differs")
     require(r.qualification_source in ("computed_from_fit","validated_same_fit_report") &&
         (r.qualification_source=="computed_from_fit" ? r.qualification_report_hash===nothing : R.hashstring(r.qualification_report_hash)),"qualification provenance differs")
     require(r.posterior_fit_qualified===r.qualification.qualified &&

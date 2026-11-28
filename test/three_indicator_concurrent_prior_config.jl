@@ -1,5 +1,6 @@
 module ThreeIndicatorConcurrentPriorConfigChecks
 using BayesianMGMFRM,Test,JSON3,Random,LinearAlgebra,Statistics
+using BayesianMGMFRM.GlassBox
 import ..ThreeIndicatorConcurrentChecks as Fixtures
 const B=BayesianMGMFRM
 const Normal=B.Distributions.Normal

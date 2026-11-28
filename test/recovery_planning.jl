@@ -1,5 +1,7 @@
 module RecoveryPlanningChecks
 using BayesianMGMFRM, Test, Serialization, SHA
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 const P = B.Experimental.RecoveryPlanning
 include("../examples/plan_mfrm_recovery.jl")

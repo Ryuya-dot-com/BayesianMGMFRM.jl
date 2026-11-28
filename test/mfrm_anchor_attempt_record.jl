@@ -2,6 +2,8 @@ module MFRMAnchorAttemptRecordTests
 
 using Test, SHA, Random, Serialization, JSON3
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 include(joinpath(@__DIR__, "..", "scripts", "mfrm_anchor_attempt_record.jl"))
 const Records = MFRMAnchorAttemptRecord
 const Archive = Records.Archive

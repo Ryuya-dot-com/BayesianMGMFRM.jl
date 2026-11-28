@@ -1,4 +1,5 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 """
     saved_rater_agreement(cache_path; dataset_id, observation_ids, kwargs...)

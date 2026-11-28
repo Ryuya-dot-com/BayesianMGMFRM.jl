@@ -4,6 +4,7 @@ if abspath(PROGRAM_FILE) == abspath(@__FILE__) && (isempty(ARGS) || ARGS == ["--
     exit(0)
 end
 using BayesianMGMFRM, CairoMakie
+using BayesianMGMFRM.Legacy
 
 # The qualified package API is also available directly, without including this file.
 pathway_map(fit_result; kwargs...) = BayesianMGMFRM.plot_pathway(fit_result; kwargs...)

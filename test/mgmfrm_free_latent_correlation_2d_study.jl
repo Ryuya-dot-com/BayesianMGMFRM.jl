@@ -1,5 +1,7 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 using SHA
 
 const _FREE_CORRELATION_STUDY_TEST_PROVENANCE_CACHE = Dict{Symbol,Any}()
@@ -609,6 +611,26 @@ end
         "src/BayesianMGMFRM.jl",
         "src/evidence_metadata.jl",
         "src/facet_workflow.jl",
+        "src/facet_workflow/anchors_and_support.jl",
+        "src/facet_workflow/coverage_and_linking.jl",
+        "src/facet_workflow/data.jl",
+        "src/facet_workflow/design_and_predictors.jl",
+        "src/facet_workflow/design_audit.jl",
+        "src/facet_workflow/domain_and_surfaces.jl",
+        "src/facet_workflow/gmfrm_api_contract.jl",
+        "src/facet_workflow/gmfrm_coordinates.jl",
+        "src/facet_workflow/likelihood.jl",
+        "src/facet_workflow/mgmfrm_api_contract.jl",
+        "src/facet_workflow/mgmfrm_coordinates.jl",
+        "src/facet_workflow/model_manifests.jl",
+        "src/facet_workflow/model_specification.jl",
+        "src/facet_workflow/model_support.jl",
+        "src/facet_workflow/parameter_layout.jl",
+        "src/facet_workflow/q_matrix.jl",
+        "src/facet_workflow/raw_parameter_contracts.jl",
+        "src/facet_workflow/release_and_provenance.jl",
+        "src/facet_workflow/software_comparison.jl",
+        "src/facet_workflow/validation.jl",
         "src/model_contract.jl",
         "src/bayesian_fit.jl",
         "src/mgmfrm_free_correlation_candidate.jl",

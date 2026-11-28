@@ -1,5 +1,7 @@
 module ThreeIndicatorAdaptationChecks
 using BayesianMGMFRM, Test, Serialization, JSON3
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B=BayesianMGMFRM
 const F=B.Experimental.ThreeIndicator.ConcurrentWorkflow
 const H=B.AdvancedHMC

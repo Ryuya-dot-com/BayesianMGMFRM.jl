@@ -38,6 +38,7 @@ Choose and assess priors for your application before substantive analysis.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "star_association.jl"))
 prepared = StarAssociationExample.inputs()  # No fitting or simulated ratings.
 spec = prepared.spec

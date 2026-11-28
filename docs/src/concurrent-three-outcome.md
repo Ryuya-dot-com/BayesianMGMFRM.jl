@@ -18,6 +18,8 @@ not accept this concurrent target.
 
 ```julia
 using BayesianMGMFRM, SHA
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 T = BayesianMGMFRM.Experimental.ThreeIndicator
 # rows is a labelled row iterator, for example CSV.File(path).
 input = T.ConcurrentInput(rows; source_sha256=bytes2hex(sha256(read(path))))
@@ -62,7 +64,7 @@ numerical settings. The preliminary-only model still accepts only its presets.
 ### Inspect a same-event ordinal association
 
 The default `association=:independent` factorizes the three responses conditional
-on their shared effects. A separate experimental mathematical target allows a
+on their shared effects. A separate mathematical target allows a
 single Plackett association between accentedness and comprehension difficulty:
 
 ```julia
@@ -380,6 +382,8 @@ views answer distinct questions:
 
 ```julia
 using BayesianMGMFRM, CairoMakie
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 rep = load_report("posterior-ppc.json"; expected_sha256=ppc_receipt.sha256)
 note = IOBuffer()
 drawn = BayesianMGMFRM.plot(rep; kind=:predictive, view=:joint,
@@ -521,7 +525,7 @@ restored_fit = load_fit("concurrent-fit.jls")
 ```
 
 The iteration counts above illustrate syntax; they are not a precision guarantee
-or a selected empirical fit. This experimental route reuses the existing analytic
+or a selected empirical fit. This route reuses the existing analytic
 NUTS target and AdvancedHMC's standard diagonal-metric adaptation. Defaults are
 `target_accept=.9`, `max_depth=10`, `step_size=.03`, and `init_jitter=.1` around
 `initial_params(target)`; `initial` may be supplied explicitly. Seeded normal
@@ -607,7 +611,7 @@ prepared once per report, while parameter-dependent probabilities are evaluated
 in each draw. Save a computed report to avoid repeating its diagnostics and MCSE.
 
 
-### Experimental sampler coordinates
+### [Sampler coordinates](@id Experimental-sampler-coordinates)
 
 For a full listener–word covariance, `prepare_fit(...; parameterization=:pair_132)`
 selects an alternative Gaussian factor chart. The default remains `:native`.
@@ -627,7 +631,7 @@ stored sampler chart. A target returned by `getdesign(result)` still uses native
 coordinates. Do not pass transformed raw vectors directly to that target.
 
 Native files retain chart metadata and source/environment bindings. New portable
-posterior reports use schema v2 and retain the experimental warning. Existing v1
+posterior reports use schema v2 and retain the original model-status warning. Existing v1
 computed reports remain readable with their checksums; this does not migrate
 historical native chains to the current source. Non-full pair models reject the
 132 option. Numerical qualification and focal precision requirements are unchanged.

@@ -1,7 +1,7 @@
 # Mixed-Outcome Speaking Models
 
-!!! note "Experimental mixed-outcome joint model"
-    `mfrm_spec(table; outcomes = ...)` is an experimental joint-outcome route
+!!! note "Mixed-outcome joint model"
+    `mfrm_spec(table; outcomes = ...)` is a joint-outcome route
     for speaking and performance studies where each rating event records one or
     more ordinal, bounded (`[lo, hi]` with endpoints), or correct-count outcomes.
     Numerical qualification checks sampler behavior only; inspect paired

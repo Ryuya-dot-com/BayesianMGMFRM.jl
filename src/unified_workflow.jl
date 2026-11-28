@@ -57,8 +57,7 @@ function design_summary(data::FacetData)
     )
 end
 
-validate_design(spec::FacetSpec) = spec.validation
-validate_design(design::FacetDesign) = design.spec.validation
+# Unified `validate_design(::FacetSpec)` and `validate_design(::FacetDesign)` are implemented in `design_connectedness.jl`.
 validate_design(m::_SA_MOD.StarModel; kwargs...) = _SA_MOD.validate_design(m; kwargs...)
 validate_design(t::_CC_MOD.Target) = (; passed = true, identified = true, _CC_MOD.design(t)...)
 validate_design(t::_CC_MOD.MaskedTarget) = (; passed = true, identified = true, model = t.model, profile = t.profile, heldout = copy(t.heldout), retained_n = length(t.retained), _CC_MOD.design(t.base)...)
@@ -265,7 +264,7 @@ function prior_predictive_check(t::_C3D_MOD.Target; ndraws::Int = 50, seed::Inte
     )
 end
 
-# Extend root fit ONLY for explicitly typed Experimental target objects so
+# Extend root fit ONLY for explicitly typed target objects so
 # FacetSpec stability boundaries remain unchanged while typed targets use a single fit verb.
 fit(m::_SA_MOD.StarModel; kwargs...) = _SA_MOD.fit(m; kwargs...)
 fit(t::_C3D_MOD.Target; kwargs...) = _C3D_MOD.fit(t; kwargs...)
@@ -358,10 +357,10 @@ pass. Missing NUTS telemetry is unqualified, not evidence of zero divergences.
 The requested thresholds apply to this gate; stored diagnostics retain their
 original thresholds and warnings.
 
-Experimental NamedTuple records check raw, model and available conditional-location
+NamedTuple records check raw, model and available conditional-location
 coordinates. Existing four-chain requirements for rater-effect/criterion-collapse
 records are retained; the other routes require at least two chains for diagnostics.
-Common fits and Experimental NamedTuple records expose
+Common fits and NamedTuple records expose
 `focal_precision_qualification=:not_assessed`: their `qualified` flag covers
 whole-fit diagnostics only. Star also checks mean/95% interval-endpoint MCSE,
 but only for the reported `focal_parameters` (finite-entity root/branch
@@ -490,12 +489,28 @@ function _qualify_experimental_diagnostics(d, run, checked, min_bfmi)
         isequal(s.n_divergences, 0) && isequal(s.n_nonfinite_logdensity, 0) &&
             isequal(s.n_max_treedepth, 0) && finite(s.e_bfmi) && s.e_bfmi >= min_bfmi
     end
+    app_rows = filter(_quality_gate_applicable, rows)
+    rhats = [Float64(r.rank_normalized_rhat) for r in app_rows if finite(get(r, :rank_normalized_rhat, missing))]
+    b_ess = [Float64(r.bulk_ess) for r in app_rows if finite(get(r, :bulk_ess, missing))]
+    t_ess = [Float64(r.tail_ess) for r in app_rows if finite(get(r, :tail_ess, missing))]
+    max_rhat_val = isempty(rhats) ? missing : maximum(rhats)
+    min_bulk_val = isempty(b_ess) ? missing : minimum(b_ess)
+    min_tail_val = isempty(t_ess) ? missing : minimum(t_ess)
+    n_div_val = !isempty(srows) && all(s -> !ismissing(get(s, :n_divergences, missing)), srows) ?
+        sum(Int(s.n_divergences) for s in srows) : missing
+    n_td_val = !isempty(srows) && all(s -> !ismissing(get(s, :n_max_treedepth, missing)), srows) ?
+        sum(Int(s.n_max_treedepth) for s in srows) : missing
     # Keep the original diagnostic fields for callers of the former direct return.
     return merge(d, (;
         qualified = p_ok && s_ok,
         qualification_scope = :whole_fit_diagnostics,
         parameter_gate_passed = p_ok,
         sampler_gate_passed = s_ok,
+        max_rhat = max_rhat_val,
+        min_bulk_ess = min_bulk_val,
+        min_tail_ess = min_tail_val,
+        n_divergences = n_div_val,
+        n_max_treedepth = n_td_val,
         telemetry_complete,
         sampling_warning = !(p_ok && s_ok) || get(d, :sampling_warning, false),
         focal_precision_qualification = :not_assessed,
@@ -604,11 +619,13 @@ end
 
 """
     contrast(fit; left, right, kwargs...)
+    contrast(pv_or_grouped_fit; group, reference, level = 0.95)
     contrast(left_draws, right_draws; chains, kwargs...)
 
 Compute draw-paired posterior contrasts (differences or log-ratios) with
 equal-tailed credible intervals, event probabilities, ROPE summaries, and
-autocorrelation-aware Monte Carlo standard errors.
+autocorrelation-aware Monte Carlo standard errors, or compare two named
+population group means from `plausible_values` / a grouped scalar MRCML Bayesian fit.
 """
 contrast(res::_SA_MOD.StarResult; kwargs...) = _SA_MOD.contrast(res; kwargs...)
 contrast(fit::_SupportedCommonFit; kwargs...) = posterior_contrast(fit; kwargs...)
@@ -1127,9 +1144,17 @@ function load_fit(path::AbstractString; kwargs...)
         complete=get(kwargs,:require_complete,true);complete isa Bool || throw(ArgumentError("require_complete must be Boolean"))
         _TI_MOD.ConcurrentWorkflow.checked(raw;complete,full=true);return raw
     end
+    if raw isa Union{Generalizability.Fit,Generalizability.LikelihoodFit}
+        isempty(kwargs) || throw(ArgumentError("unsupported generalizability reader controls"))
+        Generalizability.checked(raw;full=true,environment=true);return raw
+    end
     if raw isa AdditiveFacets.Fit
         isempty(kwargs) || throw(ArgumentError("unsupported additive fit reader controls: $(keys(kwargs))"))
         return AdditiveFacets.load_result(raw)
+    end
+    if raw isa ScaleIdentifiedMGMFRM.Fit
+        isempty(kwargs) || throw(ArgumentError("unsupported scale-identified MGMFRM fit reader controls: $(keys(kwargs))"))
+        return ScaleIdentifiedMGMFRM.load_result(raw)
     end
     if raw isa FrequentistMFRM.Fit
         isempty(kwargs) || throw(ArgumentError("unsupported frequentist fit reader controls: $(keys(kwargs))"))
@@ -1155,7 +1180,7 @@ end
 
 Write a portable computed report without overwriting existing files. Pass a
 computed report or a fitted result. Common fits use `save_fit_report`; Star and
-experimental sample records use `posterior_summary` with the supplied keywords.
+sample records use `posterior_summary` with the supplied keywords.
 For rater-by-item records, `practical_threshold` is required; rater-group records
 also require `reference_group`. No MCMC is run. Saving an already computed report
 performs no predictive generation. Passing a common fitted object first computes
@@ -1167,7 +1192,9 @@ With `return_receipt=true`, return `(path, sha256)` for every supported writer;
 keep this receipt separately and pass its digest to `load_report`. Otherwise
 the return value remains the existing writer's path or receipt. Reports contain
 computed values, not draws for new analyses. Use `save_fit` for native draws.
-Unsupported writer or summary controls raise an error.
+Grouped plausible-value bundles retain their imputation rows and support new
+population contrasts after reopening with a receipt. Unsupported writer or
+summary controls raise an error.
 
 Concurrent `plot(...; return_data=true).data` is a compact computed report.
 Saving it preserves selected numerical rows, source identities, reference
@@ -1179,6 +1206,17 @@ function save_report(path::AbstractString, rep; return_receipt::Bool=false, kwar
 end
 
 function _save_report(path::AbstractString, rep; kwargs...)
+    if hasproperty(rep,:schema) && rep.schema == _WAVE_LINK_SCHEMA
+        isempty(kwargs) || throw(ArgumentError("unsupported linking report controls"))
+        ispath(path) && throw(ArgumentError("report already exists: $path"))
+        mkpath(dirname(path))
+        mktemp(dirname(path)) do tmp, io
+            JSON3.write(io,rep)
+            close(io)
+            hardlink(tmp,path)
+        end
+        return path
+    end
     if hasproperty(rep,:schema) && rep.schema in _EXPLANATORY_COMPARISON_SCHEMAS
         isempty(kwargs) || throw(ArgumentError("unsupported explanatory comparison writer controls"))
         _check_explanatory_comparison_report(rep)
@@ -1188,6 +1226,13 @@ function _save_report(path::AbstractString, rep; kwargs...)
         isempty(kwargs) || throw(ArgumentError("unsupported additive report controls: $(keys(kwargs))"))
         return AdditiveFacets.save_computed(path,rep)
     end
+    if rep isa ScaleIdentifiedMGMFRM.Fit
+        return ScaleIdentifiedMGMFRM.save_computed(path, ScaleIdentifiedMGMFRM.report(rep; kwargs...))
+    end
+    if hasproperty(rep, :schema) && rep.schema in ScaleIdentifiedMGMFRM.REPORT_SCHEMAS
+        isempty(kwargs) || throw(ArgumentError("unsupported scale-identified MGMFRM report controls: $(keys(kwargs))"))
+        return ScaleIdentifiedMGMFRM.save_computed(path, rep)
+    end
     if rep isa FrequentistMFRM.Fit
         isempty(kwargs) || throw(ArgumentError("unsupported frequentist report controls: $(keys(kwargs))"))
         return FrequentistMFRM.save_computed(path, FrequentistMFRM.report(rep))
@@ -1195,6 +1240,10 @@ function _save_report(path::AbstractString, rep; kwargs...)
     if hasproperty(rep, :schema) && rep.schema in (FrequentistMFRM.REPORT_SCHEMA, FrequentistMFRM.COMPARISON_SCHEMA)
         isempty(kwargs) || throw(ArgumentError("unsupported frequentist report controls: $(keys(kwargs))"))
         return FrequentistMFRM.save_computed(path, rep)
+    end
+    if rep isa PortableHandoff.PlausibleValues
+        isempty(kwargs) || throw(ArgumentError("PV bundles accept no writer controls"))
+        return PortableHandoff.save_pvs(path,rep)
     end
     if rep isa PortableHandoff.Handoff
         isempty(kwargs) || throw(ArgumentError("unsupported portable handoff writer controls: $(keys(kwargs))"))
@@ -1306,6 +1355,17 @@ function load_report(path::AbstractString; expected_sha256=nothing, kwargs...)
     end
     s = get(parsed, :schema, nothing)
     s isa AbstractString || throw(ArgumentError("computed report has no supported schema"))
+    if s in (Generalizability.REPORT_SCHEMA,Generalizability.LIKELIHOOD_SCHEMA)
+        isempty(kwargs) || throw(ArgumentError("unsupported generalizability report reader controls"))
+        expected_sha256!==nothing || throw(ArgumentError("retain and supply the separate SHA-256 receipt"))
+        return s==Generalizability.REPORT_SCHEMA ? Generalizability.check_report(parsed) : Generalizability.check_likelihood_report(parsed)
+    end
+    if s == _WAVE_LINK_SCHEMA
+        isempty(kwargs) || throw(ArgumentError("unsupported linking report controls"))
+        all(k->hasproperty(parsed,k),(:receiving_fit_hash,:connectivity,:dimensions,:panel,:common_parameters)) ||
+            throw(ArgumentError("incomplete scalar linking report"))
+        return parsed
+    end
     if s == _CONCURRENT_PLOT_SCHEMA
         expected_sha256 !== nothing || throw(ArgumentError("a separately retained expected_sha256 is required"))
         isempty(kwargs) || throw(ArgumentError("saved plot data accept no extra reader controls"))
@@ -1347,9 +1407,16 @@ function load_report(path::AbstractString; expected_sha256=nothing, kwargs...)
     elseif s in AdditiveFacets.REPORT_SCHEMAS
         isempty(kwargs) || throw(ArgumentError("unsupported additive report reader controls: $(keys(kwargs))"))
         return AdditiveFacets.check_plot_report(parsed)
+    elseif s in ScaleIdentifiedMGMFRM.REPORT_SCHEMAS
+        isempty(kwargs) || throw(ArgumentError("unsupported scale-identified MGMFRM report reader controls: $(keys(kwargs))"))
+        return ScaleIdentifiedMGMFRM.check_loaded_report(parsed)
     elseif s in (FrequentistMFRM.REPORT_SCHEMA, FrequentistMFRM.COMPARISON_SCHEMA)
         isempty(kwargs) || throw(ArgumentError("unsupported frequentist report reader controls: $(keys(kwargs))"))
         return FrequentistMFRM.check_loaded_report(parsed)
+    elseif s == PortableHandoff.PV_SCHEMA
+        expected_sha256 !== nothing || throw(ArgumentError("a separate expected_sha256 receipt is required for PV bundles"))
+        isempty(kwargs) || throw(ArgumentError("PV bundles accept no reader controls"))
+        return PortableHandoff.checked_pvs(parsed)
     elseif s == PortableHandoff.HANDOFF_SCHEMA
         expected_sha256 !== nothing ||
             throw(ArgumentError("a separately retained expected_sha256 receipt is required for portable joint-draw handoffs"))
@@ -1428,6 +1495,11 @@ come from `predictive_probabilities`. All four computed report routes can be
 saved/reopened without fitting or predictive generation.
 """
 function plot(x; kind::Symbol = :posterior, kwargs...)
+    if x isa Union{Generalizability.Fit,Generalizability.Report,Generalizability.LikelihoodFit,Generalizability.LikelihoodReport}
+        extension=Base.get_extension(@__MODULE__,:BayesianMGMFRMCairoMakieExt)
+        extension===nothing && throw(ArgumentError("plot requires CairoMakie"))
+        return extension.plot_generalizability(x;kind=kind===:posterior ? :components : kind,kwargs...)
+    end
     if hasproperty(x,:schema) && x.schema in _EXPLANATORY_COMPARISON_SCHEMAS
         kind===:comparison || throw(ArgumentError("use kind=:comparison for held-performance scores"))
         _check_explanatory_comparison_report(x)
@@ -1448,6 +1520,11 @@ function plot(x; kind::Symbol = :posterior, kwargs...)
         extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
         extension === nothing && throw(ArgumentError("plot requires CairoMakie"))
         return extension.plot_frequentist_mfrm(x; kind, kwargs...)
+    end
+    if hasproperty(x, :schema) && x.schema in ScaleIdentifiedMGMFRM.REPORT_SCHEMAS
+        extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)
+        extension === nothing && throw(ArgumentError("plot requires CairoMakie"))
+        return extension.plot_scale_identified_mgmfrm(x; kind, kwargs...)
     end
     if hasproperty(x, :schema) && x.schema in (StanAdapter.REPORT_SCHEMA, StanAdapter.COMPARISON_SCHEMA, StanAdapter.PRIOR_SENSITIVITY_SCHEMA)
         extension = Base.get_extension(@__MODULE__, :BayesianMGMFRMCairoMakieExt)

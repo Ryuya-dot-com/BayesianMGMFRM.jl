@@ -1,5 +1,7 @@
 module ThreeIndicatorConcurrentAssociationChecks
 using BayesianMGMFRM,Test,Random,LinearAlgebra
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import ..ThreeIndicatorConcurrentChecks as Fixtures
 const C=BayesianMGMFRM.Experimental.ThreeIndicator.Concurrent
 function checks()

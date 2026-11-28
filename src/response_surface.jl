@@ -28,7 +28,7 @@ indexing for `:all`, with `k` indexing `category_levels`, and `[x,y]` otherwise.
 All retained draws are used unless unique `draw_indices` are supplied;
 the indices are retained in the result. No random subsampling occurs. The
 default ability range is a display choice, not evidence of data support there.
-This qualified, unexported entry point retains MGMFRM's experimental status.
+This qualified entry point preserves the fitted MGMFRM specification.
 """
 function item_response_surface(fit::MGMFRMFit; item, rater, dimensions = (1, 2),
         x = range(-3, 3; length = 41), y = range(-3, 3; length = 41),

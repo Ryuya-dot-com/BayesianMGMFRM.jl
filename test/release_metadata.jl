@@ -3,6 +3,17 @@ module ReleaseMetadataChecks
 using Test
 include(joinpath(@__DIR__, "..", "scripts", "release_metadata.jl"))
 
+module DistributionAssembly
+include(joinpath(@__DIR__, "..", "scripts", "distribution_archive_smoke.jl"))
+end
+
+@testset "Distribution keeps the public roadmap and excludes internal files" begin
+    paths = DistributionAssembly.candidate_paths()
+    @test "docs/src/roadmap.md" in paths
+    @test "ROADMAP.md" ∉ paths
+    @test all(path -> !startswith(replace(path, '\\' => '/'), "docs/internal/"), paths)
+end
+
 @testset "Release version and citation consistency" begin
     root = dirname(@__DIR__)
     @test ReleaseMetadata.check(root) isa NamedTuple
@@ -37,11 +48,14 @@ include(joinpath(@__DIR__, "..", "scripts", "release_metadata.jl"))
             replace(news, "0.2.0" => "0.3.0"),
             "# Release notes\n",
             "## 0.2.0\n",
+            replace(news, "## 0.2.0" => "- Unscoped change\n\n## 0.2.0"),
+            replace(news, "## 0.2.0" => "Unscoped prose\n\n## 0.2.0"),
+            replace(news, "# Release notes\n\n" => ""),
         )
             set_metadata(citation, bad_news)
             @test_throws ErrorException ReleaseMetadata.check(dir)
         end
-        released = "## 0.2.0 (2026-10-19)\n"
+        released = "# Release notes\n\n## 0.2.0 (2026-10-19)\n"
         dated = citation * "date-released: \"2026-10-19\"\n"
         set_metadata(dated, released)
         @test !ReleaseMetadata.check(dir).unreleased
@@ -52,10 +66,10 @@ include(joinpath(@__DIR__, "..", "scripts", "release_metadata.jl"))
             @test_throws ErrorException ReleaseMetadata.check(dir)
         end
         set_metadata(replace(dated, "2026-10-19" => "2026-02-30"),
-                     "## 0.2.0 (2026-02-30)\n")
+                     "# Release notes\n\n## 0.2.0 (2026-02-30)\n")
         @test_throws ArgumentError ReleaseMetadata.check(dir)
         set_metadata(replace(dated, "2026-10-19" => "2024-02-29"),
-                     "## 0.2.0 (2024-02-29)\n")
+                     "# Release notes\n\n## 0.2.0 (2024-02-29)\n")
         @test ReleaseMetadata.check(dir).date_released == "2024-02-29"
     end
 end

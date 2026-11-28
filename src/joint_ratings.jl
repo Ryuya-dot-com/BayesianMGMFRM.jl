@@ -1,7 +1,7 @@
 """
     BayesianMGMFRM.Experimental.JointRatings
 
-Experimental two-criterion shared-response PCM workflow. A response is one
+two-criterion shared-response PCM workflow. A response is one
 person's production on one physical task; a rating event is one rater's
 assessment of that response. Their IDs are not interchangeable.
 

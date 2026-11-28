@@ -1,5 +1,6 @@
 module ReportColumnChecks
 using Test, BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 
 render(rows; kwargs...) = sprint(io -> B._write_markdown_table(io, rows; kwargs...))

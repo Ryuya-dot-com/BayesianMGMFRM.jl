@@ -1,5 +1,7 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.ValidationSuite: mgmfrm_validation_primary_grid_candidates, mgmfrm_validation_primary_grid_preflight, mgmfrm_validation_primary_resource_plan, mgmfrm_validation_replication_precision, simulate_mgmfrm_validation_primary_candidate
 
 @testset "MGMFRM primary-grid candidates" begin
     contract = mgmfrm_validation_primary_grid_candidates()

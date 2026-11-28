@@ -1,7 +1,7 @@
 """
     BayesianMGMFRM.Experimental.RaterDrift
 
-Experimental scalar RW1/static fitting and descriptive comparison. Use `model`,
+scalar RW1/static fitting and descriptive comparison. Use `model`,
 `design_review`, `prepare`, `fit`, `load_fit`, `summarize`, `load_report`, `report`,
 `trajectory`, `plot_trajectory`, `compare` and `save_report`. See `contract()` and the Rater
 Drift guide for the numerical, interpretation and environment boundaries.
@@ -30,7 +30,7 @@ function _same(x, y)
     isequal(x,y)
 end
 
-"""Return the exact experimental input, saved-report and interpretation boundary."""
+"""Return the exact input, saved-report and interpretation boundary."""
 contract() = (;status=:experimental, api_version=3, scientific_acceptance=false,
     fitting=true, native_chain_import=true, report_only=false, static_comparison=true,
     model=:scalar_rw1_rater_step_pcm, processes=(:rw1,:static), link_multiplier=1.7, threshold_owner=:rater,

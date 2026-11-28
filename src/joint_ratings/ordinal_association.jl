@@ -1,4 +1,4 @@
-"""Experimental paired ordinal ratings with explicit means, estimated person scales
+"""paired ordinal ratings with explicit means, estimated person scales
 and within-event association. Use `model`, `fit`, `report`, `contrast`,
 `save_result` and `load_result`. Read `contract()` before use."""
 module OrdinalAssociation

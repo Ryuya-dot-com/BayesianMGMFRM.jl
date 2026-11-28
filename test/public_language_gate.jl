@@ -1,5 +1,8 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
+using BayesianMGMFRM.ValidationSuite: release_gate_check
 using JSON3
 
 module PublicLanguageGateContractForTest
@@ -75,9 +78,9 @@ end
             :evidence_metadata,
             :release_gate_check,
             :release_scope_summary)
-        # Preserve the v0.1.x namespace even though published API pages do not
-        # advertise these release and evidence helpers.
-        @test maintainer_name in names(BayesianMGMFRM)
+        # In v0.2.x these release and evidence helpers live in ValidationSuite/Legacy
+        # rather than root exports, while remaining defined inside BayesianMGMFRM.
+        @test maintainer_name ∉ names(BayesianMGMFRM)
         @test isdefined(BayesianMGMFRM, maintainer_name)
     end
 
@@ -306,7 +309,8 @@ end
             GMFRMFit(generalized_args...),
             MGMFRMFit(generalized_args...))
         rendered = sprint(show, fit_result)
-        @test occursin("status = :experimental", rendered)
+        @test !occursin("status = :experimental", rendered)
+        @test occursin("sampler = :nuts", rendered)
         mktempdir() do temp_root
             output = joinpath(temp_root, "show.txt")
             write(output, rendered)

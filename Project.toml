@@ -1,9 +1,10 @@
 name = "BayesianMGMFRM"
 uuid = "1c3fdc16-45de-4463-900f-cd2a5999ffa5"
-version = "0.1.2"
+version = "0.2.0-DEV"
 authors = ["Ryuya Komuro"]
 
 [deps]
+PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 QuadGK = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
@@ -15,12 +16,12 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LogDensityProblems = "6fdf6af0-433a-55f7-b3ed-c6c6e0b8df7c"
 LogDensityProblemsAD = "996a588d-648d-4e1f-a8f0-a84b347e47b1"
 MCMCDiagnosticTools = "be115224-59cd-429b-ad48-344e309966f0"
-Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+StatsAPI = "82ae8749-77ed-4fe6-ae5f-f523153014b0"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 
 [weakdeps]
@@ -32,7 +33,8 @@ BayesianMGMFRMTuringExt = "Turing"
 BayesianMGMFRMCairoMakieExt = "CairoMakie"
 
 [compat]
-Distributions = "0.25"
+PrecompileTools = "1"
+Distributions = "0.25.90"
 SpecialFunctions = "2"
 QuadGK = "2"
 AdvancedHMC = "0.8"
@@ -45,14 +47,15 @@ LogDensityProblems = "2"
 LogDensityProblemsAD = "1"
 Logging = "1"
 MCMCDiagnosticTools = "0.3.19"
-Pkg = "1"
+Printf = "1"
 Random = "1"
 ReverseDiff = "1"
-SHA = "0.7"
+SHA = "0.7, 1"
 Serialization = "1"
 SparseArrays = "1"
 Sockets = "1"
 Statistics = "1"
+StatsAPI = "1.6"
 TOML = "1"
 Test = "1"
 Turing = "0.45.0"
@@ -61,9 +64,10 @@ julia = "1.10.8"
 [extras]
 Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
 Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Turing", "Logging", "ReverseDiff", "Sockets", "Test"]
+test = ["Turing", "Logging", "Printf", "ReverseDiff", "Sockets", "Test"]

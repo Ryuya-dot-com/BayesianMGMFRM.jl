@@ -9,7 +9,7 @@ explicit assumptions, usable uncertainty, reusable outputs and efficient
 computation at the precision the question requires.
 
 This page describes the local development version. It does not promise release
-dates or change the statuses in [Scope and Releases](scope.md). An implemented
+dates or extend the operations in [Scope and Releases](scope.md). An implemented
 feature, statistical evidence, supported operations and an installed release
 are different things. No general speed advantage over other software is established.
 
@@ -23,13 +23,13 @@ unfinished.
 
 | User outcome | Available scope | Development completion condition | Continuing analysis limits |
 | --- | --- | --- | --- |
-| A complete analysis of people, items and raters | Documented scalar MFRM fitting, contrasts, diagnostics, figures, reports and saved reproduction; selected fixed-Q routes remain experimental. | Tie the selected source and model/prior/backend roster to the necessary environment and saved-format evidence, independent review and resolved workflow blockers. | Model adequacy, prior justification and numerical precision must be assessed for the supplied data. Experimental models do not inherit scalar support. |
+| A complete analysis of people, items and raters | Documented isometric 1D `MRCML` (Bayesian NUTS and frequentist `MMLE`/`JMLE` with FACETS Table 7 reliability and exact `WHEXACT` ZSTD), scale-identified 1D `GMFRM` and 2D/3D `LKJ` `MGMFRM` (compensatory `:additive` and bottleneck `:softmin`), contrasts, `fair_average`, diagnostics, figures, reports and SHA-256 `PortableHandoff` reproduction across Julia and R (`fit_mgmfrm`). | Tie the selected source and model/prior/backend roster to the necessary environment and saved-format evidence, collaborator reproduction and resolved workflow blockers. | Model adequacy, prior justification and numerical precision must be assessed for the supplied data. Available operations differ between model families. |
 | Compare declared slopes or dimensions | Bounded fixed/free-slope and D1/D2 heldout comparison workflows are complete for their recorded targets. Selected external-software comparisons also exist. | Reuse these completed operations; further comparison requires a specific unmet question and an eligible common target or evaluation task. | No automatic winner, general selection accuracy or software-equivalence guarantee follows. |
 | Plan a rating allocation | Separate fixed-truth and joint-prior SBC operations connect generation, fitting, full failure accounting, summaries and saved reproduction; bounded teaching studies are complete. | Complete independent workflow acceptance and the advertised environment/compatibility requirements for the declared planning route. Any retained performance claim needs its matching evidence. | The supplied generating model and decision target determine the answer. No universal calibration, allocation ranking or design assurance is established. |
 | Analyse a declared composition of five or more fitted facets | Separate [user-named additive scalar facets](additive-facets.md), shared-response, paired ordinal, [star-factorized multi-criterion](star-association.md), [concurrent three-outcome](concurrent-three-outcome.md), rater-item and observed-group severity routes exist; they are not a general unrestricted composition interface. | Complete one declared composition's likelihood, identification, priors, independent checks, public fitting/prediction/report/save path and claim-appropriate evidence. | Metadata columns are not fitted effects. Prediction for new responses and a group-effect interpretation need their own assumptions; a group difference alone does not establish unfairness. |
-| Estimate correlations among three constructs | [Experimental Correlated3D](correlated-3d.md) connects the bounded target to generation, retained-chain fitting, named correlations/covariance, conditional row probabilities and native restoration. | Establish claim-appropriate evidence across the stated domain, including sparse/weak-information and calibration requirements; one operation example is insufficient. | More dimensions, learned Q, cross-loadings and combinations with rater mechanisms are separate scopes. A fitted correlation does not establish construct validity. |
+| Estimate correlations among three constructs | [Correlated3D](correlated-3d.md) connects the bounded target to generation, retained-chain fitting, named correlations/covariance, conditional row probabilities and native restoration. | Establish claim-appropriate evidence across the stated domain, including sparse/weak-information and calibration requirements; one operation example is insufficient. | More dimensions, learned Q, cross-loadings and combinations with rater mechanisms are separate scopes. A fitted correlation does not establish construct validity. |
 | Reproduce the selected empirical applications | Bounded contest, speech and image-rating analyses and saved-result assessments exist; some use private research models. | Complete the promised application's exact model and public operations, justified prior, fit/sensitivity and focal-precision assessment, and interpretable reproducible answer. Reuse completed fits. | Misfit and unresolved sensitivity limit conclusions. A private research fit is not an available public model combination; warnings alone do not satisfy a missing substantive claim. |
-| Assess criterion discrimination loss | An experimental criterion-collapse mixture provides fitting, class/category summaries, precision, figures and saving; a bounded category-use comparison is complete. | Complete replicated classification/prior evidence, remaining grouped predictive/comparison operations and independent acceptance for the declared scalar mechanism. | Good sampling or fitted category-count agreement does not identify a mechanism. Signed halo/horns and general impressions are not implemented or implied. |
+| Assess criterion discrimination loss | A criterion-collapse mixture provides fitting, class/category summaries, precision, figures and saving; a bounded category-use comparison is complete. | Complete replicated classification/prior evidence, remaining grouped predictive/comparison operations and independent acceptance for the declared scalar mechanism. | Good sampling or fitted category-count agreement does not identify a mechanism. Signed halo/horns and general impressions are not implemented or implied. |
 | Assess temporal rater severity | A separate scalar RW1 route provides fitting, interpretation, static comparison and saved reproduction. | Complete the declared trajectory/recovery or prediction evidence, prior-sensitivity and precision requirements, and independent workflow acceptance. | Linking and time units matter. A trajectory is not an intervention effect; forecasting or combined halo/drift needs a separate model and evidence. |
 
 ## Priorities and completion criteria
@@ -39,33 +39,31 @@ The wider planned product also includes the bounded capability and application
 outcomes above. Completing the foundation does not complete those branches;
 completing every branch is not a prerequisite for the first foundation delivery.
 
-1. **Prepare the selected foundation for acceptance.** The immediate development
-   outcome is one identified source and matching guide with the existing scalar,
-   normalized independent-D2, D1 fixed-slope and mean-profile reference workflows
-   mapped to their actual operation and environment evidence. Preserve the
-   separate eight-result-type saved-output scope. Identify and resolve only
-   missing or affected cells; a new inventory is unnecessary where the mapping
-   already exists. This preparation retains the restricted statistical scope
-   and does not itself promote experimental models.
-2. **Obtain independent acceptance and finalize the offered contract.** Scientific
-   review must assess the target, evidence and permitted conclusions; an
-   unfamiliar user must reproduce the promised journey and interpret its
-   warnings. Resolve blocking findings and fix the API, scope, compatibility
-   policy and instructions for the accepted candidate. New extensions do not
-   continually enlarge this review target.
-3. **Deliver the accepted source and manual.** Verify the declared installation,
-   normal startup, analysis, reporting and save/reopen paths in the advertised
-   environments, together with version/migration information and the distributed
-   artifacts. An existing preview or a successful local build is not this exit.
-4. **Complete the capability branches through their actual dependencies.**
-   Design planning can advance independently of 3D correlation or new facets.
-   An application needs the specific composition it uses, not every extension.
-   Criterion-collapse and RW1 keep distinct model, statistical and operation
-   requirements. A usable prototype can precede statistical acceptance, while
-   a detection or prediction claim cannot precede its evidence. These are
-   dependencies, not a schedule to execute every branch simultaneously.
-   A branch can advance alongside foundation preparation when its own
-   prerequisites are met; foundation delivery is not its entry requirement.
+1. **Consolidate the unified `0.2` analysis and persistence surface.** Keep one
+   coherent source, manual, and standalone R bridge connecting isometric
+   one-dimensional `MRCML` (Bayesian NUTS and frequentist `MMLE`/`JMLE`),
+   four-mode anchor equating, Plausible Values, group-impact DFF, scale-identified
+   `GMFRM` and `LKJ`-correlated `MGMFRM` (compensatory `:additive` and smooth
+   bottleneck `:softmin`), shared-event dependence, design-matrix/connectedness
+   audits, and SHA-256 `PortableHandoff` reproduction. Statistical scope remains
+   bounded to tested regimes and does not imply universal interval calibration in
+   sparse or weakly linked designs.
+2. **Complete independent collaborator reproduction and finalize scope.** An
+   independent collaborator reproduces the documented workflows from clean
+   Julia and R installations, inspects diagnostics and warnings, and verifies
+   that permitted conclusions match the underlying evidence without mid-stream
+   interface churn.
+3. **Deliver the verified cross-platform package and manual.** Verify clean
+   installation (including pinned remote R setup), startup, estimation,
+   reporting, plotting, and save/reopen paths across supported operating systems
+   and Julia LTS/current releases, alongside changelog and migration guidance.
+   A passing local build alone does not complete this delivery step.
+4. **Advance specialized capability and empirical branches on their own gates.**
+   Multi-panel allocation planning, three-dimensional correlation recovery,
+   bottleneck vs. compensatory rubric selection, criterion-collapse
+   classification, temporal severity trajectories (`RW1`), and empirical
+   applications advance through their own prospective accuracy and model-adequacy
+   requirements rather than blocking foundation delivery.
 
 A demonstrated mathematical, data-preservation or required-operation defect
 takes priority in the affected route. Preserve valid estimates and rerun only

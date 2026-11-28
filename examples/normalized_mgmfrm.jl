@@ -1,6 +1,7 @@
 module NormalizedMGMFRMExample
 
 using BayesianMGMFRM, Random
+using BayesianMGMFRM.Legacy
 const E = BayesianMGMFRM.Experimental
 
 function print_help(io)

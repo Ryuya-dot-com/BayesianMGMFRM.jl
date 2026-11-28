@@ -67,7 +67,7 @@ function report(result;interval::Real=.9)
         labels=(;person=copy(t.data.person_levels),criterion=copy(t.data.item_levels),rater=copy(t.data.rater_levels)),
         classes,parameter_summary=summaries,diagnostics,
         precision_threshold_applied=false,automatic_classification=false,
-        warning="Experimental criterion-collapse model. Inspect whole-fit diagnostics, focal MCSE, prior sensitivity and category adequacy separately. Low class support does not prove good fit; no automatic rater exclusion, signed halo/horns or fairness conclusion.")
+        warning="criterion-collapse model. Inspect whole-fit diagnostics, focal MCSE, prior sensitivity and category adequacy separately. Low class support does not prove good fit; no automatic rater exclusion, signed halo/horns or fairness conclusion.")
 end
 
 function _category_rows(t,draws,chains,max_prediction_cells)

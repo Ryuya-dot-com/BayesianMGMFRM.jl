@@ -11,7 +11,7 @@ specified assessment distinguish nearby abilities, conditional on the fitted
 item and rater parameters?* Both questions require an explicit rating design.
 
 The initial `BayesianMGMFRM.score_information_report` route accepts ordinary
-scalar `MFRMFit` results, with item-specific partial-credit steps or shared
+scalar `BayesianMGMFRM.Legacy.MFRMFit` results, with item-specific partial-credit steps or shared
 rating-scale steps. Generalized, multidimensional and application-specific result
 types have separate contracts and are not accepted by this entry point.
 

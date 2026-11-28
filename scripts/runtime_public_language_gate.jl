@@ -16,6 +16,11 @@ Checks runtime outputs using synthetic inputs, short fits and temporary reports.
 end
 
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
+for _sym in BayesianMGMFRM.ValidationSuite._RESEARCH_ROOT_NAMES
+    @eval using BayesianMGMFRM: $(_sym)
+end
 using JSON3
 using Random
 BayesianMGMFRM._ensure_docs_doc_loaded()
@@ -110,16 +115,13 @@ function exported_docstring_outputs()
         text = sprint(show, MIME"text/plain"(), doc)
         push!(outputs, "docstring:$(String(name))" => text)
     end
-    module_binding = Docs.Binding(BayesianMGMFRM, :Experimental)
-    module_doc = Base.invokelatest(Docs.doc, module_binding)
-    module_doc === nothing || push!(outputs,
-        "docstring:Experimental" =>
-            sprint(show, MIME"text/plain"(), module_doc))
-    vs_binding = Docs.Binding(BayesianMGMFRM, :ValidationSuite)
-    vs_doc = Base.invokelatest(Docs.doc, vs_binding)
-    vs_doc === nothing || push!(outputs,
-        "docstring:ValidationSuite" =>
-            sprint(show, MIME"text/plain"(), vs_doc))
+    for submod in (:Experimental, :GlassBox, :ValidationSuite, :Legacy)
+        sub_binding = Docs.Binding(BayesianMGMFRM, submod)
+        sub_doc = Base.invokelatest(Docs.doc, sub_binding)
+        sub_doc === nothing || push!(outputs,
+            "docstring:$(String(submod))" =>
+                sprint(show, MIME"text/plain"(), sub_doc))
+    end
     experimental_names = experimental_public_docstring_names()
     isempty(experimental_names) &&
         error("no public Experimental docstrings were discovered")

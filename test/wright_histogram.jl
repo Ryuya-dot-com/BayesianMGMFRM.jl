@@ -1,5 +1,6 @@
 module WrightHistogramChecks
 using BayesianMGMFRM, Test, Random, Statistics, SHA
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 include("fixtures/reporting_fit.jl")
 include("fixtures/wright_histogram_fit.jl")

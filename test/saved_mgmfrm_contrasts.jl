@@ -2,6 +2,8 @@ module SavedMGMFRMContrastChecks
 using Test, Random, Statistics
 include(joinpath(@__DIR__, "..", "examples", "saved_mgmfrm_contrasts.jl"))
 const B = BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 include("fixtures/reporting_fit.jl")
 
 @testset "paired saved-draw contrasts without fitting" begin

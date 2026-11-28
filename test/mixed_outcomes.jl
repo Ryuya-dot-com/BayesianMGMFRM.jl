@@ -1,4 +1,6 @@
 using Test, BayesianMGMFRM, Distributions, ForwardDiff, LinearAlgebra, Random, Statistics, SHA
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 import LogDensityProblems as L
 import BayesianMGMFRM: fit
 

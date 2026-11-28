@@ -1,0 +1,15 @@
+Package: BayesianMGMFRM
+Type: Package
+Title: Fit Many-Facet and Multidimensional Generalized Rasch Models with Julia
+Version: 0.2.0
+Authors@R: person("Ryuya", "Komuro", role = c("aut", "cre"), email = "komuro.4121@gmail.com")
+Description: Fit Bayesian and frequentist many-facet Rasch, generalized
+    many-facet Rasch, and scale-identified multidimensional generalized
+    many-facet Rasch models with 'BayesianMGMFRM.jl' from R, retaining facet
+    labels, parameter covariances, Bayesian fit diagnostics, contrasts, and
+    portable handoff records.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Imports: JuliaConnectoR, jsonlite, posterior, stats, tools, graphics, utils
+Suggests: digest
+SystemRequirements: Julia (>= 1.10.8)

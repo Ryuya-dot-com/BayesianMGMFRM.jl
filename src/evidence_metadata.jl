@@ -2,7 +2,7 @@
 
 using Dates
 using LinearAlgebra
-using Pkg
+using TOML
 using SHA
 
 function _evidence_failure_reason(error)
@@ -73,21 +73,69 @@ function _evidence_cmdstan_metadata(; include_paths::Bool = false)
 end
 
 function _evidence_package_status(;
+        project = Base.active_project(),
         direct_only::Bool = true,
         include_paths::Bool = false)
+    project isa AbstractString && isfile(project) ||
+        throw(ArgumentError("package status requires an active Project.toml"))
+    manifest = _evidence_manifest_path(project)
+    manifest isa AbstractString && isfile(manifest) ||
+        throw(ArgumentError("resolved package status requires a Manifest.toml"))
+    project_data = TOML.parsefile(project)
+    manifest_data = TOML.parsefile(manifest)
+    entries = haskey(manifest_data, "manifest_format") ?
+        get(manifest_data, "deps", Dict{String,Any}()) : manifest_data
+    direct = Set(values(get(project_data, "deps", Dict{String,Any}())))
+    own_uuid = get(project_data, "uuid", nothing)
     out = Dict{String,Any}()
-    for (uuid, dep) in Pkg.dependencies()
-        direct_only && !dep.is_direct_dep && continue
-        out[dep.name] = Dict{String,Any}(
-            "version" => isnothing(dep.version) ? nothing : string(dep.version),
-            "uuid" => string(uuid),
-            "is_direct_dep" => dep.is_direct_dep,
-            "is_tracking_path" => dep.is_tracking_path,
-            "source" => include_paths ? dep.source : nothing,
-            "source_basename" => _evidence_path_basename(dep.source),
+    seen = Set{String}()
+    for (name, records) in entries, dep in records
+        uuid = dep["uuid"]
+        push!(seen, uuid)
+        uuid == own_uuid && continue
+        is_direct = uuid in direct
+        direct_only && !is_direct && continue
+        tracking_path = haskey(dep, "path")
+        entry = tracking_path ? nothing : Base.locate_package(Base.PkgId(Base.UUID(uuid), name))
+        source = tracking_path ? normpath(joinpath(dirname(manifest), dep["path"])) :
+            entry === nothing ? nothing : dirname(dirname(entry))
+        # A manifest can contain several UUIDs under one package name. Keep the
+        # direct dependency's ordinary key and retain every other identity.
+        ambiguous = length(records) > 1
+        key = ambiguous && !is_direct ? "$name@$uuid" : name
+        out[key] = Dict{String,Any}(
+            "version" => get(dep, "version", nothing),
+            "uuid" => uuid,
+            "is_direct_dep" => is_direct,
+            "is_tracking_path" => tracking_path,
+            "source" => include_paths ? source : nothing,
+            "source_basename" => _evidence_path_basename(source),
         )
     end
+    issubset(direct, seen) || throw(ArgumentError(
+        "active project dependencies are missing from the resolved manifest"))
     return out
+end
+
+function _evidence_package_environment(; include_paths::Bool = false)
+    resolved = lock(Base.require_lock) do
+        Base.locate_package_env(Base.PkgId(@__MODULE__))
+    end
+    resolved === nothing && throw(ArgumentError("package source environment is unavailable"))
+    entry, project = resolved
+    realpath(entry) == realpath(pathof(@__MODULE__)) || throw(ArgumentError(
+        "the current load path resolves a different package source from the loaded module"))
+    isfile(project) || throw(ArgumentError("package source environment has no Project.toml"))
+    manifest = _evidence_manifest_path(project)
+    return Dict{String,Any}(
+        "project" => include_paths ? project : nothing,
+        "project_basename" => _evidence_path_basename(project),
+        "project_sha256" => _evidence_file_sha256(project),
+        "manifest" => include_paths ? manifest : nothing,
+        "manifest_basename" => _evidence_path_basename(manifest),
+        "manifest_sha256" => _evidence_file_sha256(manifest),
+        "packages" => manifest === nothing ? nothing : _evidence_package_status(; project, include_paths),
+    )
 end
 
 function _evidence_file_sha256(path;
@@ -195,7 +243,9 @@ end
 
 Return reproducibility metadata for the active Julia session, including Julia,
 OS, BLAS, optional R/CmdStan discovery, git/project hashes, and direct package
-status. Machine-local paths are omitted by default while safe basenames and
+status. `packages` describes the active project; `package_environment` separately
+records the environment resolving this package on `LOAD_PATH`, which can differ
+from the active project. Machine-local paths are omitted by default while safe basenames and
 content hashes are retained. Set `include_paths = true` only when a private
 reproduction record explicitly requires complete local paths and free-form
 execution notes. Optional probe failures do not stop metadata creation;
@@ -235,7 +285,12 @@ function evidence_metadata(;
             _evidence_package_status(; include_paths)
         end :
         Dict{String,Any}()
+    package_environment = include_packages ?
+        _evidence_optional(:package_environment; issues, fallback = nothing) do
+            _evidence_package_environment(; include_paths)
+        end : nothing
     return Dict{String,Any}(
+        "package_environment" => package_environment,
         "captured_at" => string(now()),
         "collection" => _evidence_collection_report(issues),
         "hardware" => Dict{String,Any}(

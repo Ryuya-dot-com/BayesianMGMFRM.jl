@@ -1,6 +1,6 @@
 # Allow a predictor's effect to vary by listener
 
-Use this **Experimental** extension when listeners may respond differently to
+Use this extension when listeners may respond differently to
 speech rate or another numeric predictor. A common rate coefficient describes
 the population association; random slopes describe remaining listener variation.
 A listener-experience interaction explains part of that variation if declared

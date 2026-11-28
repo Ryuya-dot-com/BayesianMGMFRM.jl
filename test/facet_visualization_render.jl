@@ -1,6 +1,7 @@
 # Optional CairoMakie checks. All draws are deterministic artificial fixtures.
 module FacetVisualizationRenderChecks
 using Test, BayesianMGMFRM, CairoMakie
+using BayesianMGMFRM.Legacy
 const B=BayesianMGMFRM
 include("fixtures/reporting_fit.jl")
 include("fixtures/wright_histogram_fit.jl")

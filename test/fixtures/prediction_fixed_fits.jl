@@ -1,3 +1,5 @@
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy: MFRMPrior
 # Deterministic saved formats, not posterior or backend-comparison evidence.
 function prediction_fixed_fixture(kind; K=4, backend=:advancedhmc, D=2, mixed=false, ndraws=20, chains=2)
     cells = [(p,i,r) for p in 1:3 for i in 1:2D for r in 1:2]

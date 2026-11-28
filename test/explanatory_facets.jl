@@ -1,5 +1,7 @@
 using Test, BayesianMGMFRM, ForwardDiff, LinearAlgebra, Random, Statistics
-using Distributions: Normal, LogNormal, Gamma, logpdf
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
+using Distributions: Normal, LogNormal, Gamma, logpdf, truncated, LocationScale, TDist, cdf
 import LogDensityProblems as L
 const EF=BayesianMGMFRM.AdditiveFacets
 
@@ -24,14 +26,17 @@ function explanatory_reference(t,q;centered_prior=false)
     H(m)=[i<=j ? 1/sqrt(j*(j+1)) : i==j+1 ? -j/sqrt(j*(j+1)) : 0. for i in 1:m,j in 1:m-1]
     effects=Dict{Symbol,Any}();lp=zero(eltype(q));lv=zero(eltype(q))
     for b in t.residuals
-        sigma=b.hyper==0 ? b.sd : exp(b.logmean+b.logsd*q[b.hyper])
+        sigma=b.hyper==0 ? b.sd : b.scale_kind===:lognormal ? exp(b.logmean+b.logsd*q[b.hyper]) : exp(q[b.hyper])
         z=q[b.raw];m=length(z)
         v=b.kind===:iid_population ? sigma*z : sigma*H(m+1)*z
         effects[b.name]=v
         if centered_prior
             m>0 && (lp+=sum(logpdf.(Normal(0,sigma),sigma*z));lv+=m*log(sigma))
             if b.hyper>0
-                lp+=logpdf(LogNormal(b.logmean,b.logsd),sigma);lv+=log(b.logsd*sigma)
+                prior=b.scale_kind===:lognormal ? LogNormal(b.logmean,b.logsd) :
+                    b.scale_kind===:half_normal ? truncated(Normal(0,b.logsd),0,Inf) :
+                    truncated(LocationScale(0,b.logsd,TDist(b.logmean)),0,Inf)
+                lp+=logpdf(prior,sigma);lv+=log(sigma)+(b.scale_kind===:lognormal ? log(b.logsd) : 0)
             end
         end
     end
@@ -174,4 +179,37 @@ end
     q=.12sin.(1:m.dimension)
     @test logposterior(m,q)≈explanatory_reference(m,q).density atol=1e-9
     @test last(logdensity_and_gradient(m,q))≈ForwardDiff.gradient(x->explanatory_reference(m,x).density,q) atol=1e-8
+end
+
+@testset "Explanatory HalfNormal/Half-t scales: normalized measure and persistence" begin
+    d,o=explanatory_fixture()
+    for prior in (truncated(Normal(0,.8),0,Inf), truncated(LocationScale(0,.7,TDist(4)),0,Inf))
+        t=mfrm_spec(d;merge(o,(;population=(assessor=prior,)))...)
+        b=only(b for b in t.residuals if b.name===:assessor)
+        @test EF.record(t).schema=="bayesianmgmfrm.explanatory_facet_design.v4"
+        restored=EF.restore(EF.record(t))
+        for u in (-20.,-1.2,0.,1.1)
+            q=.12sin.(1:t.dimension);q[b.hyper]=u
+            ref=explanatory_reference(t,q;centered_prior=true)
+            lp,g=logdensity_and_gradient(t,q)
+            @test lp≈ref.density atol=1e-10
+            @test logprior(t,q)≈ref.prior atol=1e-10
+            @test coordinates(t,q).log_volume≈ref.volume atol=1e-10
+            @test g≈ForwardDiff.gradient(x->explanatory_reference(t,x;centered_prior=true).density,q) atol=1e-9
+            @test logposterior(restored,q)==logposterior(t,q)
+            @test logposterior(t,BigFloat.(q))≈lp atol=1e-10
+            defs=BayesianMGMFRM._explanatory_power_definitions(t)
+            @test sum(BayesianMGMFRM._explanatory_factor_value(f,q) for f in defs)+ref.volume≈logprior(t,q) atol=1e-10
+        end
+        rng=MersenneTwister(726)
+        draws=[cdf(prior,exp(EF._prior_draw!(rng,t)[b.hyper])) for _ in 1:10000]
+        @test abs(mean(draws)-.5)<.015
+        @test abs(mean(draws .< .1)-.1)<.012
+        bad=merge(EF.record(t),(;coordinates=:white_standard_normal))
+        @test_throws ArgumentError EF.restore(bad)
+        @test_throws ArgumentError EF._population_parameters(prior,:assessor) # other families retain their contract
+    end
+    for p in (truncated(Normal(1,1),0,Inf),truncated(Normal(),.1,Inf),truncated(Normal(),0,1))
+        @test_throws ArgumentError mfrm_spec(d;merge(o,(;population=(assessor=p,)))...)
+    end
 end

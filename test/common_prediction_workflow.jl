@@ -1,4 +1,5 @@
 using BayesianMGMFRM, Test, Serialization, TOML, SHA
+using BayesianMGMFRM.Legacy
 const B=BayesianMGMFRM
 include("common_prediction_fixtures.jl")
 include("../examples/saved_prediction_workflow.jl")
@@ -71,7 +72,7 @@ function common_prediction_workflow_checks(directory)
             TOML.print(io,Dict("names"=>first.(caches),"files"=>basename.(last.(caches)),
                 "dataset_id"=>opts.dataset_id,"observation_ids"=>ids))
         end
-        project=dirname(@__DIR__);runner=joinpath(@__DIR__,"common_prediction_workflow_replay.jl")
+        project=dirname(Base.active_project());runner=joinpath(@__DIR__,"common_prediction_workflow_replay.jl")
         replay=joinpath(directory,"second");log=joinpath(directory,"replay.log")
         GC.gc()
         open(log,"w") do io

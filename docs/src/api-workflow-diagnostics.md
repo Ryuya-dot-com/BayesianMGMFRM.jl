@@ -94,6 +94,7 @@ qualify
 facet_summary
 category_summary
 contrast
+plausible_values
 event_probabilities
 reliability
 ranking
@@ -109,7 +110,7 @@ reliability, agreement and category reports.
 
 Use `calibration_table` to ask whether groups of observed rating rows have
 averages close to their model expectations. Its fitted-result methods accept
-`MFRMFit`, `GMFRMFit` and `MGMFRMFit`; the experimental normalized and correlated
+`BayesianMGMFRM.Legacy.MFRMFit`, `GMFRMFit` and `MGMFRMFit`; the normalized and correlated
 result types have separate reporting contracts. A model family name alone does
 not establish that this function accepts its result type.
 

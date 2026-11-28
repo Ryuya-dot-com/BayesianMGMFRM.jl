@@ -1,4 +1,6 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 
 all(arg -> arg in ("--plots", "--cmdstan"), ARGS) ||
     error("Usage: julia --project=. examples/guarded_gmfrm.jl [--plots] [--cmdstan]")

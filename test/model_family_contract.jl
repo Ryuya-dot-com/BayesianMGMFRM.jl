@@ -1,5 +1,6 @@
 using Test
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
 
 function _model_family_test_data(n_items::Int)
     item_levels = ["I$item" for item in 1:n_items]

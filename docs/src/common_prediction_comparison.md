@@ -59,6 +59,8 @@ numbers alone does not establish matching data.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 include("examples/saved_model_comparison.jl") # Run from the candidate project root.
 
 result = saved_model_comparison(
@@ -282,11 +284,13 @@ response must be held out together.
 
 ```julia
 using BayesianMGMFRM, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 
 # Prespecify data/spec, prior, persistent rating_ids and the splitting rule.
 plan = kfold_plan(spec.data; k=5, group_by=:response_id)
 prepared = BayesianMGMFRM.prediction_refit_plan(spec, plan;
-    prior=MFRMPrior(), dataset_id="rating-study-v1", observation_ids=rating_ids)
+    prior=BayesianMGMFRM.Legacy.MFRMPrior(), dataset_id="rating-study-v1", observation_ids=rating_ids)
 request = prepared.folds[1]
 serialize("fold-1-request.jls", request)
 
@@ -306,7 +310,7 @@ scored.sampling_quality         # Retains diagnostic warnings.
 Preparation/scoring themselves perform no fitting and need no full-data posterior.
 For GMFRM, MGMFRM, normalized MGMFRM, fixed-Q multidimensional MFRM and their
 admitted correlated/exchangeable-prior routes, explicitly supply the corresponding
-experimental model and prior, then use
+model and prior, then use
 `Experimental.fit(request.model; prior=request.prior, ...)`.
 Existing dimension, Q, prior and backend restrictions apply. The example's
 iteration counts do not guarantee precision.
@@ -356,6 +360,8 @@ does not substitute the scalar rater-step GMFRM for the fixed model.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const B = BayesianMGMFRM
 const E = B.Experimental
 
@@ -441,6 +447,8 @@ below illustrate the arguments and are not calibrated defaults.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 const E = BayesianMGMFRM.Experimental
 include("examples/matched_dimension_refit_plans.jl")
 
@@ -663,6 +671,8 @@ canonical records; legacy v1 is rejected.
 
 ```julia
 using BayesianMGMFRM, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 include("examples/saved_recovery_evaluation.jl")
 
 fit = load_fit_cache("simulation-fit.jls")
@@ -744,6 +754,8 @@ values for different sample sizes, allocations, analysis models, priors or truth
 
 ```julia
 using BayesianMGMFRM, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "saved_recovery_replications.jl"))
 # Each file contains that dataset's serialized recovery_evaluation.
 summary = saved_recovery_replications(["recovery-D1.jls", "recovery-D2.jls"];
@@ -885,6 +897,8 @@ width for every requested parameter and explicit MCSE limits. For example:
 
 ```julia
 using BayesianMGMFRM, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "saved_recovery_replications.jl"))
 
 summary = saved_recovery_replications(
@@ -942,6 +956,8 @@ margin to your target and numerical status for **every planned dataset**:
 
 ```julia
 using BayesianMGMFRM, Serialization
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "saved_recovery_replications.jl"))
 
 review = saved_recovery_width_review(
@@ -1007,6 +1023,8 @@ MFRM reports still require canonical records.
 
 ```julia
 using BayesianMGMFRM
+using BayesianMGMFRM.GlassBox
+using BayesianMGMFRM.Legacy
 include("examples/saved_prediction_workflow.jl")
 
 analysis = saved_prediction_workflow(

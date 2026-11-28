@@ -1,4 +1,5 @@
 using BayesianMGMFRM
+using BayesianMGMFRM.Legacy
 
 """
     saved_category_report(cache_path; dataset_id, observation_ids, kwargs...)
