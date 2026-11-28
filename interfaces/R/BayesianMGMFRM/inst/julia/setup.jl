@@ -1,6 +1,6 @@
 using Pkg, TOML, UUIDs
 
-const release_commit = "134418dd459267ab4c834cf9ff8f49d71aea9ec5"
+const release_commit = "850721b6546da993152e31c6755f289b5bdef592"
 const repository = "https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl"
 const package_id = UUID("1c3fdc16-45de-4463-900f-cd2a5999ffa5")
 const tables_id = UUID("bd369af6-aec1-5ad0-b16a-f7cc5008161c")
