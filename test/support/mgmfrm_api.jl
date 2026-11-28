@@ -233,8 +233,15 @@ function check_mgmfrm_guarded_fit_validation_grid_fixture(fixture_path::Abstract
         @test Bool(row[:exists])
         @test Bool(row[:schema_matches])
         @test Bool(row[:summary_passed])
-        @test String(row[:sha256]) ==
-            file_sha256(joinpath(root, String(row[:path])))
+        recorded = String(row[:sha256])
+        path = joinpath(root, String(row[:path]))
+        # The archived grid consumed the 13-scenario Q study. Later grids can
+        # reference the 15-scenario successor at the same recorded path.
+        if artifact == "q_matrix_validation_expansion" &&
+                recorded == "414b69842a9364102af1270f8e4fee793d40c46f189aff17e537648803c20346"
+            path = joinpath(dirname(path), "mgmfrm_q_matrix_validation_expansion_13_scenarios.json")
+        end
+        @test recorded == file_sha256(path)
     end
 
     validation_rows = fixture[:validation_rows]

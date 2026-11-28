@@ -85,6 +85,12 @@ run `julia --project=. test/local_dependence_pilot_harness_reproduction.jl`
 from a full Git clone. This builds a temporary protocol with the current source
 hashes and checks every planned command's job ID without starting a fit.
 
+The guarded-fit validation grid records the SHA-256 of the original
+13-scenario Q-matrix study at commit `6e8291c96e10332eddd651a3477c3c2c11550115`.
+`mgmfrm_q_matrix_validation_expansion_13_scenarios.json` preserves those
+bytes. The 15-scenario successor has its own checks and remains at
+`mgmfrm_q_matrix_validation_expansion.json`.
+
 The scalar references above, the ConQuest bridge records below and
 `local_dependence_known_truth_preflight.json` also have ordinary behavioral
 checks. Classify fixtures by their consumers, not by filename or file size.
