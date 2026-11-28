@@ -368,55 +368,19 @@ end
     # 3. 1D Yen's Q3 / Adjusted Q3* Residual Correlation & PPC Diagnostics
     # -----------------------------------------------------------------------
     @testset "1D MRCML diagnostics(kind = :residual_correlation) detects halo and 2D misspecification" begin
-        rng = MersenneTwister(2026112503)
-        P_sim, R_sim, I_sim = 36, 4, 4
-        b_item = [-0.6, -0.2, 0.2, 0.6]
-        c_rater = [-0.4, -0.1, 0.1, 0.4]
-        steps_cum = [0.0, -0.9, 0.0, 0.9] # 4 categories 0..3
-
-        sample_cat = function(rng_loc, eta_val)
-            logits = [k * eta_val - steps_cum[k + 1] for k in 0:3]
-            m = maximum(logits)
-            w = exp.(logits .- m)
-            w ./= sum(w)
-            u = rand(rng_loc)
-            acc = 0.0
-            for k in 1:4
-                acc += w[k]
-                u <= acc && return k - 1
-            end
-            return 3
-        end
-
-        build_sim_tbl = function(mode::Symbol)
-            ps = String[]; its = String[]; rts = String[]; scs = Int[]; ass = String[]
-            th1 = randn(rng, P_sim)
-            th2 = randn(rng, P_sim)
-            for p in 1:P_sim
-                for r in (mod1(p, R_sim), mod1(p + 1, R_sim))
-                    u_halo = mode === :halo ? 0.95 * randn(rng) : 0.0
-                    aid = "Ev_$(p)_$(r)"
-                    for i in 1:I_sim
-                        th_eff = if mode === :twodim
-                            i <= 2 ? 1.35 * th1[p] : 1.35 * th2[p]
-                        else
-                            1.0 * th1[p]
-                        end
-                        eta = th_eff - b_item[i] - c_rater[r] + u_halo
-                        push!(ps, "P$(lpad(p, 2, '0'))")
-                        push!(its, "I$i")
-                        push!(rts, "R$r")
-                        push!(scs, sample_cat(rng, eta))
-                        push!(ass, aid)
-                    end
-                end
-            end
-            return (; person = ps, item = its, rater = rts, score = scs, assessment = ass)
-        end
-
-        tbl_null = build_sim_tbl(:null)
-        tbl_halo = build_sim_tbl(:halo)
-        tbl_2d = build_sim_tbl(:twodim)
+        # Freeze the three simulated rating tables so both Julia versions assess
+        # the same observations. These come from 0cea3251 run on Julia 1.13.4 with
+        # MersenneTwister(2026112503) and a shared event SD of 0.95 for halo.
+        fixture = joinpath(@__DIR__, "fixtures", "q3_simulated_ratings.csv")
+        lines = readlines(fixture)
+        @test first(lines) == "person,item,rater,assessment,null_score,halo_score,twodim_score"
+        rows = [split(line, ',') for line in Iterators.drop(lines, 1)]
+        @test length(rows) == 288
+        design = (; person = first.(rows), item = getindex.(rows, 2),
+            rater = getindex.(rows, 3), assessment = getindex.(rows, 4))
+        tbl_null = (; design..., score = parse.(Int, getindex.(rows, 5)))
+        tbl_halo = (; design..., score = parse.(Int, getindex.(rows, 6)))
+        tbl_2d = (; design..., score = parse.(Int, getindex.(rows, 7)))
 
         fit_1d = function(t_in, sd)
             sp = mfrm_spec(t_in;
@@ -435,6 +399,7 @@ end
 
         @test rc_null.unit === :event
         @test length(rc_null.rows) == 6
+        @test rc_null.global_summary.ppp_mean_q3 >= 0.05
         @test rc_halo.global_summary.mean_q3_obs > 0.15
         @test rc_halo.global_summary.ppp_mean_q3 < 0.05
         @test rc_2d.global_summary.max_adjusted_q3_obs > 0.20
