@@ -118,7 +118,9 @@ function _evidence_package_status(;
 end
 
 function _evidence_package_environment(; include_paths::Bool = false)
-    resolved = Base.locate_package_env(Base.PkgId(@__MODULE__))
+    resolved = lock(Base.require_lock) do
+        Base.locate_package_env(Base.PkgId(@__MODULE__))
+    end
     resolved === nothing && throw(ArgumentError("package source environment is unavailable"))
     entry, project = resolved
     realpath(entry) == realpath(pathof(@__MODULE__)) || throw(ArgumentError(
