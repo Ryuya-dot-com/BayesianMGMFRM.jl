@@ -164,8 +164,11 @@ function _fair_weighted_summary(v,w;level,threshold=nothing,strict=false)
         nothing
     else
         threshold isa Real && !(threshold isa Bool) && isfinite(threshold) || throw(ArgumentError("threshold/margin must be finite"))
+        selected = strict ? v .> threshold : v .>= threshold
+        event_mass = sum(w[selected])
+        other_mass = sum(w[.!selected])
         (;threshold,operator=strict ? :greater : :greater_equal,
-            probability=sum(w[strict ? v.>threshold : v.>=threshold]),mcse=missing,status=:deterministic_quadrature)
+            probability=event_mass / (event_mass + other_mass),mcse=missing,status=:deterministic_quadrature)
     end
     (;mean=m,median=q(.5),sd=sqrt(max(0.,dot(w,(v.-m).^2))),lower=q((1-level)/2),upper=q((1+level)/2),event)
 end

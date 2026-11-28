@@ -117,6 +117,24 @@ stopifnot(identical(mr$interval_target,"conditional_posterior_expected_score"),m
   max(abs(mr$rows$mean-vapply(1:2,function(p)sum(expected[[p]]*unlist(fb$frequentist$posterior[[p]]$weights)),double(1))))<1e-14,
   max(abs(mr$rows$probability-c(.8,.6)))<1e-14)
 
+# Stored quadrature weights can sum one rounding unit above or below one.
+rounded <- frequentist
+for (i in 1:2) {
+  rounded$metadata$fair_reference_basis$frequentist$posterior[[i]]$weights <-
+    as.list(c(.25, .25, .5 + c(-1, 1)[i] * .Machine$double.eps))
+}
+for (limit in c(-2, 2)) {
+  pair <- comparison
+  pair$margin <- limit
+  report <- diagnostics_mgmfrm(rounded, "fair_average", reference_plan=plan,
+    threshold=limit, comparisons=pair)
+  cls <- diagnostics_mgmfrm(rounded, "classification", cutoff=limit)
+  boundary <- as.double(limit < 0)
+  stopifnot(all(report$rows$probability == boundary),
+    all(report$contrasts$probability == boundary),
+    all(cls$rows$qualifying_probability == boundary))
+}
+
 # Focal DFF, held group membership, and zero-interaction reporting.
 dff <- f; db <- basis; db$schema <- "bayesianmgmfrm.fair_reference_basis.v2"
 db$contexts <- list(list(name="group",values=1:2))

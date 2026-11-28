@@ -1,3 +1,9 @@
+.quadrature_event_probability <- function(weights, selected) {
+  event_mass <- sum(weights[selected])
+  other_mass <- sum(weights[!selected])
+  event_mass / (event_mass + other_mass)
+}
+
 .fair_reference_frequentist <- function(object, b, plan, indices, groups, w, cats, interval, threshold, comparisons, interaction_effects, conditioning) {
   d <- b$frequentist; jmle <- identical(d$method, "jmle")
   if (jmle && !is.null(threshold)) stop("JMLE confidence intervals do not define posterior threshold probabilities.")
@@ -64,7 +70,8 @@
     if (!is.null(threshold)) {
       if (!is.numeric(threshold) || length(threshold) != 1L || !is.finite(threshold)) stop("threshold/margin must be finite.")
       out$threshold <- threshold; out$operator <- if (strict) "greater" else "greater_equal"
-      out$probability <- sum(weights[if (strict) values > threshold else values >= threshold])
+      selected <- if (strict) values > threshold else values >= threshold
+      out$probability <- .quadrature_event_probability(weights, selected)
       out$probability_mcse <- NA_real_; out$probability_status <- "deterministic_quadrature"
     }
     out

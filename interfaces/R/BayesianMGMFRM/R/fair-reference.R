@@ -1043,7 +1043,7 @@ plot.mgmfrm_fair_average <- function(x, ...) {
       w_sd <- sqrt(max(0.0, sum(wt * (nd - w_mean)^2)))
       w_lo <- nd[[ord_nd[[which(cdf_w >= probs[[1L]])[[1L]]]]]]
       w_hi <- nd[[ord_nd[[which(cdf_w >= probs[[2L]])[[1L]]]]]]
-      q_i <- sum(wt[nd >= cutoff])
+      q_i <- .quadrature_event_probability(wt, nd >= cutoff)
       pass_i <- q_i >= pass_probability
       err_i <- if (pass_i) (1.0 - q_i) else q_i
       data.frame(

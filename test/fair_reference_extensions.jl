@@ -57,6 +57,19 @@ import ForwardDiff
     @test_throws ArgumentError A._fair_reference_plan(merge(b,(facets=NamedTuple[],)),(Weight=[1.],))
 end
 
+@testset "Quadrature probabilities at thresholds and strict margins" begin
+    scores = [1.0, 2.0, 3.0]
+    for offset in (eps(), -eps())
+        weights = [0.25, 0.25, 0.5 + offset]
+        event(threshold; strict=false) = BayesianMGMFRM._fair_weighted_summary(
+            scores, weights; level=0.95, threshold, strict).event.probability
+        @test event(1) == 1.0
+        @test event(3; strict=true) == 0.0
+        @test event(2) ≈ 0.75 atol=eps() rtol=0
+        @test event(2; strict=true) ≈ 0.5 atol=eps() rtol=0
+    end
+end
+
 @testset "Frequentist expected scores and joint covariance" begin
     B=BayesianMGMFRM;A=B.AdditiveFacets
     ids=[(p,i,r) for p in 1:8 for i in 1:3 for r in 1:3]
