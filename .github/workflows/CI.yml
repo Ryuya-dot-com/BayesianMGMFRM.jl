@@ -223,12 +223,16 @@ jobs:
         run: Rscript --vanilla -e 'library(BayesianMGMFRM); setup_mgmfrm()'
 
   research-evidence:
-    name: Research evidence and SHA lineage
+    name: Research evidence and SHA lineage - ${{ matrix.research_shard }}
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        research_shard: [core, fitting_core, fitting_reports, local_dependence_core, local_dependence_integrity, generalized]
     env:
       BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS: "true"
-      BAYESIANMGMFRM_TEST_GROUP: all
+      BAYESIANMGMFRM_TEST_GROUP: ${{ matrix.research_shard }}
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2

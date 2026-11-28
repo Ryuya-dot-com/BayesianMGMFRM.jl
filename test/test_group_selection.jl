@@ -16,11 +16,16 @@ end
     ci_groups = Tuple(Symbol(m.captures[1]) for m in
         eachmatch(r"(?m)^\s*- group: (\w+)\s*$", workflow))
     @test ci_groups == TEST_SHARDS
+    research_matrix = match(r"(?m)^\s*research_shard: \[([^\]]+)\]\s*$", workflow)
+    @test Tuple(Symbol.(strip.(split(research_matrix.captures[1], ',')))) == TEST_SHARDS
 
     for group in TEST_GROUPS
         @test selected_test_group(string(group); research_evidence = false) === group
-        @test_throws ArgumentError selected_test_group(
-            string(group); research_evidence = true)
+        if group in TEST_SHARDS
+            @test selected_test_group(string(group); research_evidence = true) === group
+        else
+            @test_throws ArgumentError selected_test_group(string(group); research_evidence = true)
+        end
     end
     @test selected_test_group("all"; research_evidence = true) === :all
 

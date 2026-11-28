@@ -56,8 +56,9 @@ scalar reference includes the Uto-Ueno logistic scaling constant `1.7`.
 ## Optional research records
 
 Ordinary tests do not use optional research artifacts as numerical oracles.
-Checks routed through `optional_fixture_path` require both
-`BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true` and test group `all`. In that mode,
+Checks routed through `optional_fixture_path` require
+`BAYESIANMGMFRM_RESEARCH_EVIDENCE_TESTS=true`. The default group `all` runs the
+full suite. Manual CI covers the same six concrete groups in parallel. In that mode,
 an existing default fixture or its documented `MFRM_*_FIXTURE` override is
 checked. A nonempty override without opt-in is rejected; an explicitly missing
 path also errors. An empty override disables that optional fixture. Ordinary
