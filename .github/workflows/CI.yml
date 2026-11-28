@@ -50,6 +50,8 @@ jobs:
           version: ${{ matrix.julia }}
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
+      - name: Compare serial and four-thread large-panel solver results
+        run: julia --startup-file=no --threads=4 --project=. test/large_panel_speed_parity.jl
       - name: Check summaries, figure data, contrasts and cache reload
         run: julia --startup-file=no --project=. test/postprocessing.jl
       - name: Check Gaussian conditional coordinates and deterministic integration

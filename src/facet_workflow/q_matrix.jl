@@ -83,6 +83,30 @@ function _q_matrix_validation_row(; check::Symbol,
     )
 end
 
+function _q_matrix_row_order(labels, item_levels, item_role)
+    length(labels) == length(item_levels) ||
+        throw(ArgumentError("q_matrix must supply one row per observed $item_role level"))
+    exact_rows = Dict{Any,Int}()
+    text_rows = Dict{String,Int}()
+    for (row, label) in enumerate(labels)
+        haskey(exact_rows, label) && throw(ArgumentError("duplicate $item_role label $(repr(label)) in q_matrix"))
+        exact_rows[label] = row
+        text = string(label)
+        # Different typed labels may have the same text. Only exact matches can use them.
+        text_rows[text] = haskey(text_rows, text) ? 0 : row
+    end
+    order = map(item_levels) do level
+        row = get(exact_rows, level, 0)
+        if iszero(row)
+            row = get(text_rows, string(level), 0)
+            iszero(row) && throw(ArgumentError("no unique q_matrix row for $item_role $(repr(level))"))
+        end
+        row
+    end
+    allunique(order) || throw(ArgumentError("q_matrix labels must match the observed $item_role levels one-to-one"))
+    return order
+end
+
 function _resolve_q_matrix_input(q_in, item_levels::AbstractVector; item_role::Symbol = :item)
     q_in === nothing && return (; matrix = nothing, dimension_labels = nothing)
     q_in isa AbstractMatrix && return (; matrix = q_in, dimension_labels = nothing)
@@ -94,34 +118,19 @@ function _resolve_q_matrix_input(q_in, item_levels::AbstractVector; item_role::S
         mat_in = q_in.matrix
         mat_in isa AbstractMatrix || throw(ArgumentError("q_matrix.matrix must be a 2D matrix"))
         size(mat_in, 1) == length(it_in) || throw(DimensionMismatch("length(q_matrix.items) != size(q_matrix.matrix, 1)"))
-        length(it_in) == I && length(unique(string.(it_in))) == I ||
-            throw(ArgumentError("q_matrix.items must list each observed $item_role level once"))
-        perm = Vector{Int}(undef, I)
-        for (i, lvl) in enumerate(item_levels)
-            hit = findfirst(x -> isequal(x, lvl) || string(x) == string(lvl), it_in)
-            hit === nothing && throw(ArgumentError("missing $item_role $(repr(lvl)) in q_matrix.items"))
-            perm[i] = hit
-        end
+        perm = _q_matrix_row_order(it_in, item_levels, item_role)
         dims_out = hasproperty(q_in, :dimensions) ? q_in.dimensions : nothing
         return (; matrix = mat_in[perm, :], dimension_labels = dims_out)
     elseif q_in isa AbstractDict || q_in isa NamedTuple || (q_in isa AbstractVector && !isempty(q_in) && all(x -> x isa Pair, q_in))
-        kv = q_in isa NamedTuple ? collect(pairs(q_in)) : (q_in isa AbstractDict ? collect(pairs(q_in)) : collect(q_in))
-        length(kv) == I || throw(ArgumentError(
-            "named q_matrix must provide exactly one indicator row for each of the $I observed $item_role levels; got $(length(kv)) entries"))
-        seen_keys = Set{String}()
-        for (k, _) in kv
-            ks = string(k)
-            ks in seen_keys && throw(ArgumentError("duplicate $item_role key $(repr(k)) in named q_matrix"))
-            push!(seen_keys, ks)
-        end
+        kv = q_in isa AbstractVector ? q_in : collect(pairs(q_in))
+        perm = _q_matrix_row_order(first.(kv), item_levels, item_role)
         first_row = collect(last(kv[1]))
         D = length(first_row)
         D >= 1 || throw(ArgumentError("named q_matrix rows must have at least 1 dimension"))
         mat_out = Matrix{Int}(undef, I, D)
-        for (i, lvl) in enumerate(item_levels)
-            hit = findfirst(p -> isequal(first(p), lvl) || string(first(p)) == string(lvl), kv)
-            hit === nothing && throw(ArgumentError("missing $item_role level $(repr(lvl)) in named q_matrix"))
-            rv = collect(last(kv[hit]))
+        for (i, row) in enumerate(perm)
+            lvl = item_levels[i]
+            rv = collect(last(kv[row]))
             length(rv) == D || throw(DimensionMismatch("named q_matrix row for $(repr(lvl)) has length $(length(rv)); expected $D"))
             for d in 1:D
                 val = rv[d]

@@ -232,6 +232,10 @@ structural support for all ability directions. An empty list does not establish
 adequate precision; [the dimension-support example](#person-dimension-support)
 explains missing-dimension and rank warnings.
 
+You can also pass the dictionary directly as `q_matrix=q_by_item`.
+Each observed item must match exactly one row. When numeric `1` and string
+`"1"` both appear in the data, supply a distinct key for each.
+
 These steps stop at input checks and model specification. For fitting, choose
 all six scales of the [normalized prior](experimental.md#MGMFRM-prior-choice-and-comparable-scales)
 explicitly for your study and review the [current scientific scope](scope.md#current-scientific-evidence).
