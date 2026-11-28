@@ -16,6 +16,7 @@ include(joinpath(@__DIR__, "local_json.jl"))
 const FREECORR_RUNNER_ROOT = normpath(joinpath(@__DIR__, ".."))
 const FREECORR_RUNNER_PATH = normpath(@__FILE__)
 const FREECORR_LOCAL_JSON_PATH = normpath(joinpath(@__DIR__, "local_json.jl"))
+const FREECORR_MANIFEST_FORMATS = (v"2.0", v"2.1")
 const FREECORR_DEFAULT_ATTEMPT_ROOT = joinpath(
     FREECORR_RUNNER_ROOT,
     "artifacts",
@@ -873,8 +874,8 @@ function freecorr_manifest_header(manifest_bytes, project_bytes)
         manifest_julia_version.minor == VERSION.minor || error(
         "selected Manifest julia_version does not match the runtime major/minor",
     )
-    VersionNumber(manifest_format) == v"2.0.0" || error(
-        "selected Manifest is not frozen manifest format 2.0",
+    VersionNumber(manifest_format) in FREECORR_MANIFEST_FORMATS || error(
+        "selected Manifest must use format 2.0 or 2.1",
     )
     occursin(r"^[0-9a-f]{40}$", project_hash) || error(
         "selected Manifest project_hash is not a lowercase SHA-1 digest",
@@ -1125,7 +1126,7 @@ function freecorr_validate_environment_receipt(value, plan; require_current::Boo
     VersionNumber(freecorr_require_string(
         manifest_header["manifest_format"],
         "Manifest manifest_format",
-    )) == v"2.0.0" || error("Manifest format is not 2.0")
+    )) in FREECORR_MANIFEST_FORMATS || error("Manifest must use format 2.0 or 2.1")
     occursin(
         r"^[0-9a-f]{40}$",
         freecorr_require_string(

@@ -309,7 +309,15 @@ end
         )
         @test (header_version.major, header_version.minor) ==
             (VERSION.major, VERSION.minor)
-        @test environment_receipt.manifest_header.manifest_format == "2.0"
+        manifest_path = joinpath(@__DIR__, "..", expected_manifest)
+        manifest = runner.TOML.parsefile(manifest_path)
+        @test environment_receipt.manifest_header.manifest_format == manifest["manifest_format"]
+        project_bytes = read(joinpath(@__DIR__, "..", "Project.toml"))
+        for invalid in (merge(manifest, Dict("manifest_format" => "3.0")),
+                merge(manifest, Dict("project_hash" => repeat("0", 40))))
+            bytes = codeunits(sprint(io -> runner.TOML.print(io, invalid)))
+            @test_throws ErrorException runner.freecorr_manifest_header(bytes, project_bytes)
+        end
         @test environment_receipt.manifest_header.
             project_resolve_hash_verified
         @test environment_receipt.manifest_header.
