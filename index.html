@@ -58,16 +58,16 @@ Each model guide describes its identification requirements and validation eviden
 </div>
 
 <h2>Install the matching source revision</h2>
-<p>With Julia 1.10.8 or newer, install this exact source commit (<a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/tree/134418dd459267ab4c834cf9ff8f49d71aea9ec5"><code>134418dd4592</code></a>):</p>
+<p>With Julia 1.10.8 or newer, install this exact source commit (<a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/tree/850721b6546da993152e31c6755f289b5bdef592"><code>850721b6546d</code></a>):</p>
 <pre><code>using Pkg
 Pkg.activate("rating-analysis")
 Pkg.add(url="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl",
-    rev="134418dd459267ab4c834cf9ff8f49d71aea9ec5")
+    rev="850721b6546da993152e31c6755f289b5bdef592")
 using BayesianMGMFRM
 include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_analysis_v02.jl"))
 result = FirstMFRMAnalysisV02.main()</code></pre>
 
-<p>R users can install the <a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/tree/snapshot-v0.2-20261128-r2/interfaces/R/BayesianMGMFRM">R wrapper 0.2.0</a> and run <code>setup_mgmfrm()</code> to use the same Julia commit.</p>
+<p>R users can install the <a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/tree/snapshot-v0.2-20261128-r3/interfaces/R/BayesianMGMFRM">R wrapper 0.2.0</a> and run <code>setup_mgmfrm()</code> to use the same Julia commit.</p>
 <p>Dated manual snapshots:
 <a href="preview/20261119-distribution-ci-freeze/">19 November 2026 snapshot</a> ·
 <a href="preview/20261109-entry-organization/">9 November 2026 snapshot</a> ·
