@@ -3,7 +3,7 @@
 \title{Prepare the Julia environment and connect the R session}
 \usage{
 setup_mgmfrm(project = file.path(tools::R_user_dir("BayesianMGMFRM", "cache"),
-  "julia-850721b6"), source_dir = NULL, julia = Sys.which("julia"))
+  "julia-ae61f103"), source_dir = NULL, julia = Sys.which("julia"))
 }
 \arguments{
 \item{project}{Dedicated persistent directory for the Julia environment.}

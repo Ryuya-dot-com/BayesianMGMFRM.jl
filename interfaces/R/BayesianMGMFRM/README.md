@@ -42,7 +42,7 @@ also run offline from saved `mgmfrm_r_fit` objects and portable handoffs.
 ## Quick Start
 
 Install Julia 1.10.8 or newer. Download and extract the
-[R wrapper snapshot](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/archive/refs/tags/snapshot-v0.2-20261128-r3.tar.gz).
+[R wrapper snapshot](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/archive/refs/tags/snapshot-v0.2-20261128-r4.tar.gz).
 From its root directory, install the R package and connect to Julia:
 
 ```r
@@ -63,7 +63,7 @@ diagnostics_mgmfrm(fit, type = "reliability")
 ```
 
 The R wrapper is version `0.2.0`. Its default setup installs the Julia
-`0.2.0-DEV` engine at commit `850721b6546da993152e31c6755f289b5bdef592`.
+`0.2.0-DEV` engine at commit `ae61f103b14d8b3af6ba459b37020627dd58a98d`.
 After fitting, `fit$metadata$bridge_source` records this SHA and
 `fit$metadata$package_version` records the Julia package version.
 
