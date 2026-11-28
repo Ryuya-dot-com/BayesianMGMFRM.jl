@@ -62,7 +62,10 @@ function check_current_pilot_harness(; executor_tests = false)
                 Pkg.pin(Pkg.PackageSpec(; name, version))
             end
             """
-        julia = `$(Base.julia_cmd()) --startup-file=no --project=$scratch`
+        # Pkg.test can pass an absolute load path for its own temporary project.
+        # Each child must resolve its scratch project and the runtime stdlibs.
+        julia = addenv(`$(Base.julia_cmd()) --startup-file=no --project=$scratch`,
+            "JULIA_LOAD_PATH" => join(("@", "@stdlib"), Sys.iswindows() ? ';' : ':'))
         run(`$julia -e $setup $diagnostic_version`)
         for generator in ("generate_local_dependence_calibration_scorer_preflight.jl",
                 "generate_local_dependence_pilot_protocol_preflight.jl",
