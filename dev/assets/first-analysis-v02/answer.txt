@@ -1,0 +1,15 @@
+Is R2 more severe than R1?
+Artificial ratings: 72; people: 12; items: 4; raters: 3.
+Model: Standard v0.2 1D isometric partial-credit MFRM (prior = :default)
+Prior: person SD ~ HalfNormal(1.0); population_mean ~ Normal(0.0, 2.5); facets/steps = orthonormal Helmert sum-to-zero (marginal SD 1.0).
+Whole-fit qualification: passed (max R-hat = 1.0045, min bulk/tail ESS = 1240.8/1346.8, retained divergences = 0, retained max-depth hits = 0).
+Warmup adaptation events (excluded from retained draws): 19 total divergences (chain 1=3, chain 2=6, chain 3=5, chain 4=5); max-depth hits = 0.
+R2 - R1 severity contrast (logit): mean = 0.132, median = 0.141, 90% interval = [-0.499, 0.746].
+Contrast MCSE (logit): mean = 0.0064, interval endpoints = 0.0176, 0.015.
+The 90% credible interval includes zero: these ratings do not clearly establish which rater is more severe under this model and prior. This does not prove equivalence.
+Rater posterior-integrated vs. plug-in Infit/Outfit MNSQ (90% posterior interval):
+  R1: Infit mean=0.895 [0.634, 1.251] (plug-in 0.666); Outfit mean=0.89 [0.634, 1.284] (plug-in 0.639).
+  R2: Infit mean=0.952 [0.681, 1.376] (plug-in 0.745); Outfit mean=1.077 [0.726, 1.659] (plug-in 0.817).
+  R3: Infit mean=1.3 [1.009, 1.683] (plug-in 1.058); Outfit mean=1.328 [0.996, 1.774] (plug-in 1.024).
+Person reliability: finite-cohort = 0.29 [0.0, 0.767]; population marginal = 0.512 [0.033, 0.863].
+Passing numerical checks does not establish model adequacy or interval calibration.

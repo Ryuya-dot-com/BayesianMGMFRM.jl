@@ -20,13 +20,14 @@ li{margin:10px 0}
 <main>
 <p><strong>BayesianMGMFRM.jl</strong> · Separate person ability, task difficulty, and rater severity with full Bayesian uncertainty</p>
 <h1>Documentation and Entry Guide</h1>
-<p class="notice"><strong>Updated manual and entry guide · 19 November 2026 (<code>20261119-distribution-ci-freeze</code>).</strong>
-One-dimensional many-facet Rasch measurement (MFRM) — both Bayesian MCMC and classical JMLE / MMLE — is the supported baseline workflow.
-Generalized, multidimensional, mixed-outcome, and custom Stan post-estimation extensions retain the explicit identification and validation limits stated in each guide.</p>
+<p class="notice"><strong>Development manual · 28 November 2026 · Julia 0.2.0-DEV.</strong>
+Start with the one-dimensional many-facet Rasch model to estimate person ability, item difficulty and rater severity.
+Each model guide describes its identification requirements and validation evidence.</p>
 
 <h2>Start here by goal</h2>
 <ul>
-<li><a href="dev/"><strong>Open the complete 53-page manual (<code>/dev/</code>)</strong></a> — organized by task routing, model equations, diagnostics, and visual previews.</li>
+<li><a href="dev/first-analysis/"><strong>Your First Rating Analysis</strong></a> compares two raters using supplied ratings and posterior draws.</li>
+<li><a href="dev/"><strong>Open the development manual</strong></a> for model equations, diagnostics and examples.</li>
 <li><a href="dev/learning-guide/#julia-for-beginners"><strong>New to Julia? 5-Minute Guide for R, Python, and FACETS Users</strong></a> — project environments, <code>:symbols</code>, keyword arguments, interactive <code>?</code> help, and common first-time pitfalls.</li>
 <li><a href="dev/migration-stan-brms/"><strong>Migrating from Stan and brms: Controls, Defaults, and Diagnostics</strong></a> — exact mathematical correspondence for <code>adapt_delta</code> / <code>target_accept</code>, <code>max_treedepth</code> / <code>max_depth</code>, <code>E-BFMI</code>, split R-hat, ESS, MCSE, and <code>StanAdapter</code>.</li>
 <li><a href="dev/migration-facets-conquest/#software-comparison"><strong>Compare with FACETS, ACER ConQuest, R (TAM / mirt), and Stan</strong></a> — capability matrix, JMLE / MMLE / Bayesian HMC parity, sign conventions, anchors, and posterior uncertainty.</li>
@@ -57,16 +58,16 @@ Generalized, multidimensional, mixed-outcome, and custom Stan post-estimation ex
 </div>
 
 <h2>Install the matching source revision</h2>
-<p>With Julia 1.10.8 or newer, install this exact source commit (<a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/tree/dcc3c8447bd9189deabaca23981fd40e8287139c"><code>dcc3c8447bd9</code></a>):</p>
+<p>With Julia 1.10.8 or newer, install this exact source commit (<a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/tree/78c5701b91b241a5c3d34aeb5640f3b4717d6fca"><code>78c5701b91b2</code></a>):</p>
 <pre><code>using Pkg
-Pkg.activate("rating-local")
+Pkg.activate("rating-analysis")
 Pkg.add(url="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl",
-    rev="dcc3c8447bd9189deabaca23981fd40e8287139c")
-Pkg.pin("BayesianMGMFRM")
+    rev="78c5701b91b241a5c3d34aeb5640f3b4717d6fca")
 using BayesianMGMFRM
-include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_analysis.jl"))
-result = FirstMFRMAnalysis.main()</code></pre>
+include(joinpath(pkgdir(BayesianMGMFRM), "examples", "first_analysis_v02.jl"))
+result = FirstMFRMAnalysisV02.main()</code></pre>
 
+<p>R users can install the <a href="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/tree/snapshot-v0.2-20261128/interfaces/R/BayesianMGMFRM">R wrapper 0.2.0</a> and run <code>setup_mgmfrm()</code> to use the same Julia commit.</p>
 <p>Dated manual snapshots:
 <a href="preview/20261119-distribution-ci-freeze/">19 November 2026 snapshot</a> ·
 <a href="preview/20261109-entry-organization/">9 November 2026 snapshot</a> ·

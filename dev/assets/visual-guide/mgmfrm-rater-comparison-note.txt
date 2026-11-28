@@ -1,4 +1,4 @@
-Experimental MGMFRM fit to simulated ratings; no new fitting. All 16,000 saved joint draws are reused.
+MGMFRM fit to simulated ratings; no new fitting. All 16,000 saved joint draws are reused.
 
 Rater Comparison at Item I1
 
