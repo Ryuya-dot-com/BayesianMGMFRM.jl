@@ -63,9 +63,10 @@ julia = "1.10.8"
 [extras]
 Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
 Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Turing", "Logging", "ReverseDiff", "Sockets", "Test"]
+test = ["Turing", "Logging", "Printf", "ReverseDiff", "Sockets", "Test"]
