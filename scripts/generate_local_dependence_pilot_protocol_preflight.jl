@@ -201,7 +201,7 @@ function dependency_record(name::Symbol, path::AbstractString,
         "dependency content hash mismatch: $(relpath(path, ROOT))")
     return (;
         artifact = name,
-        path = relpath(path, ROOT),
+        path = replace(relpath(path, ROOT), '\\' => '/'),
         expected_schema,
         file_sha256 = file_sha256(path),
         content_hash = (;

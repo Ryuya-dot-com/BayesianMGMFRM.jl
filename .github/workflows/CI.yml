@@ -245,17 +245,34 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check out the producer of the archived pilot protocol and harness
+        uses: actions/checkout@v4
+        with:
+          ref: cb8fbaee251220eee024166dcde15d7780e05a12
+          path: pilot-producer
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1.10.8'
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
-      - name: Regenerate the tracked research harness
+      - name: Restore the producer's Julia environment
+        run: julia --startup-file=no --project=pilot-producer -e 'using Pkg; Pkg.instantiate()'
+      - name: Reproduce the archived harness and compare it with the PR fixture
         shell: pwsh
         run: |
-          $GeneratedHarness = Join-Path $env:RUNNER_TEMP 'local_dependence_pilot_batch_execution_harness.json'
-          julia --startup-file=no --project=. scripts/generate_local_dependence_pilot_batch_execution_harness.jl --output $GeneratedHarness
-          git diff --no-index --exit-code -- test/fixtures/local_dependence_pilot_batch_execution_harness.json $GeneratedHarness
+          $Protocol = 'test/fixtures/local_dependence_pilot_protocol_preflight.json'
+          $Harness = 'test/fixtures/local_dependence_pilot_batch_execution_harness.json'
+          if ((Get-FileHash $Protocol).Hash -ne (Get-FileHash "pilot-producer/$Protocol").Hash) {
+            throw "The archived protocol differs from its producer's copy"
+          }
+          $Generated = Join-Path $env:RUNNER_TEMP 'archived-harness.json'
+          julia --startup-file=no --project=pilot-producer pilot-producer/scripts/generate_local_dependence_pilot_batch_execution_harness.jl --output $Generated
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ((Get-FileHash $Harness).Hash -ne (Get-FileHash $Generated).Hash) {
+            throw "The reproduced harness differs from the archived PR fixture"
+          }
+      - name: Generate a current-source protocol and check its 660 dry-run commands
+        run: julia --startup-file=no --project=. test/local_dependence_pilot_harness_reproduction.jl
 
   docs:
     name: Documentation

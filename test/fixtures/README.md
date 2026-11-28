@@ -77,6 +77,14 @@ historical studies using their original source, complete dependency environment,
 protocol and inputs; the current checkout does not supply every study input.
 Do not replace a source-pinned reference merely to make a failing test pass.
 
+The archived local-dependence pilot protocol and 660-command dry run were
+produced at `cb8fbaee251220eee024166dcde15d7780e05a12`. To reproduce the
+harness bytes, run the batch harness generator from that checkout with its
+Julia 1.10 manifest. To validate the same job plan against today's checkout,
+run `julia --project=. test/local_dependence_pilot_harness_reproduction.jl`
+from a full Git clone. This builds a temporary protocol with the current source
+hashes and checks every planned command's job ID without starting a fit.
+
 The scalar references above, the ConQuest bridge records below and
 `local_dependence_known_truth_preflight.json` also have ordinary behavioral
 checks. Classify fixtures by their consumers, not by filename or file size.

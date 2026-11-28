@@ -345,15 +345,8 @@ end
 if test_group_enabled(:local_dependence) && RUN_RESEARCH_EVIDENCE_TESTS
     include("local_dependence_calibration_artifact.jl")
     include("local_dependence_calibration_pilot.jl")
-    include("local_dependence_pilot_protocol_artifact.jl")
-    include("local_dependence_pilot_calibration_semantics.jl")
-    include("local_dependence_pilot_attempt_archive.jl")
-    include("local_dependence_pilot_bounded_canonical_smoke.jl")
-    include("local_dependence_pilot_recovery.jl")
-    include("local_dependence_pilot_precommit_recovery.jl")
-    include("local_dependence_pilot_batch_execution_harness.jl")
-    include("local_dependence_pilot_controller_receipts.jl")
-    include("local_dependence_pilot_job_worker.jl")
+    include("local_dependence_pilot_harness_reproduction.jl")
+    check_current_pilot_harness(; executor_tests = true)
 end
 if test_group_enabled(:generalized)
     include("model_family_contract.jl")
