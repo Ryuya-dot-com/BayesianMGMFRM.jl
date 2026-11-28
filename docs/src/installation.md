@@ -3,14 +3,14 @@
 ## Install the development snapshot
 
 Use Julia 1.10.8 or newer. This manual uses Julia package version
-`0.2.0-DEV` at commit `78c5701b91b241a5c3d34aeb5640f3b4717d6fca`. Install it in a
+`0.2.0-DEV` at commit `134418dd459267ab4c834cf9ff8f49d71aea9ec5`. Install it in a
 dedicated analysis project:
 
 ```julia
 using Pkg
 Pkg.activate("rating-analysis")
 Pkg.add(url="https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl",
-        rev="78c5701b91b241a5c3d34aeb5640f3b4717d6fca")
+        rev="134418dd459267ab4c834cf9ff8f49d71aea9ec5")
 using BayesianMGMFRM
 pkgversion(BayesianMGMFRM)  # v"0.2.0-DEV"
 ```
