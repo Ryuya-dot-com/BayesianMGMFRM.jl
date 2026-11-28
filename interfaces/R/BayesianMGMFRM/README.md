@@ -41,17 +41,16 @@ also run offline from saved `mgmfrm_r_fit` objects and portable handoffs.
 
 ## Quick Start
 
-Install Julia 1.10.8 or newer. From the root of the extracted `0.2.0-DEV` Julia package tree, run:
+Install Julia 1.10.8 or newer. Download and extract the
+[R wrapper snapshot](https://github.com/Ryuya-dot-com/BayesianMGMFRM.jl/archive/refs/tags/snapshot-v0.2-20261128.tar.gz).
+From its root directory, install the R package and connect to Julia:
 
 ```r
 install.packages(c("JuliaConnectoR", "posterior", "jsonlite", "digest"))  # once
 install.packages("interfaces/R/BayesianMGMFRM", repos = NULL, type = "source")
 
 library(BayesianMGMFRM)
-setup_mgmfrm(
-  project = file.path(tools::R_user_dir("BayesianMGMFRM", "cache"), "local-v02"),
-  source_dir = "."
-)
+setup_mgmfrm()
 
 ratings <- read.csv(system.file("extdata", "ratings.csv", package = "BayesianMGMFRM"))
 fit <- fit_mgmfrm(ratings, 0:3)
@@ -63,7 +62,10 @@ diagnostics_mgmfrm(fit, type = "fit_statistics", facet = "rater")
 diagnostics_mgmfrm(fit, type = "reliability")
 ```
 
-> **Development archive note:** Calling `setup_mgmfrm()` with no arguments resolves the last published release commit (`0.1.2` / `dcc3c84`). Always pass `source_dir = "."` (pointing to the extracted `0.2.0-DEV` package root) when running the unreleased `0.2.0-DEV` tree, and inspect `fit$metadata$package_version` and `fit$metadata$source` to confirm the resolved Julia build.
+The R wrapper is version `0.2.0`. Its default setup installs the Julia
+`0.2.0-DEV` engine at commit `78c5701b91b241a5c3d34aeb5640f3b4717d6fca`.
+After fitting, `fit$metadata$bridge_source` records this SHA and
+`fit$metadata$package_version` records the Julia package version.
 
 ## Key Capabilities (`v0.2.0`)
 

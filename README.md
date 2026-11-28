@@ -27,8 +27,8 @@ and prior; they do not prove equivalence.*
 
 To run the example, follow [installation](docs/src/installation.md), then return
 to the tutorial. This source and manual are package **0.2.0-DEV (unreleased)**
-for Julia 1.10.8 or newer. Install from the matching `0.2.0-DEV` source tree
-rather than older `0.1.x` snapshots; this is not a stable release.
+for Julia 1.10.8 or newer. The installation guide gives the exact Git revision
+and an alternative for local development.
 
 ## After the first analysis
 

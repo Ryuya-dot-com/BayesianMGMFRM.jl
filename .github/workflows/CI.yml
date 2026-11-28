@@ -216,6 +216,11 @@ jobs:
         run: |
           R CMD INSTALL interfaces/R/BayesianMGMFRM
           BAYESIANMGMFRM_R_CHECK_SOURCE="$GITHUB_WORKSPACE" Rscript --vanilla interfaces/R/BayesianMGMFRM/tests/interface.R
+          Rscript --vanilla interfaces/R/BayesianMGMFRM/tests/fair-reference.R
+          Rscript --vanilla interfaces/R/BayesianMGMFRM/tests/generalizability.R
+      - name: Check the R wrapper's pinned Julia installation
+        if: runner.os == 'macOS'
+        run: Rscript --vanilla -e 'library(BayesianMGMFRM); setup_mgmfrm()'
 
   research-evidence:
     name: Research evidence and SHA lineage

@@ -13,8 +13,7 @@ running Julia. You do not need to study all the model families first.
 
 To run the tutorial, follow [installation](installation.md), then return to it.
 This manual matches package **0.2.0-DEV (unreleased)** for Julia 1.10.8 or
-newer. Install from the matching local or extracted `0.2.0-DEV` source tree
-rather than older `0.1.x` snapshots.
+newer. The installation guide covers the pinned Git revision and local source trees.
 
 ## [After the first analysis](@id find-by-task)
 
