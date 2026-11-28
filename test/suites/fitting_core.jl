@@ -2464,8 +2464,10 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     design_robustness_path = tempname() * ".json"
     run(`$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
         $design_robustness_script --output $design_robustness_path`)
-    @test read(design_robustness_path, String) ==
-        read(design_robustness_fixture, String)
+    first_plan = read(design_robustness_path)
+    run(`$(Base.julia_cmd()) --startup-file=no --project=$subprocess_project_dir
+        $design_robustness_script --output $design_robustness_path`)
+    @test read(design_robustness_path) == first_plan
     design_robustness = JSON3.read(read(design_robustness_path, String))
     @test String(design_robustness[:schema]) ==
         "bayesianmgmfrm.existing_api_design_robustness_plan.v1"
@@ -2535,8 +2537,9 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     @test all(row -> Bool(row[:assignment_warning_retained]), linking_checks)
     anchor_guard = only(row for row in checks
         if String(row[:check_id]) == "parameter_anchor_guard")
-    @test String(anchor_guard[:estimation_status]) == "specified_only"
-    @test Bool(anchor_guard[:ordinary_design_compilation_blocked])
+    @test String(anchor_guard[:estimation_status]) == "fit_supported"
+    @test !Bool(anchor_guard[:ordinary_design_compilation_blocked])
+    @test isnothing(anchor_guard[:error_type])
     @test String(anchor_guard[:interpretation]) ==
         "parameter_anchor_not_materialized_linking_response"
     scenarios = design_robustness[:mandatory_scenarios]
@@ -2630,14 +2633,19 @@ println("fitting_core runtime: CPU target=", Sys.CPU_NAME,
     expected_package_version = string(pkgversion(BayesianMGMFRM))
     @test String(design_stress[:package][:version]) ==
         expected_package_version
-    @test String(committed_design_stress[:package][:version]) ==
-        expected_package_version
+    @test String(committed_design_stress[:package][:version]) == "0.1.2"
     committed_runtime = committed_design_stress[:runtime_provenance]
     @test String(committed_runtime[:julia_version]) == "1.10.8"
     @test String(committed_runtime[:manifest_file]) == "Manifest-v1.10.toml"
-    @test String(committed_runtime[:manifest_toml_sha256]) == file_sha256(
-        joinpath(dirname(dirname(@__DIR__)), "Manifest-v1.10.toml"),
-    )
+    @test String(committed_runtime[:manifest_toml_sha256]) ==
+        "0e56ce537ef547df436126a352791cec530ae0bd6dc6127d8ec889544b872291"
+    current_runtime = design_stress[:runtime_provenance]
+    @test String(current_runtime[:project_toml_sha256]) ==
+        file_sha256(joinpath(dirname(dirname(@__DIR__)), "Project.toml"))
+    if !isnothing(current_runtime[:manifest_file])
+        @test String(current_runtime[:manifest_toml_sha256]) == file_sha256(
+            joinpath(dirname(dirname(@__DIR__)), String(current_runtime[:manifest_file])))
+    end
     function stress_local_json_value(value)
         if value isa AbstractDict
             materialized_pairs = collect(pairs(value))

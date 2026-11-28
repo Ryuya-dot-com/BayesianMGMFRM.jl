@@ -84,6 +84,12 @@ Julia 1.10 manifest. To validate the same job plan against today's checkout,
 run `julia --project=. test/local_dependence_pilot_harness_reproduction.jl`
 from a full Git clone. This builds a temporary protocol with the current source
 hashes and checks every planned command's job ID without starting a fit.
+The same producer checkout contains the archived calibration scorer and design
+stress grid. From the current checkout, run
+`julia --project=/path/to/producer test/research_archive_reproduction.jl`
+to check their source and environment hashes and reproduce the original
+design plan and pilot harness. The current design plan also checks that
+compiling a hard rater anchor preserves the observed ratings.
 
 The guarded-fit validation grid records the SHA-256 of the original
 13-scenario Q-matrix study at commit `6e8291c96e10332eddd651a3477c3c2c11550115`.

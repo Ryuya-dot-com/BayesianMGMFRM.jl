@@ -21,7 +21,8 @@ function check_current_pilot_harness(; executor_tests = false)
             cp(joinpath(root, name), joinpath(scratch, name))
         end
         project = dirname(Base.active_project())
-        for generator in ("generate_local_dependence_pilot_protocol_preflight.jl",
+        for generator in ("generate_local_dependence_calibration_scorer_preflight.jl",
+                "generate_local_dependence_pilot_protocol_preflight.jl",
                 "generate_local_dependence_pilot_batch_execution_harness.jl")
             script = joinpath(scratch, "scripts", generator)
             run(`$(Base.julia_cmd()) --startup-file=no --project=$project $script`)
@@ -39,7 +40,8 @@ function check_current_pilot_harness(; executor_tests = false)
             @test !current.summary.model_fit_run && !current.summary.mcmc_run
         end
         if executor_tests
-            for file in ("local_dependence_pilot_protocol_artifact.jl",
+            for file in ("local_dependence_calibration_artifact.jl",
+                    "local_dependence_pilot_protocol_artifact.jl",
                     "local_dependence_pilot_calibration_semantics.jl",
                     "local_dependence_pilot_attempt_archive.jl",
                     "local_dependence_pilot_bounded_canonical_smoke.jl",

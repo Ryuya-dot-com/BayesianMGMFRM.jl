@@ -432,23 +432,18 @@ function parameter_anchor_guard_check()
         )],
     )
     linking = BayesianMGMFRM.anchor_linking_summary(spec)
-    blocked = false
-    error_type = missing
-    try
-        BayesianMGMFRM.getdesign(spec)
-    catch err
-        blocked = true
-        error_type = Symbol(nameof(typeof(err)))
-    end
-    passed = spec.estimation_status === :specified_only && blocked &&
+    design = BayesianMGMFRM.getdesign(spec)
+    passed = spec.estimation_status === :fit_supported &&
+        design.identification[:rater] === :hard_anchor &&
+        "rater[R1]" ∉ design.parameter_names && design.spec.data === data &&
         linking.n_anchors == 1 &&
         linking.caveat === :diagnostic_summary_not_anchor_refit_or_linking_estimator
     return (;
         check_id = :parameter_anchor_guard,
         passed,
         estimation_status = spec.estimation_status,
-        ordinary_design_compilation_blocked = blocked,
-        error_type,
+        ordinary_design_compilation_blocked = false,
+        error_type = missing,
         parameter_anchor_count = linking.n_anchors,
         linking_summary_caveat = linking.caveat,
         interpretation = :parameter_anchor_not_materialized_linking_response,
@@ -722,7 +717,7 @@ function build_artifact()
         ),
         terminology = (;
             parameter_anchor =
-                :hard_or_soft_parameter_constraint_currently_specified_only,
+                :hard_or_soft_parameter_constraint,
             multiply_scored_target =
                 :unique_person_item_response_scored_by_two_or_more_raters,
             common_linking_target =

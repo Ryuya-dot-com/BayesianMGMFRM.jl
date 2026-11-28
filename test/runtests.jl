@@ -343,7 +343,6 @@ if test_group_enabled(:local_dependence_core) ||
     include("local_dependence_calibration.jl")
 end
 if test_group_enabled(:local_dependence) && RUN_RESEARCH_EVIDENCE_TESTS
-    include("local_dependence_calibration_artifact.jl")
     include("local_dependence_calibration_pilot.jl")
     include("local_dependence_pilot_harness_reproduction.jl")
     check_current_pilot_harness(; executor_tests = true)

@@ -257,20 +257,8 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - name: Restore the producer's Julia environment
         run: julia --startup-file=no --project=pilot-producer -e 'using Pkg; Pkg.instantiate()'
-      - name: Reproduce the archived harness and compare it with the PR fixture
-        shell: pwsh
-        run: |
-          $Protocol = 'test/fixtures/local_dependence_pilot_protocol_preflight.json'
-          $Harness = 'test/fixtures/local_dependence_pilot_batch_execution_harness.json'
-          if ((Get-FileHash $Protocol).Hash -ne (Get-FileHash "pilot-producer/$Protocol").Hash) {
-            throw "The archived protocol differs from its producer's copy"
-          }
-          $Generated = Join-Path $env:RUNNER_TEMP 'archived-harness.json'
-          julia --startup-file=no --project=pilot-producer pilot-producer/scripts/generate_local_dependence_pilot_batch_execution_harness.jl --output $Generated
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if ((Get-FileHash $Harness).Hash -ne (Get-FileHash $Generated).Hash) {
-            throw "The reproduced harness differs from the archived PR fixture"
-          }
+      - name: Verify the historical research fixtures with their producer
+        run: julia --startup-file=no --project=pilot-producer test/research_archive_reproduction.jl
       - name: Generate a current-source protocol and check its 660 dry-run commands
         run: julia --startup-file=no --project=. test/local_dependence_pilot_harness_reproduction.jl
 
