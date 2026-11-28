@@ -162,7 +162,10 @@ import LogDensityProblems as LDP
             lp_big = LDP.logdensity(t, BigFloat.(q))
             g_fd = ForwardDiff.gradient(x -> LDP.logdensity(t, x), q)
             @test isfinite(lp_f64)
-            @test abs(lp_f64 - Float64(lp_big)) <= 1e-12
+            # The Float64 kernel sums 216 observations; Julia 1.10.8 differs
+            # from the rounded BigFloat result by up to 9 ULPs on this fixture.
+            reference = Float64(lp_big)
+            @test abs(lp_f64 - reference) <= 16 * eps(abs(reference))
             @test maximum(abs, g_f64 .- g_fd) <= 1e-11
 
             # Persistence record round-trip
